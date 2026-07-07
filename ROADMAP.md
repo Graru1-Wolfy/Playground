@@ -7,6 +7,8 @@
 
 Track progress by checking boxes in this file. Product releases use [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
+**Live tracker (GitHub):** [Milestones](https://github.com/Graru1-Wolfy/Playground/milestones) · [Roadmap issues](https://github.com/Graru1-Wolfy/Playground/issues?q=label%3Aroadmap) · [Projects board](https://github.com/Graru1-Wolfy/Playground/projects) — see [docs/github-roadmap.md](./docs/github-roadmap.md) for sync workflow.
+
 ---
 
 ## Release overview
@@ -267,20 +269,25 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 | `1.0.3` | 2026-07-07 | Grounded unduck (`FinishUnDuck` + ceiling `CanUnduck`) |
 | `1.0.4` | 2026-07-07 | SDK `DamageForce` knockback + Mangler charged shot (21 scenarios) |
 | `1.0.8` | 2026-07-07 | v0.5.0 web MVP scaffold (`apps/web`) |
+| `1.0.9` | 2026-07-07 | GitHub Milestones + Issues sync (`scripts/sync_roadmap_to_github.py`) |
+| `1.0.10` | 2026-07-07 | Pages deploy fixes (artifact v4, actions v5, BASE_URL data paths) |
 
 ---
 
-## Importing to GitHub Issues (optional)
+## GitHub tracking
 
-If you have issue-creation permissions, create one milestone per version above and split each checkbox section into issues. Suggested labels:
+Roadmap tasks are synced to GitHub automatically:
 
-- `milestone:v0.1.0` … `milestone:v1.0.0`
-- `area:sim`, `area:frontend`, `area:data`, `area:validation`, `area:infra`
+| View | URL |
+|------|-----|
+| Milestones | https://github.com/Graru1-Wolfy/Playground/milestones |
+| Issues (`label:roadmap`) | https://github.com/Graru1-Wolfy/Playground/issues?q=label%3Aroadmap |
+| Projects | https://github.com/Graru1-Wolfy/Playground/projects |
 
-Example:
+After editing `docs/roadmap.json` or checkboxes here:
 
 ```bash
-gh issue create --title "Package TF2Simulator as tf2sim" \
-  --milestone "v0.1.0 — Simulation foundation" \
-  --label "area:sim"
+python3 scripts/sync_roadmap_to_github.py
 ```
+
+Full workflow: [docs/github-roadmap.md](./docs/github-roadmap.md).

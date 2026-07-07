@@ -15,6 +15,8 @@ export function heightBucket(height: number): string {
   return `${String(base).padStart(3, "0")}to${String(base + 99).padStart(3, "0")}`;
 }
 
-export function setupDataUrl(height: number, basePath = "data"): string {
-  return `${basePath}/${heightBucket(height)}/${height}.bin.gz`;
+export function setupDataUrl(height: number, basePath?: string): string {
+  const root = basePath ?? `${import.meta.env.BASE_URL}data`;
+  const prefix = root.endsWith("/") ? root : `${root}/`;
+  return `${prefix}${heightBucket(height)}/${height}.bin.gz`;
 }

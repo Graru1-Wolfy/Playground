@@ -34,10 +34,19 @@ npm run preview -w @playground/web
 
 ## GitHub Pages
 
+- URL: `https://graru1-wolfy.github.io/Playground/` (after deploy succeeds)
 - Base path: `/Playground/` (override with `VITE_BASE_PATH=/` for custom domains)
-- Enable **GitHub Pages → GitHub Actions** in repo settings
+- **Repo settings:** Settings → Pages → Build and deployment → Source: **GitHub Actions** (required once)
 - Workflow: `.github/workflows/deploy-pages.yml`
 - Full 0–99 data: cache `data/generated` in CI or run generation locally before deploy
+
+### Known fixes (2026-07-07)
+
+- **`upload-pages-artifact@v3` is deprecated** — workflow now uses `@v4` (required since Jan 2025)
+- **Node.js 20 action runtime deprecated** — `checkout` / `setup-node` bumped to `@v5` (Node 24)
+- **Data fetch path** — setup URLs use Vite `BASE_URL` so `/Playground/data/...` resolves on project pages
+
+If deploy still fails, check Actions logs for the `Deploy GitHub Pages` workflow and confirm Pages source is **GitHub Actions**, not “Deploy from branch”.
 
 ## License
 
