@@ -617,6 +617,27 @@ def example_19_grounded_unduck_blocked_by_ceiling() -> ScenarioResult:
     return result
 
 
+def example_20_mangler_charged_ctap() -> ScenarioResult:
+    """Mangler charged shot (+attack2) into CTAP — verifies Charged_standard_rocket."""
+
+    def setup(keys):
+        p = simulation.Soldier(keys, launcher=simulation.Mangler())
+        p.angle = -89.0
+        return p
+
+    def tick_fn(tick, _p, keys):
+        if tick == 5:
+            keys.press_key("+attack2")
+        if tick == 20:
+            keys.release_key("+attack2")
+        if tick == 27:
+            keys.press_keys("+jump", "+duck")
+        if tick == 28:
+            keys.release_keys("+jump", "+duck")
+
+    return _run_loop(406, setup, tick_fn, track_max_z=True)
+
+
 SCENARIOS: dict[str, Callable[[], ScenarioResult]] = {
     "example_01": example_01_spam_rockets,
     "example_02": example_02_hold_m1_hit_ss,
@@ -637,4 +658,5 @@ SCENARIOS: dict[str, Callable[[], ScenarioResult]] = {
     "example_17": example_17_pogo_inplace,
     "example_18": example_18_grounded_unduck_flat,
     "example_19": example_19_grounded_unduck_blocked_by_ceiling,
+    "example_20": example_20_mangler_charged_ctap,
 }

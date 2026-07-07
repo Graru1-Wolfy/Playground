@@ -31,6 +31,35 @@ def truncate(x, xmin, xmax):
         return xmax
     return x
 
+def remap_val_clamped(value, a, b, c, d):
+    # Source RemapValClamped
+    if b == a:
+        return c if value <= a else d
+    t = max(0.0, min(1.0, (value - a) / (b - a)))
+    return c + t * (d - c)
+
+# CTFPlayer::DamageForce reference hull volume (48x48x82)
+REFERENCE_HULL_VOLUME = 48.0 * 48.0 * 82.0
+TF_ROCKET_RADIUS_FOR_RJS = 110.0 * 1.1  # 121.0
+TF_DAMAGE_FORCE_SCALE_SELF_SOLDIER_RJ = 10.0
+TF_DAMAGE_FORCE_SCALE_SELF_SOLDIER_BADRJ = 5.0
+TF_DAMAGE_SCALE_SELF_SOLDIER = 0.60
+DAMAGE_FORCE_MAX = 1000.0
+FORCE_HULL_SIZE_DUCKED_Z = 55.0
+
+def radius_damage_at_distance(base_damage, radius, distance, half_falloff=False):
+    # CTFRadiusDamageInfo::CalculateFalloff + ApplyToEntity distance falloff
+    falloff = 0.5 if half_falloff else (base_damage / radius if radius else 1.0)
+    return remap_val_clamped(distance, 0.0, radius, base_damage, base_damage * falloff)
+
+def damage_force(size, damage, scale):
+    # CTFPlayer::DamageForce
+    volume = size[0] * size[1] * size[2]
+    if volume <= 0:
+        return 0.0
+    force = damage * (REFERENCE_HULL_VOLUME / volume) * scale
+    return min(force, DAMAGE_FORCE_MAX)
+
 """
     Constants used for TF2 simulation
 """
@@ -96,7 +125,7 @@ available_keys = {
     "+moveleft", "+moveright",
     "+moveup", "+movedown",
     "+jump", "+duck",
-    "+attack", "shotgun"
+    "+attack", "+attack2", "shotgun"
     }
 
 class Key_state:
@@ -311,30 +340,69 @@ class Rocket:
 class Standard_rocket(Rocket):
     explosion_damage = 90.0
     explosion_radius = 121.0
+    rj_radius = TF_ROCKET_RADIUS_FOR_RJS
+    half_falloff = False
     rocket_speed = 1100.0
+
+class Charged_standard_rocket(Standard_rocket):
+    # CTFProjectile_EnergyBall charged RJ radius multiplier
+    rj_radius = TF_ROCKET_RADIUS_FOR_RJS * 1.33
+    half_falloff = True
 
 """
     The rocket-launcher classes
-
-    Note: Sim charge-shot on mangler is not supported
 """
 
 class Rocket_launcher:
     offset_up_standing = -3.0
     offset_up_ducked = 8.0
     offset_forward = 23.5
+    rocket_type = Standard_rocket
+
+    def rocket_type_for_next_shot(self):
+        return self.rocket_type
 
 class Original(Rocket_launcher):
     offset_right = 0.0
-    rocket_type = Standard_rocket
 
 class Stock(Rocket_launcher):
     offset_right = 12.0
-    rocket_type = Standard_rocket
 
 class Mangler(Rocket_launcher):
     offset_right = 8.0
-    rocket_type = Standard_rocket
+    charge_seconds = 4.0
+
+    def __init__(self):
+        self.charging = False
+        self.charge_ticks = 0
+        self.pending_fire_charged = False
+        self.pending_charged_shot = False
+
+    def tick_charge(self, key_state):
+        max_ticks = int(self.charge_seconds / tick_duration)
+        if key_state["+attack2"] > 0:
+            self.charging = True
+            self.charge_ticks += 1
+            if self.charge_ticks >= max_ticks:
+                self.pending_fire_charged = True
+                self.charging = False
+        elif self.charging:
+            self.pending_fire_charged = True
+            self.charging = False
+            self.charge_ticks = 0
+
+    def consume_pending_charged_fire(self):
+        if not self.pending_fire_charged:
+            return False
+        self.pending_fire_charged = False
+        self.pending_charged_shot = True
+        return True
+
+    def rocket_type_for_next_shot(self):
+        if self.pending_charged_shot:
+            self.pending_charged_shot = False
+            return Charged_standard_rocket
+        return Standard_rocket
 
 """
     The player-base class. Has support for hooking.
@@ -825,6 +893,8 @@ class Soldier(Player):
         super().__init__(key_state, **kwargs)
         self.hook = kwargs.get('hook', None)
         self.key_state = key_state
+        if isinstance(launcher, type):
+            launcher = launcher()
         self.launcher = launcher
 
         self.active_rockets = []
@@ -887,13 +957,13 @@ class Soldier(Player):
             launcher_pos[i] += forward[i] * self.launcher.offset_forward + right[i] * self.launcher.offset_right + up[i] * up_offset
 
         rocket_vel = [aim_at[i] - launcher_pos[i] for i in range(3)]
-        scale = self.launcher.rocket_type.rocket_speed / sqrt(sum(x**2 for x in rocket_vel))
+        rocket_cls = self.launcher.rocket_type_for_next_shot()
+        scale = rocket_cls.rocket_speed / sqrt(sum(x**2 for x in rocket_vel))
         rocket_vel = [x * scale for x in rocket_vel]
         
         if self.hook: self.hook.soldier_after_shot(self)
         
-        # Return rocket object
-        return self.launcher.rocket_type(launcher_pos, rocket_vel, at_floor, self.hook)
+        return rocket_cls(launcher_pos, rocket_vel, at_floor, self.hook)
 
     def simulate_tick(self):
         super().simulate_tick()
@@ -915,15 +985,27 @@ class Soldier(Player):
         
         # CTFWeaponBase::Deploy
         self.fire_cooldown -= tick_duration
+        if hasattr(self.launcher, "tick_charge"):
+            self.launcher.tick_charge(self.key_state)
+
         # Pretend to switch from shotgun to rocket launcher
         if self.key_state['shotgun'] > 0.0:
             if self.hook: self.hook.soldier_before_weapon_switch(self)
             self.fire_cooldown = max(self.deploy_speed, self.fire_cooldown)
             if self.hook: self.hook.soldier_after_weapon_switch(self)
 
+        charged_fire = (
+            hasattr(self.launcher, "consume_pending_charged_fire")
+            and self.launcher.consume_pending_charged_fire()
+        )
+        if charged_fire and self.fire_cooldown <= 0:
+            self.fire_cooldown = self.fire_rate
+            self.active_rockets.append(self.shoot_rocket())
+
         # Jumpqol makes sure that rockets are never moved the tick they are created.
         # CTFWeaponBaseGun::PrimaryAttack in tf/tf_weaponbase_gun
-        if self.key_state['+attack'] > 0.0 and self.fire_cooldown <= 0:
+        charging = getattr(self.launcher, "charging", False)
+        if self.key_state['+attack'] > 0.0 and self.fire_cooldown <= 0 and not charging:
             self.fire_cooldown = self.fire_rate 
             self.active_rockets.append(self.shoot_rocket())
         
@@ -931,11 +1013,10 @@ class Soldier(Player):
 
 
     def simulate_knockback(self, explosion_pos, explosion_damage, explosion_radius, rocket):
-        # This is from review.pdf
-        
-        # Check if explosion is within explosion radius
-        # This is done by checking if closest point in bounding box is within
-        # the radius
+        # CTFPlayer::ApplyPushFromDamage + CTFPlayer::DamageForce
+        rj_radius = getattr(rocket, "rj_radius", explosion_radius)
+        half_falloff = getattr(rocket, "half_falloff", False)
+
         center_pos = list(self.pos)
         if self.b_ducked:
             center_pos[2] += 31.0
@@ -950,45 +1031,51 @@ class Soldier(Player):
         closet_point = [truncate(explosion_pos[i], bbox_min[i], bbox_max[i]) for i in range(3)]
         dist_rocket_to_bbox = sqrt(sum((closet_point[i] - explosion_pos[i])**2 for i in range(3)))
         
-        if dist_rocket_to_bbox > explosion_radius:
-            if self.hook: self.hook.soldier_outside_explosion(self, explosion_pos, explosion_damage, explosion_radius, dist_rocket_to_bbox, rocket)
+        if dist_rocket_to_bbox > rj_radius:
+            if self.hook: self.hook.soldier_outside_explosion(self, explosion_pos, explosion_damage, rj_radius, dist_rocket_to_bbox, rocket)
             return
 
-        # Damage is computed using min distance to feet or center
         dist_rocket_to_center = sqrt(sum((center_pos[i] - explosion_pos[i])**2 for i in range(3)))
         dist_rocket_to_feet = sqrt(sum((self.pos[i] - explosion_pos[i])**2 for i in range(3)))
-
         d = min(dist_rocket_to_center, dist_rocket_to_feet)
-        inital_damage = explosion_damage * (1.0 - 0.5 * min(d / explosion_radius, 1.0))
-        
-        # Note what is called modified damage here is not actual damage
-        if self.b_on_ground:
-            modified_damage = inital_damage * 5.0
-        else:
-            modified_damage = inital_damage * 6.0
+
+        damage_for_force = radius_damage_at_distance(
+            explosion_damage, rj_radius, d, half_falloff=half_falloff
+        )
+        if not self.b_on_ground:
+            damage_for_force *= TF_DAMAGE_SCALE_SELF_SOLDIER
+
+        force_scale = (
+            TF_DAMAGE_FORCE_SCALE_SELF_SOLDIER_BADRJ
+            if self.b_on_ground
+            else TF_DAMAGE_FORCE_SCALE_SELF_SOLDIER_RJ
+        )
 
         if self.b_ducked:
-            modified_damage *= 82/55
+            force_size = [48.0, 48.0, FORCE_HULL_SIZE_DUCKED_Z]
+        else:
+            force_size = [48.0, 48.0, 82.0]
 
-        modified_damage = min(modified_damage, 1000.0)
-        
-        # Move explosion 10.0 units down
-        explosion_pos[2] -= 10.0
+        impulse = damage_force(force_size, damage_for_force, force_scale)
 
-        explosion_dir = [(center_pos[i] - explosion_pos[i]) for i in range(3)]
-        scale = sqrt(sum(x**2 for x in explosion_dir))
-        explosion_dir = [x / scale for x in explosion_dir]
+        explosion_for_dir = list(explosion_pos)
+        explosion_for_dir[2] -= 10.0
+        impulse_dir = [center_pos[i] - explosion_for_dir[i] for i in range(3)]
+        dir_scale = sqrt(sum(x**2 for x in impulse_dir))
+        if dir_scale:
+            impulse_dir = [x / dir_scale for x in impulse_dir]
+        else:
+            impulse_dir = [0.0, 0.0, 1.0]
        
         if self.hook: vspeed_before_explosion = self.vel[2]
-        if self.hook: hspeed_before_explosion = sqrt(sum(self.vel[i]**2 for i in range(2)))
-        if self.hook: self.hook.soldier_before_hit(self, explosion_dir, modified_damage, explosion_pos, rocket)
+        if self.hook: self.hook.soldier_before_hit(self, impulse_dir, impulse, explosion_for_dir, rocket)
         for i in range(3):
-            self.vel[i] += explosion_dir[i] * modified_damage
-        if self.hook: self.hook.soldier_after_hit(self, explosion_dir, modified_damage, explosion_pos, rocket)
+            self.vel[i] += impulse_dir[i] * impulse
+        if self.hook: self.hook.soldier_after_hit(self, impulse_dir, impulse, explosion_for_dir, rocket)
         
         if self.hook:
             hit_ss = self.b_on_ground and self.hook.landed_this_tick and self.vel[2] > 0.0 and vspeed_before_explosion == 0.0
-            if hit_ss: self.hook.soldier_ss_detected(self, explosion_dir, modified_damage, explosion_pos, rocket)
+            if hit_ss: self.hook.soldier_ss_detected(self, impulse_dir, impulse, explosion_for_dir, rocket)
         if self.hook and self.b_on_ground and 1.0 < self.pos[2] - self.floor.z <= 2.0 and self.vel[2] > 0.0: 
-            if self.b_ducked: self.hook.soldier_crouched_bounce_detected(self, explosion_dir, modified_damage, explosion_pos, rocket)
-            else: self.hook.soldier_standing_bounce_detected(self, explosion_dir, modified_damage, explosion_pos, rocket)
+            if self.b_ducked: self.hook.soldier_crouched_bounce_detected(self, impulse_dir, impulse, explosion_for_dir, rocket)
+            else: self.hook.soldier_standing_bounce_detected(self, impulse_dir, impulse, explosion_for_dir, rocket)
