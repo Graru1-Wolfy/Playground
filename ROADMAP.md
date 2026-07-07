@@ -64,18 +64,18 @@ data/generated/    # CI artifact — NOT committed to git
 
 ### SDK audit (ground truth)
 
-Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk-2013):
+Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk-2013). Full checklist: **[docs/sdk-audit.md](./docs/sdk-audit.md)**.
 
 | SDK file | Sim function(s) to verify |
 |----------|---------------------------|
 | `src/game/shared/gamemovement.cpp` | `friction`, `walkmove`, `airmove`, duck, gravity |
 | `src/game/shared/tf/tf_gamemovement.cpp` | `PreventBunnyJumping`, `CategorizePosition`, `CheckJumpButton`, `GetAirSpeedCap` |
-| `src/game/shared/tf/tf_player.cpp` | `Soldier.simulate_knockback` |
+| `src/game/server/tf/tf_player.cpp` | `Soldier.simulate_knockback` |
 
-- [ ] Produce SDK ↔ sim mapping checklist (`docs/sdk-audit.md`)
-- [ ] Verify constants: `sv_gravity`, `sv_friction`, `COORD_RESOLUTION`, `BUNNYJUMP_MAX_SPEED_FACTOR`
-- [ ] Verify tick order matches `PlayerMove` / `FullWalkMove` flow
-- [ ] Confirm `float_mode` emulates C++ `float` (64-bit TF2 still uses 32-bit floats)
+- [x] Produce SDK ↔ sim mapping checklist (`docs/sdk-audit.md`)
+- [x] Verify constants: `sv_gravity`, `sv_friction`, `COORD_RESOLUTION`, `BUNNYJUMP_MAX_SPEED_FACTOR`
+- [x] Verify tick order matches `PlayerMove` / `FullWalkMove` flow
+- [x] Confirm `float_mode` emulates C++ `float` (64-bit TF2 still uses 32-bit floats)
 
 ### Known gaps to fix
 
@@ -262,6 +262,7 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 |-------------|------|---------|
 | `1.0.0` | 2026-07-07 | Initial versioned roadmap (v0.1.0 – v1.0.0) |
 | `1.0.1` | 2026-07-07 | v0.1.0 package + 17-example regression suite started |
+| `1.0.2` | 2026-07-07 | SDK audit checklist (`docs/sdk-audit.md`) |
 
 ---
 

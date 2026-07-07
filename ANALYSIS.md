@@ -94,7 +94,7 @@ your-bounce-tool/
 
 ## Phased next steps
 
-See **[ROADMAP.md](./ROADMAP.md)** for the full versioned task list (`v0.1.0` – `v1.0.0`) with checkboxes. Machine-readable copy: [`docs/roadmap.json`](./docs/roadmap.json).
+See **[ROADMAP.md](./ROADMAP.md)** for the full versioned task list (`v0.1.0` – `v1.0.0`) with checkboxes. Machine-readable copy: [`docs/roadmap.json`](./docs/roadmap.json). SDK audit: [`docs/sdk-audit.md`](./docs/sdk-audit.md).
 
 Summary:
 
