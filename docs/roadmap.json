@@ -34,7 +34,7 @@
         { "id": "0.2.2", "title": "Port bcheck canBounce and helpers", "status": "done", "area": "engine-fast" },
         { "id": "0.2.3", "title": "Port getVelFromAngle and angle sweep", "status": "done", "area": "engine-fast" },
         { "id": "0.2.4", "title": "Port DRANGE double-bhop detection", "status": "done", "area": "engine-fast" },
-        { "id": "0.2.5", "title": "Cross-validate analytical vs sim for DEFAULT starts", "status": "todo", "area": "validation" },
+        { "id": "0.2.5", "title": "Cross-validate analytical vs sim for DEFAULT starts", "status": "done", "area": "validation" },
         { "id": "0.2.6", "title": "Port bcheck/bfind CLI", "status": "in_progress", "area": "cli" }
       ]
     },

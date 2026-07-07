@@ -111,8 +111,8 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 
 ### Cross-validation
 
-- [ ] Test analytical results against tf2sim for all DEFAULT start types
-- [ ] Document acceptable tolerance (float rounding)
+- [x] Test analytical results against tf2sim for all DEFAULT start types
+- [x] Document acceptable tolerance (float rounding) — see `docs/cross-validation.md`
 - [x] Add CLI: `bcheck quick` and sample-data lookup (full bfind deferred)
 
 **Release criteria for v0.2.0:**
@@ -266,7 +266,7 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 | `1.0.2` | 2026-07-07 | SDK audit checklist (`docs/sdk-audit.md`) |
 | `1.0.3` | 2026-07-07 | Grounded unduck (`FinishUnDuck` + ceiling `CanUnduck`) |
 | `1.0.4` | 2026-07-07 | SDK `DamageForce` knockback + Mangler charged shot (21 scenarios) |
-| `1.0.5` | 2026-07-07 | v0.2.0 `engine-fast` TypeScript package (bcheck analytical core) |
+| `1.0.6` | 2026-07-07 | Cross-validation: engine-fast vs tf2sim (`docs/cross-validation.md`) |
 
 ---
 

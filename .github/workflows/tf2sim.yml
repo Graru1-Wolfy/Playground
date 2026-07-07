@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - "packages/tf2sim/**"
+      - "packages/engine-fast/**"
       - ".github/workflows/tf2sim.yml"
   pull_request:
     paths:
       - "packages/tf2sim/**"
+      - "packages/engine-fast/**"
       - ".github/workflows/tf2sim.yml"
 
 jobs:
@@ -27,6 +29,16 @@ jobs:
 
       - name: Install package and test deps
         run: pip install -e "packages/tf2sim[dev]"
+
+      - name: Set up Node for engine-fast cross-validation
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/engine-fast/package-lock.json
+
+      - name: Build engine-fast
+        run: cd packages/engine-fast && npm ci && npm run build
 
       - name: Run pytest
         run: cd packages/tf2sim && pytest
