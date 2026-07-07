@@ -94,6 +94,10 @@ your-bounce-tool/
 
 ## Phased next steps
 
+See **[ROADMAP.md](./ROADMAP.md)** for the full versioned task list (`v0.1.0` – `v1.0.0`) with checkboxes. Machine-readable copy: [`docs/roadmap.json`](./docs/roadmap.json).
+
+Summary:
+
 1. **Foundation** — Package TF2Simulator; diff movement code against `source-sdk-2013` `tf_gamemovement.cpp`; validation tests from 17 examples; port bcheck analytical core to TypeScript
 2. **Search engine** — Port Fancy-BCheck generator; fix schema bugs; Numba/Rust hot path; CI-generated data (not in git)
 3. **Frontend** — Vite + TypeScript; shared schema; hybrid precomputed + on-demand lookup

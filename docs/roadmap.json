@@ -1,0 +1,103 @@
+{
+  "roadmapVersion": "1.0.0",
+  "lastUpdated": "2026-07-07",
+  "currentTarget": "v0.1.0",
+  "releases": [
+    {
+      "version": "v0.1.0",
+      "codename": "Foundation",
+      "status": "not_started",
+      "dependsOn": [],
+      "blocks": ["v0.2.0", "v0.3.0", "v0.4.0"],
+      "tasks": [
+        { "id": "0.1.1", "title": "Create packages/tf2sim with pyproject.toml", "status": "todo", "area": "sim" },
+        { "id": "0.1.2", "title": "Copy simulation.py from TF2Simulator", "status": "todo", "area": "sim" },
+        { "id": "0.1.3", "title": "Convert 17 examples to pytest regression tests", "status": "todo", "area": "sim" },
+        { "id": "0.1.4", "title": "Add CI workflow for sim tests", "status": "todo", "area": "infra" },
+        { "id": "0.1.5", "title": "SDK audit: gamemovement.cpp vs simulation.py", "status": "todo", "area": "sim" },
+        { "id": "0.1.6", "title": "SDK audit: tf_gamemovement.cpp vs simulation.py", "status": "todo", "area": "sim" },
+        { "id": "0.1.7", "title": "SDK audit: tf_player.cpp knockback vs simulate_knockback", "status": "todo", "area": "sim" },
+        { "id": "0.1.8", "title": "Fix grounded unduck TODO", "status": "todo", "area": "sim" },
+        { "id": "0.1.9", "title": "Implement mangler charged shot", "status": "todo", "area": "sim" },
+        { "id": "0.1.10", "title": "Fix CategorizePosition early-call path", "status": "todo", "area": "sim" },
+        { "id": "0.1.11", "title": "Validate float_mode against 64-bit TF2", "status": "todo", "area": "validation" }
+      ]
+    },
+    {
+      "version": "v0.2.0",
+      "codename": "Fast path",
+      "status": "not_started",
+      "dependsOn": ["v0.1.0"],
+      "blocks": ["v0.5.0"],
+      "tasks": [
+        { "id": "0.2.1", "title": "Create packages/engine-fast (TypeScript)", "status": "todo", "area": "engine-fast" },
+        { "id": "0.2.2", "title": "Port bcheck canBounce and helpers", "status": "todo", "area": "engine-fast" },
+        { "id": "0.2.3", "title": "Port getVelFromAngle and angle sweep", "status": "todo", "area": "engine-fast" },
+        { "id": "0.2.4", "title": "Port DRANGE double-bhop detection", "status": "todo", "area": "engine-fast" },
+        { "id": "0.2.5", "title": "Cross-validate analytical vs sim for DEFAULT starts", "status": "todo", "area": "validation" },
+        { "id": "0.2.6", "title": "Port bcheck/bfind CLI", "status": "todo", "area": "cli" }
+      ]
+    },
+    {
+      "version": "v0.3.0",
+      "codename": "Search",
+      "status": "not_started",
+      "dependsOn": ["v0.1.0"],
+      "blocks": ["v0.5.0", "v1.0.0"],
+      "tasks": [
+        { "id": "0.3.1", "title": "Port Fancy-BCheck generate_setups pipeline", "status": "todo", "area": "engine-sim" },
+        { "id": "0.3.2", "title": "Port explore_code_paths and setups.py schema", "status": "todo", "area": "engine-sim" },
+        { "id": "0.3.3", "title": "Create packages/schema shared bind generator", "status": "todo", "area": "schema" },
+        { "id": "0.3.4", "title": "Fix STANDBBOUNCE and CONIST typos", "status": "todo", "area": "schema" },
+        { "id": "0.3.5", "title": "Enable ProcessPoolExecutor parallel generation", "status": "todo", "area": "engine-sim" },
+        { "id": "0.3.6", "title": "CI data generation artifact (no data in git)", "status": "todo", "area": "infra" },
+        { "id": "0.3.7", "title": "Generate and verify heights 0-99 test bucket", "status": "todo", "area": "data" }
+      ]
+    },
+    {
+      "version": "v0.4.0",
+      "codename": "Validation",
+      "status": "not_started",
+      "dependsOn": ["v0.1.0"],
+      "blocks": ["v1.0.0"],
+      "tasks": [
+        { "id": "0.4.1", "title": "Port bcheck zlog toolchain", "status": "todo", "area": "validation" },
+        { "id": "0.4.2", "title": "Document 64-bit TF2 zlog server setup", "status": "todo", "area": "validation" },
+        { "id": "0.4.3", "title": "Sim vs zlog comparison script", "status": "todo", "area": "validation" },
+        { "id": "0.4.4", "title": "Post-patch regression workflow docs", "status": "todo", "area": "validation" }
+      ]
+    },
+    {
+      "version": "v0.5.0",
+      "codename": "Web MVP",
+      "status": "not_started",
+      "dependsOn": ["v0.2.0", "v0.3.0"],
+      "blocks": ["v1.0.0"],
+      "tasks": [
+        { "id": "0.5.1", "title": "Scaffold apps/web with Vite and TypeScript", "status": "todo", "area": "frontend" },
+        { "id": "0.5.2", "title": "Integrate engine-fast for DEFAULT lookups", "status": "todo", "area": "frontend" },
+        { "id": "0.5.3", "title": "Integrate binary decoder and precomputed data fetch", "status": "todo", "area": "frontend" },
+        { "id": "0.5.4", "title": "Preference panel with localStorage", "status": "todo", "area": "frontend" },
+        { "id": "0.5.5", "title": "Deploy to GitHub Pages", "status": "todo", "area": "infra" }
+      ]
+    },
+    {
+      "version": "v1.0.0",
+      "codename": "Release",
+      "status": "not_started",
+      "dependsOn": ["v0.4.0", "v0.5.0"],
+      "blocks": [],
+      "tasks": [
+        { "id": "1.0.1", "title": "Generate full height range 0-6999", "status": "todo", "area": "data" },
+        { "id": "1.0.2", "title": "Full CI test-generate-deploy pipeline", "status": "todo", "area": "infra" },
+        { "id": "1.0.3", "title": "zlog validation for core setup categories", "status": "todo", "area": "validation" },
+        { "id": "1.0.4", "title": "FAQ and license compliance review", "status": "todo", "area": "docs" }
+      ],
+      "backlog": [
+        { "id": "1.x.1", "title": "WASM on-demand sim in browser", "status": "backlog", "area": "frontend" },
+        { "id": "1.x.2", "title": "SourceMod map-aware plugin", "status": "backlog", "area": "sourcemod" },
+        { "id": "1.x.3", "title": "Map heightmap input", "status": "backlog", "area": "data" }
+      ]
+    }
+  ]
+}
