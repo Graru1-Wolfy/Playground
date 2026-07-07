@@ -1,12 +1,12 @@
 {
   "roadmapVersion": "1.0.0",
   "lastUpdated": "2026-07-07",
-  "currentTarget": "v0.1.0",
+  "currentTarget": "v0.2.0",
   "releases": [
     {
       "version": "v0.1.0",
       "codename": "Foundation",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": [],
       "blocks": ["v0.2.0", "v0.3.0", "v0.4.0"],
       "tasks": [
@@ -26,16 +26,16 @@
     {
       "version": "v0.2.0",
       "codename": "Fast path",
-      "status": "not_started",
+      "status": "in_progress",
       "dependsOn": ["v0.1.0"],
       "blocks": ["v0.5.0"],
       "tasks": [
-        { "id": "0.2.1", "title": "Create packages/engine-fast (TypeScript)", "status": "todo", "area": "engine-fast" },
-        { "id": "0.2.2", "title": "Port bcheck canBounce and helpers", "status": "todo", "area": "engine-fast" },
-        { "id": "0.2.3", "title": "Port getVelFromAngle and angle sweep", "status": "todo", "area": "engine-fast" },
-        { "id": "0.2.4", "title": "Port DRANGE double-bhop detection", "status": "todo", "area": "engine-fast" },
+        { "id": "0.2.1", "title": "Create packages/engine-fast (TypeScript)", "status": "done", "area": "engine-fast" },
+        { "id": "0.2.2", "title": "Port bcheck canBounce and helpers", "status": "done", "area": "engine-fast" },
+        { "id": "0.2.3", "title": "Port getVelFromAngle and angle sweep", "status": "done", "area": "engine-fast" },
+        { "id": "0.2.4", "title": "Port DRANGE double-bhop detection", "status": "done", "area": "engine-fast" },
         { "id": "0.2.5", "title": "Cross-validate analytical vs sim for DEFAULT starts", "status": "todo", "area": "validation" },
-        { "id": "0.2.6", "title": "Port bcheck/bfind CLI", "status": "todo", "area": "cli" }
+        { "id": "0.2.6", "title": "Port bcheck/bfind CLI", "status": "in_progress", "area": "cli" }
       ]
     },
     {

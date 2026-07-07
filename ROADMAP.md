@@ -13,14 +13,14 @@ Track progress by checking boxes in this file. Product releases use [Semantic Ve
 
 | Version | Codename | Goal | Status |
 |---------|----------|------|--------|
-| [v0.1.0](#v010--simulation-foundation) | Foundation | Packaged sim + SDK audit + regression tests | In progress |
-| [v0.2.0](#v020--fast-analytical-engine) | Fast path | Port bcheck analytical core to TypeScript | Not started |
+| [v0.1.0](#v010--simulation-foundation) | Foundation | Packaged sim + SDK audit + regression tests | Complete (zlog deferred) |
+| [v0.2.0](#v020--fast-analytical-engine) | Fast path | Port bcheck analytical core to TypeScript | In progress |
 | [v0.3.0](#v030--setup-search--data-pipeline) | Search | Fancy-BCheck pipeline + CI-generated data | Not started |
 | [v0.4.0](#v040--validation-zlog) | Validation | zlog pipeline + post-patch regression | Not started |
 | [v0.5.0](#v050--web-mvp) | Web MVP | Hybrid lookup UI (analytical + precomputed) | Not started |
 | [v1.0.0](#v100--full-release) | Release | Full height range, CI/CD, preferences UI | Not started |
 
-**Current target:** `v0.1.0`
+**Current target:** `v0.2.0`
 
 ---
 
@@ -101,19 +101,19 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 
 ### Port bcheck core (~219 lines)
 
-- [ ] Create `packages/engine-fast/` (TypeScript)
-- [ ] Port `canBounce()` — closed-form landing tick math
-- [ ] Port `getZFromTick`, `getLandTickFromStartZVel`, `getValidHeight`
-- [ ] Port `getVelFromAngle()` — ILDPRUT rocket blast inverse
-- [ ] Port angle sweep (`ARANGE`, widest-interval picker)
-- [ ] Port `DRANGE` double-bhop detection (`0.705078` – `0.999999`)
-- [ ] Port weapon tables: Stock, Original, Mangler, Mangler Charged
+- [x] Create `packages/engine-fast/` (TypeScript)
+- [x] Port `canBounce()` — closed-form landing tick math
+- [x] Port `getZFromTick`, `getLandTickFromStartZVel`, `getValidHeight`
+- [x] Port `getVelFromAngle()` — ILDPRUT rocket blast inverse
+- [x] Port angle sweep (`ARANGE`, widest-interval picker)
+- [x] Port `DRANGE` double-bhop detection (`0.705078` – `0.999999`)
+- [x] Port weapon tables: Stock, Original, Mangler, Mangler Charged
 
 ### Cross-validation
 
 - [ ] Test analytical results against tf2sim for all DEFAULT start types
 - [ ] Document acceptable tolerance (float rounding)
-- [ ] Add CLI: `bcheck <height>` and `bfind <velocity>` (port from bcheck)
+- [x] Add CLI: `bcheck quick` and sample-data lookup (full bfind deferred)
 
 **Release criteria for v0.2.0:**
 - Analytical engine matches sim for DEFAULT starts within documented tolerance
@@ -266,6 +266,7 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 | `1.0.2` | 2026-07-07 | SDK audit checklist (`docs/sdk-audit.md`) |
 | `1.0.3` | 2026-07-07 | Grounded unduck (`FinishUnDuck` + ceiling `CanUnduck`) |
 | `1.0.4` | 2026-07-07 | SDK `DamageForce` knockback + Mangler charged shot (21 scenarios) |
+| `1.0.5` | 2026-07-07 | v0.2.0 `engine-fast` TypeScript package (bcheck analytical core) |
 
 ---
 

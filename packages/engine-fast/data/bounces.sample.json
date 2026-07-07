@@ -1,0 +1,16 @@
+{
+  "default": [
+    {
+      "vel": 500,
+      "text": "DEFAULT vel 500",
+      "weapon": "Stock"
+    },
+    {
+      "weapon": "Stock",
+      "crouched": false,
+      "double": false,
+      "ang": true,
+      "text": "DEFAULT angle sweep"
+    }
+  ]
+}
