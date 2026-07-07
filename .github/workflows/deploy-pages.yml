@@ -1,0 +1,75 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/engine-fast/**"
+      - "packages/schema/**"
+      - "scripts/prepare-web-data.sh"
+      - ".github/workflows/deploy-pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          pip install -e packages/tf2sim
+          pip install -e packages/engine-sim
+
+      - name: Restore generated data cache
+        uses: actions/cache@v4
+        with:
+          path: data/generated
+          key: bounce-data-000to099-v1
+
+      - name: Generate missing height-0 sample if no cache
+        run: |
+          if [ ! -f data/generated/000to099/0.bin.gz ]; then
+            engine-sim --height 0
+          fi
+
+      - name: Build web app
+        run: |
+          npm run build:packages
+          npm run build:web
+          bash scripts/prepare-web-data.sh apps/web/dist/data
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

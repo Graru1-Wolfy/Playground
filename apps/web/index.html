@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TF2 Bounce Checker</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>TF2 Bounce Checker</h1>
+        <p class="subtitle">Analytical DEFAULT checks + precomputed setups (heights 0–99)</p>
+      </header>
+
+      <section class="panel">
+        <label for="height-input">Target height</label>
+        <div class="row">
+          <input id="height-input" type="number" min="0" step="1" value="64" />
+          <button id="check-btn" type="button">Check</button>
+        </div>
+        <p id="height-note" class="hint"></p>
+      </section>
+
+      <section class="panel">
+        <h2>Instant DEFAULT (analytical)</h2>
+        <div id="default-results"></div>
+      </section>
+
+      <section class="panel">
+        <div class="row spread">
+          <h2>Precomputed setups</h2>
+          <label>
+            Show
+            <select id="page-size">
+              <option value="20">20</option>
+              <option value="50">50</option>
+              <option value="250">250</option>
+              <option value="999999">All</option>
+            </select>
+          </label>
+        </div>
+        <p id="setup-status" class="hint"></p>
+        <ol id="setup-results"></ol>
+      </section>
+
+      <section class="panel">
+        <details id="prefs-details">
+          <summary>Preferences</summary>
+          <div id="preferences-panel"></div>
+          <button id="reset-prefs" type="button">Reset defaults</button>
+        </details>
+      </section>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

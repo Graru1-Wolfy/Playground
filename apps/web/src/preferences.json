@@ -1,0 +1,313 @@
+{
+  "groups": [
+    {
+      "name": "Launcher",
+      "preferences": [
+        {
+          "id": "STOCK",
+          "label": "Stock",
+          "defaultWeight": 0,
+          "description": "Uses the stock rocket launcher."
+        },
+        {
+          "id": "ORIG",
+          "label": "Original",
+          "defaultWeight": 0,
+          "description": "Uses the original rocket launcher."
+        },
+        {
+          "id": "MANG",
+          "label": "Mangler",
+          "defaultWeight": 0,
+          "description": "Uses the cow mangler rocket launcher."
+        }
+      ]
+    },
+    {
+      "name": "Type of bounce",
+      "preferences": [
+        {
+          "id": "BOUNCE",
+          "label": "Bounce",
+          "defaultWeight": 0,
+          "description": "Crouched bounce setup."
+        },
+        {
+          "id": "BHOP",
+          "label": "Bhop",
+          "defaultWeight": 0,
+          "description": "Bhop (bounce hop) setup."
+        },
+        {
+          "id": "JB",
+          "label": "Jumpbug",
+          "defaultWeight": 0,
+          "description": "Jumpbug setup."
+        }
+      ]
+    },
+    {
+      "name": "Complexity",
+      "preferences": [
+        {
+          "id": "SIMPLE",
+          "label": "Simple",
+          "defaultWeight": 65,
+          "description": "Simple setups."
+        },
+        {
+          "id": "CONSIST",
+          "label": "Consistency",
+          "defaultWeight": 0,
+          "description": "Consistent setups."
+        },
+        {
+          "id": "NOMOVEMENTBIND",
+          "label": "No movement bind required",
+          "defaultWeight": 0,
+          "description": "WASD-only movement."
+        },
+        {
+          "id": "NOACTIONBIND",
+          "label": "No action bind required",
+          "defaultWeight": 0,
+          "description": "Jump or fire only."
+        }
+      ]
+    },
+    {
+      "name": "Automatic bounce",
+      "preferences": [
+        {
+          "id": "ABOUNCE",
+          "label": "Auto bounce",
+          "defaultWeight": 10,
+          "description": "Bounce by holding m1."
+        },
+        {
+          "id": "ASBOUNCE",
+          "label": "Auto synced bounce",
+          "defaultWeight": 0,
+          "description": "Synced bounce holding m1."
+        },
+        {
+          "id": "ASTANDBOUNCE",
+          "label": "Auto standing bounce",
+          "defaultWeight": 10,
+          "description": "Standing bounce holding m1."
+        },
+        {
+          "id": "ASSTANDBOUNCE",
+          "label": "Auto synced standing bounce",
+          "defaultWeight": 0,
+          "description": "Synced standing bounce holding m1."
+        }
+      ]
+    },
+    {
+      "name": "Fully automatic bounce",
+      "preferences": [
+        {
+          "id": "FABOUNCE",
+          "label": "Fully auto bounce",
+          "defaultWeight": 30,
+          "description": "Fully auto bounce looking down."
+        },
+        {
+          "id": "FASBOUNCE",
+          "label": "Fully auto synced bounce",
+          "defaultWeight": 10,
+          "description": "Fully auto synced bounce."
+        },
+        {
+          "id": "FASTANDBOUNCE",
+          "label": "Fully auto standing bounce",
+          "defaultWeight": 20,
+          "description": "Fully auto standing bounce."
+        },
+        {
+          "id": "FASSTANDBOUNCE",
+          "label": "Auto synced standing bounce",
+          "defaultWeight": 0,
+          "description": "Fully auto synced standing bounce."
+        }
+      ]
+    },
+    {
+      "name": "Trajectory",
+      "preferences": [
+        {
+          "id": "HEIGHT",
+          "label": "Height",
+          "defaultWeight": 0,
+          "description": "Peak feet height."
+        },
+        {
+          "id": "DIST",
+          "label": "Distance",
+          "defaultWeight": 0,
+          "description": "Horizontal distance."
+        },
+        {
+          "id": "SPEED",
+          "label": "Speed",
+          "defaultWeight": 0,
+          "description": "Horizontal speed leaving platform."
+        },
+        {
+          "id": "COMPACT",
+          "label": "Compact",
+          "defaultWeight": 0,
+          "description": "Distance on initial platform."
+        },
+        {
+          "id": "QUICK",
+          "label": "Quick",
+          "defaultWeight": 0,
+          "description": "Time to bounce."
+        }
+      ]
+    },
+    {
+      "name": "Advanced bounce",
+      "preferences": [
+        {
+          "id": "STANDBOUNCE",
+          "label": "Standing bounce",
+          "defaultWeight": 0,
+          "description": "Standing bounce window."
+        },
+        {
+          "id": "PB",
+          "label": "Power bounce",
+          "defaultWeight": 0,
+          "description": "Power bounce."
+        },
+        {
+          "id": "JBPB",
+          "label": "Jumpbug power bounce",
+          "defaultWeight": 0,
+          "description": "Jumpbug power bounce."
+        },
+        {
+          "id": "SBOUNCE",
+          "label": "Synced bounce",
+          "defaultWeight": 0,
+          "description": "Synced bounce."
+        },
+        {
+          "id": "SPB",
+          "label": "Synced powerbounce",
+          "defaultWeight": 0,
+          "description": "Synced power bounce."
+        },
+        {
+          "id": "SJBPB",
+          "label": "Synced jumpbug powerbounce",
+          "defaultWeight": 0,
+          "description": "Synced jumpbug power bounce."
+        },
+        {
+          "id": "SSTANDBOUNCE",
+          "label": "Synced standing bounce",
+          "defaultWeight": 0,
+          "description": "Synced standing bounce."
+        }
+      ]
+    },
+    {
+      "name": "Movement",
+      "preferences": [
+        {
+          "id": "CROUCHED",
+          "label": "Crouched start",
+          "defaultWeight": 0,
+          "description": "Crouched start."
+        },
+        {
+          "id": "NOMOVING",
+          "label": "Non-moving starts",
+          "defaultWeight": 0,
+          "description": "No movement keys."
+        },
+        {
+          "id": "DIAGONAL",
+          "label": "Diagonal movement",
+          "defaultWeight": 0,
+          "description": "Diagonal movement."
+        },
+        {
+          "id": "MOVEUP",
+          "label": "+moveup",
+          "defaultWeight": 0,
+          "description": "+moveup setups."
+        },
+        {
+          "id": "STRAFE",
+          "label": "+strafe",
+          "defaultWeight": 0,
+          "description": "+strafe setups."
+        }
+      ]
+    },
+    {
+      "name": "Action",
+      "preferences": [
+        {
+          "id": "SHOTGUN",
+          "label": "Quickswap",
+          "defaultWeight": 0,
+          "description": "Quickswap start."
+        },
+        {
+          "id": "ZEROROCKET",
+          "label": "0 rocket setup",
+          "defaultWeight": 0,
+          "description": "No rockets in initial action."
+        },
+        {
+          "id": "ONEROCKET",
+          "label": "1 rocket setup",
+          "defaultWeight": 0,
+          "description": "Exactly 1 rocket."
+        },
+        {
+          "id": "TWOTHREEROCKETS",
+          "label": "2-3 rocket setup",
+          "defaultWeight": 0,
+          "description": "2 or 3 rockets."
+        },
+        {
+          "id": "JS",
+          "label": "Jump shoot",
+          "defaultWeight": 0,
+          "description": "Jump shot start."
+        },
+        {
+          "id": "JDS",
+          "label": "Jump duck shoot",
+          "defaultWeight": 0,
+          "description": "Jump duck shot start."
+        },
+        {
+          "id": "CTAP_JDS",
+          "label": "Ctap jump duck shoot",
+          "defaultWeight": 0,
+          "description": "CTAP JDS start."
+        },
+        {
+          "id": "ONETICK",
+          "label": "Shoot 1 tick early",
+          "defaultWeight": -1000,
+          "description": "CTAP JDS 1 tick early."
+        },
+        {
+          "id": "TWOTICK",
+          "label": "Shoot 2 ticks early",
+          "defaultWeight": -1000,
+          "description": "CTAP JDS 2 ticks early."
+        }
+      ]
+    }
+  ]
+}

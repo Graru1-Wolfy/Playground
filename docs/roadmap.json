@@ -1,7 +1,7 @@
 {
   "roadmapVersion": "1.0.0",
   "lastUpdated": "2026-07-07",
-  "currentTarget": "v0.3.0",
+  "currentTarget": "v0.5.0",
   "releases": [
     {
       "version": "v0.1.0",
@@ -41,7 +41,7 @@
     {
       "version": "v0.3.0",
       "codename": "Search",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": ["v0.1.0"],
       "blocks": ["v0.5.0", "v1.0.0"],
       "tasks": [
@@ -70,15 +70,15 @@
     {
       "version": "v0.5.0",
       "codename": "Web MVP",
-      "status": "not_started",
+      "status": "in_progress",
       "dependsOn": ["v0.2.0", "v0.3.0"],
       "blocks": ["v1.0.0"],
       "tasks": [
-        { "id": "0.5.1", "title": "Scaffold apps/web with Vite and TypeScript", "status": "todo", "area": "frontend" },
-        { "id": "0.5.2", "title": "Integrate engine-fast for DEFAULT lookups", "status": "todo", "area": "frontend" },
-        { "id": "0.5.3", "title": "Integrate binary decoder and precomputed data fetch", "status": "todo", "area": "frontend" },
-        { "id": "0.5.4", "title": "Preference panel with localStorage", "status": "todo", "area": "frontend" },
-        { "id": "0.5.5", "title": "Deploy to GitHub Pages", "status": "todo", "area": "infra" }
+        { "id": "0.5.1", "title": "Scaffold apps/web with Vite and TypeScript", "status": "done", "area": "frontend" },
+        { "id": "0.5.2", "title": "Integrate engine-fast for DEFAULT lookups", "status": "done", "area": "frontend" },
+        { "id": "0.5.3", "title": "Integrate binary decoder and precomputed data fetch", "status": "done", "area": "frontend" },
+        { "id": "0.5.4", "title": "Preference panel with localStorage", "status": "done", "area": "frontend" },
+        { "id": "0.5.5", "title": "Deploy to GitHub Pages", "status": "in_progress", "area": "infra" }
       ]
     },
     {

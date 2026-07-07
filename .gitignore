@@ -11,3 +11,10 @@ __pycache__/
 # Node / TypeScript
 node_modules/
 dist/
+apps/web/dist/
+
+# Generated bounce data (manifest.json is committed)
+data/generated/**/*
+!data/generated/**/manifest.json
+data/precompute/
+data/generation-*.log

@@ -1,4 +1,1 @@
-# Generated bounce setup tables (CI artifacts)
-data/generated/**
-!data/generated/**/manifest.json
-data/precompute/
+# See root .gitignore for generated data patterns

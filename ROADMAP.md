@@ -15,12 +15,12 @@ Track progress by checking boxes in this file. Product releases use [Semantic Ve
 |---------|----------|------|--------|
 | [v0.1.0](#v010--simulation-foundation) | Foundation | Packaged sim + SDK audit + regression tests | Complete (zlog deferred) |
 | [v0.2.0](#v020--fast-analytical-engine) | Fast path | Port bcheck analytical core to TypeScript | Complete |
-| [v0.3.0](#v030--setup-search--data-pipeline) | Search | Fancy-BCheck pipeline + CI-generated data | In progress |
+| [v0.3.0](#v030--setup-search--data-pipeline) | Search | Fancy-BCheck pipeline + CI-generated data | Complete |
 | [v0.4.0](#v040--validation-zlog) | Validation | zlog pipeline + post-patch regression | Not started |
-| [v0.5.0](#v050--web-mvp) | Web MVP | Hybrid lookup UI (analytical + precomputed) | Not started |
+| [v0.5.0](#v050--web-mvp) | Web MVP | Hybrid lookup UI (analytical + precomputed) | In progress |
 | [v1.0.0](#v100--full-release) | Release | Full height range, CI/CD, preferences UI | Not started |
 
-**Current target:** `v0.3.0`
+**Current target:** `v0.5.0`
 
 ---
 
@@ -188,25 +188,25 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 
 ### Frontend scaffold
 
-- [ ] Create `apps/web/` — Vite + TypeScript
-- [ ] Import `packages/schema/` for binary decoder
-- [ ] Import `packages/engine-fast/` for instant DEFAULT checks
-- [ ] Port Fancy-BCheck preference panel (44 dimensions, localStorage)
+- [x] Create `apps/web/` — Vite + TypeScript
+- [x] Import `packages/schema/` for binary decoder
+- [x] Import `packages/engine-fast/` for instant DEFAULT checks
+- [x] Port Fancy-BCheck preference panel (44 dimensions, localStorage)
 - [ ] Port bcheck UX: weapon icons, technique tags, copyable binds
 
 ### Lookup modes
 
 | Input | Engine | Status |
 |-------|--------|--------|
-| Walk / Jump / Ctap / ceiling | `engine-fast` (analytical) | [ ] |
-| Exotic setups, heights 0–6999 | Precomputed `.bin.gz` | [ ] |
+| Walk / Jump / Ctap / ceiling | `engine-fast` (analytical) | [x] |
+| Exotic setups, heights 0–6999 | Precomputed `.bin.gz` | [x] (0–99 locally) |
 | Arbitrary height (future) | On-demand sim / WASM | Deferred to v1.x |
 
-- [ ] Height input with terminal-velocity normalization (`> 8000` modulo)
-- [ ] Fetch + decompress `data/{bucket}/{height}.bin.gz` in browser
-- [ ] Preference-weighted reranking
-- [ ] Result pagination (20 / 50 / 250 / all)
-- [ ] Deploy to GitHub Pages
+- [x] Height input with terminal-velocity normalization (`> 8000` modulo)
+- [x] Fetch + decompress `data/{bucket}/{height}.bin.gz` in browser
+- [x] Preference-weighted reranking
+- [x] Result pagination (20 / 50 / 250 / all)
+- [x] Deploy to GitHub Pages (workflow; enable Pages in repo settings)
 
 **Release criteria for v0.5.0:**
 - Site live with analytical + precomputed lookup for at least heights 0–99
@@ -266,7 +266,7 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 | `1.0.2` | 2026-07-07 | SDK audit checklist (`docs/sdk-audit.md`) |
 | `1.0.3` | 2026-07-07 | Grounded unduck (`FinishUnDuck` + ceiling `CanUnduck`) |
 | `1.0.4` | 2026-07-07 | SDK `DamageForce` knockback + Mangler charged shot (21 scenarios) |
-| `1.0.7` | 2026-07-07 | v0.3.0 engine-sim + schema (Fancy-BCheck port, CI artifact) |
+| `1.0.8` | 2026-07-07 | v0.5.0 web MVP scaffold (`apps/web`) |
 
 ---
 
