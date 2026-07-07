@@ -1,7 +1,7 @@
 {
   "roadmapVersion": "1.0.0",
   "lastUpdated": "2026-07-07",
-  "currentTarget": "v0.2.0",
+  "currentTarget": "v0.3.0",
   "releases": [
     {
       "version": "v0.1.0",
@@ -26,7 +26,7 @@
     {
       "version": "v0.2.0",
       "codename": "Fast path",
-      "status": "in_progress",
+      "status": "complete",
       "dependsOn": ["v0.1.0"],
       "blocks": ["v0.5.0"],
       "tasks": [
@@ -41,16 +41,16 @@
     {
       "version": "v0.3.0",
       "codename": "Search",
-      "status": "not_started",
+      "status": "in_progress",
       "dependsOn": ["v0.1.0"],
       "blocks": ["v0.5.0", "v1.0.0"],
       "tasks": [
-        { "id": "0.3.1", "title": "Port Fancy-BCheck generate_setups pipeline", "status": "todo", "area": "engine-sim" },
-        { "id": "0.3.2", "title": "Port explore_code_paths and setups.py schema", "status": "todo", "area": "engine-sim" },
-        { "id": "0.3.3", "title": "Create packages/schema shared bind generator", "status": "todo", "area": "schema" },
-        { "id": "0.3.4", "title": "Fix STANDBBOUNCE and CONIST typos", "status": "todo", "area": "schema" },
-        { "id": "0.3.5", "title": "Enable ProcessPoolExecutor parallel generation", "status": "todo", "area": "engine-sim" },
-        { "id": "0.3.6", "title": "CI data generation artifact (no data in git)", "status": "todo", "area": "infra" },
+        { "id": "0.3.1", "title": "Port Fancy-BCheck generate_setups pipeline", "status": "done", "area": "engine-sim" },
+        { "id": "0.3.2", "title": "Port explore_code_paths and setups.py schema", "status": "done", "area": "engine-sim" },
+        { "id": "0.3.3", "title": "Create packages/schema shared bind generator", "status": "done", "area": "schema" },
+        { "id": "0.3.4", "title": "Fix STANDBBOUNCE and CONIST typos", "status": "done", "area": "schema" },
+        { "id": "0.3.5", "title": "Enable ProcessPoolExecutor parallel generation", "status": "done", "area": "engine-sim" },
+        { "id": "0.3.6", "title": "CI data generation artifact (no data in git)", "status": "done", "area": "infra" },
         { "id": "0.3.7", "title": "Generate and verify heights 0-99 test bucket", "status": "todo", "area": "data" }
       ]
     },

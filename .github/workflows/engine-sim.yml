@@ -1,0 +1,63 @@
+name: engine-sim
+
+on:
+  push:
+    paths:
+      - "packages/engine-sim/**"
+      - "packages/schema/**"
+      - "packages/tf2sim/**"
+      - "data/.gitignore"
+      - ".github/workflows/engine-sim.yml"
+  pull_request:
+    paths:
+      - "packages/engine-sim/**"
+      - "packages/schema/**"
+      - "packages/tf2sim/**"
+      - ".github/workflows/engine-sim.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tf2sim and engine-sim
+        run: |
+          pip install -e "packages/tf2sim[dev]"
+          pip install -e "packages/engine-sim[dev]"
+
+      - name: Run engine-sim tests
+        run: cd packages/engine-sim && pytest -m "not slow"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: packages/schema/package-lock.json
+
+      - name: Schema fixture + decode tests
+        run: |
+          PYTHONPATH=packages/engine-sim/src python3 packages/engine-sim/scripts/write_schema_fixture.py
+          cd packages/schema && npm ci && npm test
+
+  generate-sample:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Generate height 0 bucket sample
+        run: |
+          pip install -e packages/tf2sim
+          pip install -e packages/engine-sim
+          engine-sim --height 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bounce-data-height-0
+          path: data/generated/000to099/0.bin.gz
+          retention-days: 7

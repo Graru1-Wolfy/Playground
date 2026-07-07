@@ -14,13 +14,13 @@ Track progress by checking boxes in this file. Product releases use [Semantic Ve
 | Version | Codename | Goal | Status |
 |---------|----------|------|--------|
 | [v0.1.0](#v010--simulation-foundation) | Foundation | Packaged sim + SDK audit + regression tests | Complete (zlog deferred) |
-| [v0.2.0](#v020--fast-analytical-engine) | Fast path | Port bcheck analytical core to TypeScript | In progress |
-| [v0.3.0](#v030--setup-search--data-pipeline) | Search | Fancy-BCheck pipeline + CI-generated data | Not started |
+| [v0.2.0](#v020--fast-analytical-engine) | Fast path | Port bcheck analytical core to TypeScript | Complete |
+| [v0.3.0](#v030--setup-search--data-pipeline) | Search | Fancy-BCheck pipeline + CI-generated data | In progress |
 | [v0.4.0](#v040--validation-zlog) | Validation | zlog pipeline + post-patch regression | Not started |
 | [v0.5.0](#v050--web-mvp) | Web MVP | Hybrid lookup UI (analytical + precomputed) | Not started |
 | [v1.0.0](#v100--full-release) | Release | Full height range, CI/CD, preferences UI | Not started |
 
-**Current target:** `v0.2.0`
+**Current target:** `v0.3.0`
 
 ---
 
@@ -130,25 +130,25 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 
 ### Port Fancy-BCheck generator
 
-- [ ] Create `packages/engine-sim/` — port `generate_setups.py`
-- [ ] Port `explore_code_paths.py` (LIS path enumeration)
-- [ ] Port `setups.py` (92-byte binary schema)
-- [ ] Create `packages/schema/` — shared bind generator
+- [x] Create `packages/engine-sim/` — port `generate_setups.py` (wired to `tf2sim`)
+- [x] Port `explore_code_paths.py` (LIS path enumeration)
+- [x] Port `setups.py` (92-byte binary schema)
+- [x] Create `packages/schema/` — TypeScript `decodeSetup`
 
 ### Bug fixes & cleanup
 
-- [ ] Fix `STANDBBOUNCE` → `STANDBOUNCE` typo (preferences + binary flags)
-- [ ] Fix `CONIST` → `CONSIST` typo
+- [x] Fix `STANDBBOUNCE` → `STANDBOUNCE` typo (preferences + binary flags)
+- [x] Fix `CONIST` → `CONSIST` typo
 - [ ] Remove duplicated bind logic (single Python source → generate TS types)
 
 ### Performance & data
 
-- [ ] Enable `ProcessPoolExecutor` for parallel height generation
-- [ ] Implement incremental `precompute/` cache (path IDs only)
+- [x] Enable `ProcessPoolExecutor` for parallel height generation (`--workers`)
+- [x] Implement incremental `precompute/` cache (path IDs only)
 - [ ] Evaluate Numba on `simulate_tick` if parallel Python is too slow
 - [ ] Generate test bucket: heights `0–99` locally
-- [ ] Add `.gitignore` entry for `data/generated/`
-- [ ] CI job: generate changed height buckets, upload as artifact (not committed)
+- [x] Add `.gitignore` entry for `data/generated/`
+- [x] CI job: generate height 0 sample, upload as artifact
 
 **Release criteria for v0.3.0:**
 - Can generate `data/000to099/*.bin.gz` from CLI
@@ -266,7 +266,7 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 | `1.0.2` | 2026-07-07 | SDK audit checklist (`docs/sdk-audit.md`) |
 | `1.0.3` | 2026-07-07 | Grounded unduck (`FinishUnDuck` + ceiling `CanUnduck`) |
 | `1.0.4` | 2026-07-07 | SDK `DamageForce` knockback + Mangler charged shot (21 scenarios) |
-| `1.0.6` | 2026-07-07 | Cross-validation: engine-fast vs tf2sim (`docs/cross-validation.md`) |
+| `1.0.7` | 2026-07-07 | v0.3.0 engine-sim + schema (Fancy-BCheck port, CI artifact) |
 
 ---
 
