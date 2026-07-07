@@ -13,7 +13,7 @@ Track progress by checking boxes in this file. Product releases use [Semantic Ve
 
 | Version | Codename | Goal | Status |
 |---------|----------|------|--------|
-| [v0.1.0](#v010--simulation-foundation) | Foundation | Packaged sim + SDK audit + regression tests | Not started |
+| [v0.1.0](#v010--simulation-foundation) | Foundation | Packaged sim + SDK audit + regression tests | In progress |
 | [v0.2.0](#v020--fast-analytical-engine) | Fast path | Port bcheck analytical core to TypeScript | Not started |
 | [v0.3.0](#v030--setup-search--data-pipeline) | Search | Fancy-BCheck pipeline + CI-generated data | Not started |
 | [v0.4.0](#v040--validation-zlog) | Validation | zlog pipeline + post-patch regression | Not started |
@@ -51,16 +51,16 @@ data/generated/    # CI artifact — NOT committed to git
 
 ### Package & structure
 
-- [ ] Create `packages/tf2sim/` with `pyproject.toml`
-- [ ] Copy `simulation.py` from TF2Simulator into `src/tf2sim/`
-- [ ] Add `visualizer.py` as optional dev dependency
-- [ ] Document install: `pip install -e packages/tf2sim`
+- [x] Create `packages/tf2sim/` with `pyproject.toml`
+- [x] Copy `simulation.py` from TF2Simulator into `src/tf2sim/`
+- [x] Add `visualizer.py` as optional dev dependency
+- [x] Document install: `pip install -e packages/tf2sim`
 
 ### Regression tests
 
-- [ ] Convert 17 TF2Simulator examples into pytest cases
-- [ ] Assert final `pos` / `vel` per scenario (snapshot or tolerance-based)
-- [ ] Add CI workflow: run tests on push
+- [x] Convert 17 TF2Simulator examples into pytest cases
+- [x] Assert final `pos` / `vel` per scenario (snapshot or tolerance-based)
+- [x] Add CI workflow: run tests on push
 
 ### SDK audit (ground truth)
 
@@ -261,6 +261,7 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 | Doc version | Date | Changes |
 |-------------|------|---------|
 | `1.0.0` | 2026-07-07 | Initial versioned roadmap (v0.1.0 – v1.0.0) |
+| `1.0.1` | 2026-07-07 | v0.1.0 package + 17-example regression suite started |
 
 ---
 

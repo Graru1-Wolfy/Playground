@@ -1,2 +1,9 @@
 # Local clones of external repos used for analysis only
 analysis/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/

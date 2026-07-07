@@ -1,0 +1,32 @@
+name: tf2sim tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/tf2sim/**"
+      - ".github/workflows/tf2sim.yml"
+  pull_request:
+    paths:
+      - "packages/tf2sim/**"
+      - ".github/workflows/tf2sim.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package and test deps
+        run: pip install -e "packages/tf2sim[dev]"
+
+      - name: Run pytest
+        run: cd packages/tf2sim && pytest
