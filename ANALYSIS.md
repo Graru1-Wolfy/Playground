@@ -38,6 +38,7 @@ Two core approaches:
 - Hook-based extension (`Hook_Base`), MIT licensed, actively maintained
 - WIP: grounded unduck, mangler charge, multi-floor maps incomplete
 - Pure Python — too slow for large combinatorial search without optimization
+- Should be audited against [source-sdk-2013](https://github.com/ValveSoftware/source-sdk-2013) `tf_gamemovement.cpp`, not only community tools
 
 ### Fancy-BCheck — **Use search pipeline + binary format**
 
@@ -93,11 +94,11 @@ your-bounce-tool/
 
 ## Phased next steps
 
-1. **Foundation** — Package TF2Simulator; validation tests from 17 examples; port bcheck analytical core to TypeScript
+1. **Foundation** — Package TF2Simulator; diff movement code against `source-sdk-2013` `tf_gamemovement.cpp`; validation tests from 17 examples; port bcheck analytical core to TypeScript
 2. **Search engine** — Port Fancy-BCheck generator; fix schema bugs; Numba/Rust hot path; CI-generated data (not in git)
 3. **Frontend** — Vite + TypeScript; shared schema; hybrid precomputed + on-demand lookup
 4. **Validation** — zlog pipeline to compare sim vs in-game measurements after patches
-5. **Differentiators** — WASM browser sim, automated regen, map-aware setups, test coverage
+5. **Differentiators** — WASM browser sim, automated regen, map-aware setups, test coverage, SDK-grounded float semantics for 64-bit TF2
 
 ---
 
@@ -118,3 +119,44 @@ TF2Simulator → Fancy-BCheck (sim search + static site)
 - Graru1.github.io: Other
 
 Safe to fork MIT repos for a new tool.
+
+---
+
+## Official reference: Source SDK 2013 (TF2 game code)
+
+**Repo:** https://github.com/ValveSoftware/source-sdk-2013
+
+Valve released the full TF2 client/server game code in the Feb 2025 SDK update. This is the authoritative ground truth for movement physics — use it to validate and extend any simulator, rather than reverse-engineering from community tools alone.
+
+### 64-bit TF2 vs float precision (important distinction)
+
+TF2’s 2024 update added **64-bit binaries** (Windows/Linux client and server). That refers to **process pointer width and CPU architecture**, not physics using `double`.
+
+Source movement still uses **`float` (32-bit IEEE 754)** for positions, velocities, and most game math (`Vector`, `mv->m_vecVelocity`, etc.). The 64-bit port mainly changed how those floats are *computed* at the CPU level (e.g. SSE2 vs legacy x87 register behavior, compiler optimizations), which can introduce small divergences from older 32-bit builds — but the data type is still `float`.
+
+**Implication for your tool:**
+- TF2Simulator’s `round_to_nearest_float()` / `float_mode` approach remains correct in principle — you are emulating C++ `float` casts, not 64-bit doubles.
+- After the 64-bit port, re-validate against live TF2 (zlog) because rounding *order* may differ even when types stay `float`.
+- Do not assume switching your sim to pure `double` will match modern TF2 better; match the SDK’s `float` semantics instead.
+
+### Key SDK files for bounce/movement simulation
+
+| File | Purpose |
+|------|---------|
+| `src/game/shared/gamemovement.cpp` | Base `CGameMovement`: friction, gravity, duck, jump, air/ground move |
+| `src/game/shared/tf/tf_gamemovement.cpp` | TF2 overrides: `PreventBunnyJumping`, `CheckJumpButton`, `CategorizePosition`, `GetAirSpeedCap`, CTAP-related duck logic |
+| `src/game/shared/tf/tf_player.cpp` | Soldier knockback, blast damage (for rocket jumps) |
+| `src/game/shared/movevars_shared.cpp` | `sv_gravity`, `sv_friction`, `sv_accelerate`, etc. |
+
+TF2Simulator already cites these paths in `simulation.py` comments (e.g. `CTFGameMovement::CategorizePosition`, `PreventBunnyJumping`). Your optimized version should treat the SDK as the spec and TF2Simulator as an initial port to audit line-by-line.
+
+### Recommended validation workflow
+
+1. **SDK** — extract constants and tick order from `tf_gamemovement.cpp` / `gamemovement.cpp`
+2. **TF2Simulator** — port or diff against SDK; fix any drift (grounded unduck, mangler charge, etc.)
+3. **zlog (bcheck)** — measure live outcomes for exotic setups the SDK doesn’t document behaviorally
+4. **abounce** — cross-check analytical landing-tick math against in-engine traces on real maps
+
+### SDK licensing note
+
+The Source SDK is **non-commercial** (mods must be free). Your bounce checker as a standalone lookup/sim tool is likely fine, but if you embed SDK code directly or ship a TF2-derived mod, read Valve’s SDK license terms carefully.
