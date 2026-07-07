@@ -348,6 +348,14 @@ class Mangler(Rocket_launcher):
 """
 
 class Player:
+    # TF view/hull vectors (tf_gamerules.cpp g_TFViewVectors)
+    hull_min = [-24.0, -24.0, 0.0]
+    hull_max = [24.0, 24.0, 82.0]
+    duck_hull_min = [-24.0, -24.0, 0.0]
+    duck_hull_max = [24.0, 24.0, 62.0]
+    view_height_standing = 68.0
+    view_height_ducked = 45.0
+
     def __init__(self, 
             key_state,
             hook = None,
@@ -359,6 +367,7 @@ class Player:
             b_ducking = False,
             b_on_ground = False,
             floor = None,
+            ceiling_z = None,
             
             forward_2D = [1., 0.],
             right_2D = [0., -1.],
@@ -381,6 +390,7 @@ class Player:
         self.b_ducking = b_ducking
         self.b_on_ground = b_on_ground
         self.floor = floor if floor else Floor(self.pos[2])
+        self.ceiling_z = ceiling_z
         
         # Teleport player up by 0.03125
         if self.floor.z == self.pos[2]:
@@ -434,11 +444,50 @@ class Player:
                 if self.vel[2] > 0.0:
                     self.grip = 0.25
     
-    def can_unduck(self):
+    def _unduck_target_origin(self):
+        # CGameMovement::CanUnduck / FinishUnDuck origin computation
+        new_origin = list(self.pos)
         if self.b_on_ground:
-            return True
+            for i in range(3):
+                new_origin[i] += self.duck_hull_min[i] - self.hull_min[i]
         else:
-            return self.pos[2] - self.floor.z >= 20.0
+            hull_stand = [self.hull_max[i] - self.hull_min[i] for i in range(3)]
+            hull_duck = [self.duck_hull_max[i] - self.duck_hull_min[i] for i in range(3)]
+            for i in range(3):
+                new_origin[i] -= hull_stand[i] - hull_duck[i]
+        return new_origin
+
+    def _standing_hull_top_z(self, origin):
+        return origin[2] + (self.hull_max[2] - self.hull_min[2])
+
+    def _finish_duck_origin_adjust(self):
+        # CGameMovement::FinishDuck HACKHACK hull-min offset
+        if self.b_on_ground:
+            for i in range(3):
+                self.pos[i] -= self.duck_hull_min[i] - self.hull_min[i]
+        else:
+            hull_stand = [self.hull_max[i] - self.hull_min[i] for i in range(3)]
+            hull_duck = [self.duck_hull_max[i] - self.duck_hull_min[i] for i in range(3)]
+            for i in range(3):
+                self.pos[i] += hull_stand[i] - hull_duck[i]
+
+    def can_unduck(self):
+        # CGameMovement::CanUnduck — standing hull trace at unduck target
+        new_origin = self._unduck_target_origin()
+        if self.ceiling_z is not None:
+            if self._standing_hull_top_z(new_origin) > self.ceiling_z:
+                return False
+        if not self.b_on_ground:
+            if new_origin[2] < self.floor.z + COORD_RESOLUTION:
+                return False
+        return True
+
+    def finish_unduck(self):
+        # CGameMovement::FinishUnDuck
+        self.pos = self._unduck_target_origin()
+        if float_mode:
+            for i in range(3):
+                self.pos[i] = round_to_nearest_float(self.pos[i])
     
     # CGameMovement::SetDuckedEyeOffset
     def set_ducked_eye_offset(self, fraction):
@@ -488,13 +537,7 @@ class Player:
                         self.b_ducked = True
                         self.b_ducking = False
                         self.set_ducked_eye_offset(1.0)
-                        
-                        # TODO: Weird code here with comment "HACKHACK". Not sure what it does.
-                        if self.b_on_ground:
-                            pass
-                        else:
-                            self.pos[2] += 20.0
-                        
+                        self._finish_duck_origin_adjust()
                         if self.hook: self.hook.player_after_ducked(self)
                         self.categorize_position()
                 else:
@@ -523,14 +566,13 @@ class Player:
                             if self.hook and self.b_ducked: self.hook.player_before_unduck(self)
                             was_ducked = self.b_ducked
                             # CGameMovement::FinishUnDuck
-                            if self.b_on_ground:
-                                pass
-                                # TODO: Grounded unduck
-                            else:
-                                if self.hook and not self.b_ducked: self.hook.player_before_ctap(self)
-                                self.pos[2] -= 20.0
-                                # TODO: Air unduck
-                                if self.hook and not self.b_ducked: self.hook.player_after_ctap(self)
+                            if not self.b_on_ground:
+                                if self.hook and not self.b_ducked:
+                                    self.hook.player_before_ctap(self)
+                            self.finish_unduck()
+                            if not self.b_on_ground:
+                                if self.hook and not self.b_ducked:
+                                    self.hook.player_after_ctap(self)
 
                             self.b_ducked = False
                             self.b_ducking = False

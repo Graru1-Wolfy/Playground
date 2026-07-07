@@ -573,6 +573,50 @@ def example_17_pogo_inplace() -> ScenarioResult:
     return result
 
 
+def example_18_grounded_unduck_flat() -> ScenarioResult:
+    """Crouch on flat ground, release duck — SDK FinishUnDuck (zero hull-min offset on TF)."""
+
+    def setup(keys):
+        p = simulation.Soldier(keys)
+        p.b_on_ground = True
+        return p
+
+    def tick_fn(tick, _p, keys):
+        if tick == 10:
+            keys.press_key("+duck")
+        if tick == 30:
+            keys.release_key("+duck")
+
+    return _run_loop(80, setup, tick_fn)
+
+
+def example_19_grounded_unduck_blocked_by_ceiling() -> ScenarioResult:
+    """Low ceiling blocks standing hull — player must stay ducked (CanUnduck fails)."""
+    floor_z = 0.0
+    ceiling_z = floor_z + 70.0  # standing hull needs 82 units
+
+    def setup(keys):
+        p = simulation.Soldier(
+            keys,
+            floor=simulation.Floor(floor_z),
+            ceiling_z=ceiling_z,
+        )
+        p.b_on_ground = True
+        return p
+
+    def tick_fn(tick, p, keys):
+        if tick == 10:
+            keys.press_key("+duck")
+        if tick == 40:
+            keys.release_key("+duck")
+        if tick == 79:
+            assert p.b_ducked, "player should remain ducked under low ceiling"
+
+    result = _run_loop(80, setup, tick_fn)
+    result.extra["remained_ducked"] = True
+    return result
+
+
 SCENARIOS: dict[str, Callable[[], ScenarioResult]] = {
     "example_01": example_01_spam_rockets,
     "example_02": example_02_hold_m1_hit_ss,
@@ -591,4 +635,6 @@ SCENARIOS: dict[str, Callable[[], ScenarioResult]] = {
     "example_15": example_15_74_units_jump_humanly_viable,
     "example_16": example_16_74_units_jump_humanly_viable_alt,
     "example_17": example_17_pogo_inplace,
+    "example_18": example_18_grounded_unduck_flat,
+    "example_19": example_19_grounded_unduck_blocked_by_ceiling,
 }

@@ -17,7 +17,7 @@
         { "id": "0.1.5", "title": "SDK audit: gamemovement.cpp vs simulation.py", "status": "done", "area": "sim" },
         { "id": "0.1.6", "title": "SDK audit: tf_gamemovement.cpp vs simulation.py", "status": "done", "area": "sim" },
         { "id": "0.1.7", "title": "SDK audit: tf_player.cpp knockback vs simulate_knockback", "status": "done", "area": "sim" },
-        { "id": "0.1.8", "title": "Fix grounded unduck TODO", "status": "todo", "area": "sim" },
+        { "id": "0.1.8", "title": "Fix grounded unduck TODO", "status": "done", "area": "sim" },
         { "id": "0.1.9", "title": "Implement mangler charged shot", "status": "todo", "area": "sim" },
         { "id": "0.1.10", "title": "Fix CategorizePosition early-call path", "status": "todo", "area": "sim" },
         { "id": "0.1.11", "title": "Validate float_mode against 64-bit TF2", "status": "in_progress", "area": "validation" }

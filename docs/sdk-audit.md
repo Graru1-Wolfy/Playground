@@ -26,7 +26,7 @@ This document maps TF2 movement and Soldier knockback code in the official SDK t
 **Regression status:** 17 TF2Simulator example scenarios pass snapshot tests with `float_mode = True`.
 
 **Critical open gaps (block v0.1.0 release):**
-1. Grounded unduck hull trace (`FinishUnDuck` on ground)
+1. ~~Grounded unduck hull trace~~ ✅ Done (`finish_unduck` + `can_unduck` with optional `ceiling_z`)
 2. Mangler charged shot
 3. Knockback force model vs SDK `DamageForce()` + ConVar scales
 
@@ -225,7 +225,7 @@ Soldier.simulate_tick()               // extends Player
 
 | ID | Location | SDK reference | Description |
 |----|----------|---------------|-------------|
-| G1 | `handle_ducking` L526-528 | `CGameMovement::FinishUnDuck` | Grounded unduck hull trace not implemented (`TODO: Grounded unduck`) |
+| G1 | `finish_unduck` / `can_unduck` | `FinishUnDuck` / `CanUnduck` | ✅ Fixed — TF hull vectors, ceiling check |
 | G2 | `Mangler` class | `tf_weapon_rocketlauncher.cpp` | Charged shot not implemented |
 | G3 | `simulate_knockback` | `ApplyPushFromDamage` + `DamageForce` | Air RJ scale 6.0 vs SDK ConVar 10.0; no `DamageForce()` size-based curve |
 
@@ -265,9 +265,8 @@ Soldier.simulate_tick()               // extends Player
 
 ## Recommended next steps
 
-1. **G1 — Grounded unduck:** Port `FinishUnDuck` ground trace from `gamemovement.cpp` (~L4490+); add pytest scenario for crouch-jump-land-unduck on flat ground.
-2. **G3 — Knockback:** Port `DamageForce()` from SDK and wire `tf_damageforcescale_self_soldier_rj` / `badrj`; re-run all 17 snapshots and adjust tolerances.
-3. **G2 — Mangler charge:** Read `tf_weapon_rocketlauncher.cpp` charge logic; add weapon variant + test.
+1. **G3 — Knockback:** Port `DamageForce()` from SDK and wire `tf_damageforcescale_self_soldier_rj` / `badrj`; re-run all snapshots and adjust tolerances.
+2. **G2 — Mangler charge:** Read `tf_weapon_rocketlauncher.cpp` charge logic; add weapon variant + test.
 4. **M5 — Unduck timing:** zlog or in-game test to confirm `0.2` vs `0.3`.
 5. **v0.4.0:** Run bcheck zlog pipeline on 64-bit TF2 to classify sim-fix vs empirical-only divergences.
 
@@ -277,4 +276,5 @@ Soldier.simulate_tick()               // extends Player
 
 | Version | Date | Changes |
 |---------|------|---------|
+| `1.0.1` | 2026-07-07 | Grounded unduck: `FinishUnDuck` + `CanUnduck` with ceiling check |
 | `1.0.0` | 2026-07-07 | Initial SDK audit against source-sdk-2013 and tf2sim v0.1.0 |

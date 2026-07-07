@@ -43,6 +43,8 @@ def _assert_result(actual: ScenarioResult, expected: dict) -> None:
             expected["extra"]["pogo_peak_spread"],
             "pogo_peak_spread",
         )
+    if expected.get("extra", {}).get("remained_ducked"):
+        assert actual.b_ducked is True
 
 
 @pytest.mark.parametrize("name", sorted(SCENARIOS))

@@ -1,0 +1,18 @@
+{
+  "pos": [
+    0.0,
+    0.0,
+    0.03125
+  ],
+  "vel": [
+    0.0,
+    0.0,
+    0
+  ],
+  "max_z": null,
+  "b_ducked": true,
+  "b_on_ground": true,
+  "extra": {
+    "remained_ducked": true
+  }
+}

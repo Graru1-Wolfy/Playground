@@ -79,7 +79,7 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 
 ### Known gaps to fix
 
-- [ ] Grounded unduck (`TODO` in simulation.py)
+- [x] Grounded unduck (`FinishUnDuck` + `CanUnduck` ceiling check)
 - [ ] Mangler charged shot
 - [ ] `CategorizePosition` early-call path (`if False:` hack)
 - [ ] Multi-floor / `Floor` switching API cleanup
@@ -263,6 +263,7 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 | `1.0.0` | 2026-07-07 | Initial versioned roadmap (v0.1.0 – v1.0.0) |
 | `1.0.1` | 2026-07-07 | v0.1.0 package + 17-example regression suite started |
 | `1.0.2` | 2026-07-07 | SDK audit checklist (`docs/sdk-audit.md`) |
+| `1.0.3` | 2026-07-07 | Grounded unduck (`FinishUnDuck` + ceiling `CanUnduck`) |
 
 ---
 
