@@ -7,6 +7,8 @@
 
 Track progress by checking boxes in this file. Product releases use [Semantic Versioning](https://semver.org/) (`vMAJOR.MINOR.PATCH`).
 
+**Live tracker (GitHub):** [Milestones](https://github.com/Graru1-Wolfy/Playground/milestones) · [Roadmap issues](https://github.com/Graru1-Wolfy/Playground/issues?q=label%3Aroadmap) · [Projects board](https://github.com/Graru1-Wolfy/Playground/projects) — see [docs/github-roadmap.md](./docs/github-roadmap.md) for sync workflow.
+
 ---
 
 ## Release overview

@@ -94,7 +94,7 @@ your-bounce-tool/
 
 ## Phased next steps
 
-See **[ROADMAP.md](./ROADMAP.md)** for the full versioned task list (`v0.1.0` – `v1.0.0`) with checkboxes. Machine-readable copy: [`docs/roadmap.json`](./docs/roadmap.json). SDK audit: [`docs/sdk-audit.md`](./docs/sdk-audit.md).
+See **[ROADMAP.md](./ROADMAP.md)** for the full versioned task list (`v0.1.0` – `v1.0.0`) with checkboxes. Machine-readable copy: [`docs/roadmap.json`](./docs/roadmap.json). GitHub execution tracker: [Milestones](https://github.com/Graru1-Wolfy/Playground/milestones) / [Issues](https://github.com/Graru1-Wolfy/Playground/issues?q=label%3Aroadmap) — [`docs/github-roadmap.md`](./docs/github-roadmap.md). SDK audit: [`docs/sdk-audit.md`](./docs/sdk-audit.md).
 
 Summary:
 
