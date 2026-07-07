@@ -146,7 +146,7 @@ Reference files in [source-sdk-2013](https://github.com/ValveSoftware/source-sdk
 - [x] Enable `ProcessPoolExecutor` for parallel height generation (`--workers`)
 - [x] Implement incremental `precompute/` cache (path IDs only)
 - [ ] Evaluate Numba on `simulate_tick` if parallel Python is too slow
-- [ ] Generate test bucket: heights `0–99` locally
+- [x] Generate test bucket: heights `0–99` locally (768,360 setups, ~18 MB gzip)
 - [x] Add `.gitignore` entry for `data/generated/`
 - [x] CI job: generate height 0 sample, upload as artifact
 

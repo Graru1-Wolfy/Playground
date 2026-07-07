@@ -1,0 +1,511 @@
+{
+  "range": [
+    0,
+    99
+  ],
+  "heights": 100,
+  "total_setups": 768360,
+  "total_bytes": 18269386,
+  "files": [
+    {
+      "height": 0,
+      "setups": 4308,
+      "bytes": 108293
+    },
+    {
+      "height": 1,
+      "setups": 8923,
+      "bytes": 197227
+    },
+    {
+      "height": 2,
+      "setups": 8815,
+      "bytes": 199326
+    },
+    {
+      "height": 3,
+      "setups": 8977,
+      "bytes": 204434
+    },
+    {
+      "height": 4,
+      "setups": 9181,
+      "bytes": 208105
+    },
+    {
+      "height": 5,
+      "setups": 8923,
+      "bytes": 203764
+    },
+    {
+      "height": 6,
+      "setups": 8856,
+      "bytes": 203611
+    },
+    {
+      "height": 7,
+      "setups": 9058,
+      "bytes": 206986
+    },
+    {
+      "height": 8,
+      "setups": 8938,
+      "bytes": 204873
+    },
+    {
+      "height": 9,
+      "setups": 8964,
+      "bytes": 206359
+    },
+    {
+      "height": 10,
+      "setups": 8976,
+      "bytes": 206417
+    },
+    {
+      "height": 11,
+      "setups": 9035,
+      "bytes": 207841
+    },
+    {
+      "height": 12,
+      "setups": 9116,
+      "bytes": 210039
+    },
+    {
+      "height": 13,
+      "setups": 8957,
+      "bytes": 207067
+    },
+    {
+      "height": 14,
+      "setups": 8848,
+      "bytes": 204949
+    },
+    {
+      "height": 15,
+      "setups": 8858,
+      "bytes": 205549
+    },
+    {
+      "height": 16,
+      "setups": 8904,
+      "bytes": 206498
+    },
+    {
+      "height": 17,
+      "setups": 9014,
+      "bytes": 208089
+    },
+    {
+      "height": 18,
+      "setups": 9091,
+      "bytes": 209770
+    },
+    {
+      "height": 19,
+      "setups": 8809,
+      "bytes": 203882
+    },
+    {
+      "height": 20,
+      "setups": 8677,
+      "bytes": 200983
+    },
+    {
+      "height": 21,
+      "setups": 8720,
+      "bytes": 203489
+    },
+    {
+      "height": 22,
+      "setups": 8729,
+      "bytes": 203076
+    },
+    {
+      "height": 23,
+      "setups": 8649,
+      "bytes": 202157
+    },
+    {
+      "height": 24,
+      "setups": 8740,
+      "bytes": 204417
+    },
+    {
+      "height": 25,
+      "setups": 8743,
+      "bytes": 204452
+    },
+    {
+      "height": 26,
+      "setups": 8750,
+      "bytes": 203739
+    },
+    {
+      "height": 27,
+      "setups": 8690,
+      "bytes": 203033
+    },
+    {
+      "height": 28,
+      "setups": 8539,
+      "bytes": 200048
+    },
+    {
+      "height": 29,
+      "setups": 8469,
+      "bytes": 198330
+    },
+    {
+      "height": 30,
+      "setups": 8579,
+      "bytes": 200583
+    },
+    {
+      "height": 31,
+      "setups": 8490,
+      "bytes": 199785
+    },
+    {
+      "height": 32,
+      "setups": 8433,
+      "bytes": 198701
+    },
+    {
+      "height": 33,
+      "setups": 8320,
+      "bytes": 196250
+    },
+    {
+      "height": 34,
+      "setups": 8361,
+      "bytes": 196273
+    },
+    {
+      "height": 35,
+      "setups": 8180,
+      "bytes": 193382
+    },
+    {
+      "height": 36,
+      "setups": 8275,
+      "bytes": 195257
+    },
+    {
+      "height": 37,
+      "setups": 8236,
+      "bytes": 194692
+    },
+    {
+      "height": 38,
+      "setups": 8255,
+      "bytes": 194912
+    },
+    {
+      "height": 39,
+      "setups": 8024,
+      "bytes": 190263
+    },
+    {
+      "height": 40,
+      "setups": 8141,
+      "bytes": 192648
+    },
+    {
+      "height": 41,
+      "setups": 8192,
+      "bytes": 192927
+    },
+    {
+      "height": 42,
+      "setups": 8182,
+      "bytes": 193288
+    },
+    {
+      "height": 43,
+      "setups": 8063,
+      "bytes": 190815
+    },
+    {
+      "height": 44,
+      "setups": 8203,
+      "bytes": 193762
+    },
+    {
+      "height": 45,
+      "setups": 7952,
+      "bytes": 188539
+    },
+    {
+      "height": 46,
+      "setups": 7696,
+      "bytes": 183683
+    },
+    {
+      "height": 47,
+      "setups": 7624,
+      "bytes": 182328
+    },
+    {
+      "height": 48,
+      "setups": 7538,
+      "bytes": 180633
+    },
+    {
+      "height": 49,
+      "setups": 7638,
+      "bytes": 182483
+    },
+    {
+      "height": 50,
+      "setups": 7678,
+      "bytes": 183322
+    },
+    {
+      "height": 51,
+      "setups": 7619,
+      "bytes": 181967
+    },
+    {
+      "height": 52,
+      "setups": 7585,
+      "bytes": 182008
+    },
+    {
+      "height": 53,
+      "setups": 7471,
+      "bytes": 179610
+    },
+    {
+      "height": 54,
+      "setups": 7454,
+      "bytes": 178412
+    },
+    {
+      "height": 55,
+      "setups": 7393,
+      "bytes": 177205
+    },
+    {
+      "height": 56,
+      "setups": 7624,
+      "bytes": 181422
+    },
+    {
+      "height": 57,
+      "setups": 7447,
+      "bytes": 178698
+    },
+    {
+      "height": 58,
+      "setups": 7349,
+      "bytes": 176534
+    },
+    {
+      "height": 59,
+      "setups": 7370,
+      "bytes": 177395
+    },
+    {
+      "height": 60,
+      "setups": 7271,
+      "bytes": 175574
+    },
+    {
+      "height": 61,
+      "setups": 7378,
+      "bytes": 177434
+    },
+    {
+      "height": 62,
+      "setups": 7329,
+      "bytes": 176821
+    },
+    {
+      "height": 63,
+      "setups": 7236,
+      "bytes": 174872
+    },
+    {
+      "height": 64,
+      "setups": 6985,
+      "bytes": 169732
+    },
+    {
+      "height": 65,
+      "setups": 7157,
+      "bytes": 173377
+    },
+    {
+      "height": 66,
+      "setups": 7226,
+      "bytes": 174763
+    },
+    {
+      "height": 67,
+      "setups": 7058,
+      "bytes": 171347
+    },
+    {
+      "height": 68,
+      "setups": 6892,
+      "bytes": 167567
+    },
+    {
+      "height": 69,
+      "setups": 6883,
+      "bytes": 167349
+    },
+    {
+      "height": 70,
+      "setups": 6875,
+      "bytes": 167402
+    },
+    {
+      "height": 71,
+      "setups": 6866,
+      "bytes": 168156
+    },
+    {
+      "height": 72,
+      "setups": 6948,
+      "bytes": 169402
+    },
+    {
+      "height": 73,
+      "setups": 7059,
+      "bytes": 171738
+    },
+    {
+      "height": 74,
+      "setups": 6913,
+      "bytes": 168817
+    },
+    {
+      "height": 75,
+      "setups": 6826,
+      "bytes": 166241
+    },
+    {
+      "height": 76,
+      "setups": 6838,
+      "bytes": 167204
+    },
+    {
+      "height": 77,
+      "setups": 6825,
+      "bytes": 167194
+    },
+    {
+      "height": 78,
+      "setups": 6737,
+      "bytes": 164727
+    },
+    {
+      "height": 79,
+      "setups": 6552,
+      "bytes": 160844
+    },
+    {
+      "height": 80,
+      "setups": 6664,
+      "bytes": 163606
+    },
+    {
+      "height": 81,
+      "setups": 6699,
+      "bytes": 164005
+    },
+    {
+      "height": 82,
+      "setups": 6595,
+      "bytes": 162082
+    },
+    {
+      "height": 83,
+      "setups": 6635,
+      "bytes": 163457
+    },
+    {
+      "height": 84,
+      "setups": 6571,
+      "bytes": 161693
+    },
+    {
+      "height": 85,
+      "setups": 6569,
+      "bytes": 162184
+    },
+    {
+      "height": 86,
+      "setups": 6653,
+      "bytes": 163632
+    },
+    {
+      "height": 87,
+      "setups": 6560,
+      "bytes": 161184
+    },
+    {
+      "height": 88,
+      "setups": 6446,
+      "bytes": 159555
+    },
+    {
+      "height": 89,
+      "setups": 6839,
+      "bytes": 167192
+    },
+    {
+      "height": 90,
+      "setups": 6866,
+      "bytes": 167501
+    },
+    {
+      "height": 91,
+      "setups": 6790,
+      "bytes": 165340
+    },
+    {
+      "height": 92,
+      "setups": 6540,
+      "bytes": 160497
+    },
+    {
+      "height": 93,
+      "setups": 6541,
+      "bytes": 160196
+    },
+    {
+      "height": 94,
+      "setups": 6299,
+      "bytes": 154804
+    },
+    {
+      "height": 95,
+      "setups": 6316,
+      "bytes": 155372
+    },
+    {
+      "height": 96,
+      "setups": 6210,
+      "bytes": 153240
+    },
+    {
+      "height": 97,
+      "setups": 6122,
+      "bytes": 151910
+    },
+    {
+      "height": 98,
+      "setups": 5982,
+      "bytes": 148715
+    },
+    {
+      "height": 99,
+      "setups": 5980,
+      "bytes": 148080
+    }
+  ]
+}

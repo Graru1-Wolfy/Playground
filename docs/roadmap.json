@@ -51,7 +51,7 @@
         { "id": "0.3.4", "title": "Fix STANDBBOUNCE and CONIST typos", "status": "done", "area": "schema" },
         { "id": "0.3.5", "title": "Enable ProcessPoolExecutor parallel generation", "status": "done", "area": "engine-sim" },
         { "id": "0.3.6", "title": "CI data generation artifact (no data in git)", "status": "done", "area": "infra" },
-        { "id": "0.3.7", "title": "Generate and verify heights 0-99 test bucket", "status": "todo", "area": "data" }
+        { "id": "0.3.7", "title": "Generate and verify heights 0-99 test bucket", "status": "done", "area": "data" }
       ]
     },
     {

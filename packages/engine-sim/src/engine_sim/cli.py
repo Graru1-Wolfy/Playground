@@ -10,6 +10,16 @@ from engine_sim.generate_setups import find_bounce_setups_for_height
 from engine_sim.paths import DEFAULT_DATA_ROOT, DEFAULT_PRECOMPUTE_ROOT
 
 
+def _generate_height(args: tuple[int, str, str]) -> None:
+    """Module-level worker for ProcessPoolExecutor (must be picklable)."""
+    height, data_root_s, precompute_root_s = args
+    find_bounce_setups_for_height(
+        float(height),
+        data_root=type(DEFAULT_DATA_ROOT)(data_root_s),
+        precompute_root=type(DEFAULT_PRECOMPUTE_ROOT)(precompute_root_s),
+    )
+
+
 def _parse_range(text: str) -> tuple[int, int]:
     if ":" in text:
         start_s, end_s = text.split(":", 1)
@@ -63,19 +73,16 @@ def main(argv: list[str] | None = None) -> int:
     if not heights:
         parser.error("empty height range")
 
-    def run(height: int) -> None:
-        find_bounce_setups_for_height(
-            float(height),
-            data_root=args.data_root,
-            precompute_root=args.precompute_root,
-        )
+    data_root_s = str(args.data_root)
+    precompute_root_s = str(args.precompute_root)
 
     if args.workers <= 1 or len(heights) == 1:
         for h in heights:
-            run(h)
+            _generate_height((h, data_root_s, precompute_root_s))
     else:
+        jobs = [(h, data_root_s, precompute_root_s) for h in heights]
         with ProcessPoolExecutor(max_workers=args.workers) as pool:
-            list(pool.map(run, heights))
+            list(pool.map(_generate_height, jobs))
     return 0
 
 

@@ -1,3 +1,4 @@
 # Generated bounce setup tables (CI artifacts)
-data/generated/
+data/generated/**
+!data/generated/**/manifest.json
 data/precompute/
