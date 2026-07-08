@@ -20,11 +20,17 @@ export interface DefaultCheckRow {
   jumpbug: number;
 }
 
-function labelFor(code: number): string {
-  if (code === 0) return "—";
-  if (code === 1) return "bounce";
-  if (code === 2) return "double";
-  return String(code);
+function badgeFor(code: number): string {
+  if (code === 0) {
+    return '<span class="result-badge result-badge--none">—</span>';
+  }
+  if (code === 1) {
+    return '<span class="result-badge result-badge--bounce">bounce</span>';
+  }
+  if (code === 2) {
+    return '<span class="result-badge result-badge--double">double</span>';
+  }
+  return `<span class="result-badge result-badge--other">${code}</span>`;
 }
 
 export function runDefaultChecks(height: number): DefaultCheckRow[] {
@@ -37,12 +43,29 @@ export function runDefaultChecks(height: number): DefaultCheckRow[] {
 }
 
 export function formatDefaultTable(rows: DefaultCheckRow[]): string {
-  const lines = ["<table class=\"default-table\"><thead><tr><th>Start</th><th>Uncrouched</th><th>Crouched</th><th>Jumpbug</th></tr></thead><tbody>"];
+  const lines = [
+    '<table class="default-table"><thead><tr>',
+    "<th>Start</th><th>Uncrouched</th><th>Crouched</th><th>Jumpbug</th>",
+    "</tr></thead><tbody>",
+  ];
   for (const row of rows) {
     lines.push(
-      `<tr><td>${row.label}</td><td>${labelFor(row.uncrouched)}</td><td>${labelFor(row.crouched)}</td><td>${labelFor(row.jumpbug)}</td></tr>`,
+      `<tr><td>${row.label}</td>`,
+      `<td>${badgeFor(row.uncrouched)}</td>`,
+      `<td>${badgeFor(row.crouched)}</td>`,
+      `<td>${badgeFor(row.jumpbug)}</td></tr>`,
     );
   }
   lines.push("</tbody></table>");
   return lines.join("");
+}
+
+export function countBounceResults(rows: DefaultCheckRow[]): number {
+  let count = 0;
+  for (const row of rows) {
+    for (const code of [row.uncrouched, row.crouched, row.jumpbug]) {
+      if (code === 1 || code === 2) count++;
+    }
+  }
+  return count;
 }
