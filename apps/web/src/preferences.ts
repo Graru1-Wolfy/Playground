@@ -5,12 +5,24 @@ export type PreferenceWeights = Record<string, number>;
 
 const STORAGE_PREFIX = "bounce-pref-";
 
-export function loadWeights(): PreferenceWeights {
+export function getDefaultWeights(): PreferenceWeights {
   const weights: PreferenceWeights = {};
   for (const group of preferencesConfig.groups) {
     for (const pref of group.preferences) {
+      weights[pref.id] = pref.defaultWeight;
+    }
+  }
+  return weights;
+}
+
+export function loadWeights(): PreferenceWeights {
+  const weights = getDefaultWeights();
+  for (const group of preferencesConfig.groups) {
+    for (const pref of group.preferences) {
       const stored = localStorage.getItem(STORAGE_PREFIX + pref.id);
-      weights[pref.id] = stored !== null ? Number(stored) : pref.defaultWeight;
+      if (stored !== null) {
+        weights[pref.id] = Number(stored);
+      }
     }
   }
   return weights;
@@ -18,6 +30,12 @@ export function loadWeights(): PreferenceWeights {
 
 export function saveWeight(id: string, value: number): void {
   localStorage.setItem(STORAGE_PREFIX + id, String(value));
+}
+
+export function saveWeights(weights: PreferenceWeights): void {
+  for (const [id, value] of Object.entries(weights)) {
+    saveWeight(id, value);
+  }
 }
 
 export function resetWeights(): void {

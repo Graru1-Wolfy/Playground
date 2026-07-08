@@ -3,54 +3,270 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="TF2 Soldier bounce checker — analytical defaults and precomputed rocket setups." />
     <title>TF2 Bounce Checker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="app">
-      <header>
-        <h1>TF2 Bounce Checker</h1>
-        <p class="subtitle">Analytical DEFAULT checks + precomputed setups (heights 0–99)</p>
-      </header>
-
-      <section class="panel">
-        <label for="height-input">Target height</label>
-        <div class="row">
-          <input id="height-input" type="number" min="0" step="1" value="64" />
-          <button id="check-btn" type="button">Check</button>
+    <div id="app" class="dashboard">
+      <aside class="sidebar" aria-label="Primary navigation">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="32" height="32" rx="8" fill="url(#brand-grad)" />
+              <path
+                d="M8 22L16 8l8 14H8z"
+                stroke="white"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+              />
+              <path d="M12 18h8" stroke="white" stroke-width="1.5" stroke-linecap="round" />
+              <defs>
+                <linearGradient id="brand-grad" x1="4" y1="4" x2="28" y2="28">
+                  <stop stop-color="#e07a4a" />
+                  <stop offset="1" stop-color="#c44d2a" />
+                </linearGradient>
+              </defs>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">Bounce Lab</span>
+            <span class="brand-tag">TF2 Soldier</span>
+          </div>
         </div>
-        <p id="height-note" class="hint"></p>
-      </section>
 
-      <section class="panel">
-        <h2>Instant DEFAULT (analytical)</h2>
-        <div id="default-results"></div>
-      </section>
+        <nav class="sidebar-nav">
+          <a href="#checker" class="nav-item active" data-section="checker">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                fill-rule="evenodd"
+                d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            Checker
+          </a>
+          <a href="#setups" class="nav-item" data-section="setups">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"
+              />
+            </svg>
+            Setups
+          </a>
+          <button type="button" class="nav-item" id="prefs-nav">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                fill-rule="evenodd"
+                d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.885.06 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                clip-rule="evenodd"
+              />
+            </svg>
+            Preferences
+          </button>
+        </nav>
 
-      <section class="panel">
-        <div class="row spread">
-          <h2>Precomputed setups</h2>
-          <label>
-            Show
-            <select id="page-size">
-              <option value="20">20</option>
-              <option value="50">50</option>
-              <option value="250">250</option>
-              <option value="999999">All</option>
-            </select>
-          </label>
-        </div>
-        <p id="setup-status" class="hint"></p>
-        <ol id="setup-results"></ol>
-      </section>
+        <footer class="sidebar-footer">
+          <span class="version">v0.5.0</span>
+          <span class="engine-tag">Hybrid engine</span>
+        </footer>
+      </aside>
 
-      <section class="panel">
-        <details id="prefs-details">
-          <summary>Preferences</summary>
+      <div class="main-wrap">
+        <header class="topbar">
+          <button type="button" class="icon-btn menu-toggle" id="menu-toggle" aria-label="Toggle navigation">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                fill-rule="evenodd"
+                d="M2 4.75A.75.75 0 012.75 4h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 4.75zm0 5.5A.75.75 0 012.75 10h14.5a.75.75 0 010 1.5H2.75A.75.75 0 012 10.25zm0 5.5a.75.75 0 01.75-.75h14.5a.75.75 0 010 1.5H2.75a.75.75 0 01-.75-.75z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </button>
+
+          <div class="search-panel">
+            <label class="field-label" for="height-input">Target drop height</label>
+            <div class="height-input-group">
+              <div class="input-shell">
+                <input
+                  id="height-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value="64"
+                  inputmode="numeric"
+                  aria-describedby="height-note"
+                />
+                <span class="input-suffix">units</span>
+              </div>
+              <button id="check-btn" type="button" class="btn btn-primary">
+                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+                Analyze
+              </button>
+            </div>
+            <p id="height-note" class="field-hint" role="status"></p>
+          </div>
+
+          <div class="topbar-actions">
+            <button type="button" class="btn btn-ghost" id="prefs-toggle">
+              <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path
+                  fill-rule="evenodd"
+                  d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.885.06 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                  clip-rule="evenodd"
+                />
+              </svg>
+              Preferences
+            </button>
+          </div>
+        </header>
+
+        <main class="content">
+          <section class="stats-grid" aria-label="Summary metrics">
+            <article class="stat-card" id="stat-height">
+              <div class="stat-icon" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M10 2a.75.75 0 01.75.75v14.5a.75.75 0 01-1.5 0V2.75A.75.75 0 0110 2z" />
+                  <path d="M6 6.75a.75.75 0 011.5 0v6.5a.75.75 0 01-1.5 0v-6.5zM12.5 4.75a.75.75 0 00-1.5 0v10.5a.75.75 0 001.5 0V4.75z" />
+                </svg>
+              </div>
+              <div class="stat-body">
+                <span class="stat-label">Lookup height</span>
+                <span class="stat-value" id="stat-height-value">—</span>
+              </div>
+            </article>
+
+            <article class="stat-card" id="stat-setups">
+              <div class="stat-icon stat-icon--blue" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"
+                  />
+                </svg>
+              </div>
+              <div class="stat-body">
+                <span class="stat-label">Setups found</span>
+                <span class="stat-value" id="stat-setups-value">—</span>
+              </div>
+            </article>
+
+            <article class="stat-card" id="stat-best">
+              <div class="stat-icon stat-icon--green" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div class="stat-body">
+                <span class="stat-label">Top score</span>
+                <span class="stat-value" id="stat-best-value">—</span>
+              </div>
+            </article>
+
+            <article class="stat-card" id="stat-bucket">
+              <div class="stat-icon stat-icon--amber" aria-hidden="true">
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fill-rule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm.75-13a.75.75 0 00-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 000-1.5h-3.25V5z"
+                    clip-rule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div class="stat-body">
+                <span class="stat-label">Data bucket</span>
+                <span class="stat-value" id="stat-bucket-value">—</span>
+              </div>
+            </article>
+          </section>
+
+          <section class="dashboard-grid">
+            <article class="panel panel-analytical" id="checker">
+              <header class="panel-header">
+                <div>
+                  <h2>Instant DEFAULT</h2>
+                  <p class="panel-desc">Analytical bounce checks — no simulation required</p>
+                </div>
+                <span class="panel-badge">engine-fast</span>
+              </header>
+              <div id="default-results" class="panel-body"></div>
+            </article>
+
+            <article class="panel panel-setups" id="setups">
+              <header class="panel-header">
+                <div>
+                  <h2>Precomputed setups</h2>
+                  <p class="panel-desc">Ranked by your preference weights</p>
+                </div>
+                <div class="panel-header-actions">
+                  <label class="preset-select-control">
+                    <span class="sr-only">Ranking preset</span>
+                    <span aria-hidden="true">Preset</span>
+                    <select id="preset-select"></select>
+                  </label>
+                  <label class="page-size-control">
+                  <span class="sr-only">Results per page</span>
+                  <span aria-hidden="true">Show</span>
+                  <select id="page-size">
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="250">250</option>
+                    <option value="999999">All</option>
+                  </select>
+                  </label>
+                </div>
+              </header>
+              <p id="setup-status" class="panel-status" role="status"></p>
+              <div id="setup-results" class="setup-list" role="list"></div>
+            </article>
+          </section>
+        </main>
+      </div>
+
+      <aside class="drawer" id="prefs-drawer" aria-label="Preference weights" aria-hidden="true">
+        <header class="drawer-header">
+          <div>
+            <h2>Preferences</h2>
+            <p class="drawer-desc">Weight setups toward your playstyle. Saved locally.</p>
+          </div>
+          <button type="button" class="icon-btn" id="drawer-close" aria-label="Close preferences">
+            <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path
+                d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z"
+              />
+            </svg>
+          </button>
+        </header>
+        <div class="drawer-body">
+          <section class="preset-section" aria-label="Preset configurations">
+            <div class="preset-section-header">
+              <h3>Preset configs</h3>
+              <p>One-click weight profiles for simulated setup ranking.</p>
+            </div>
+            <div id="preset-grid" class="preset-grid" role="list"></div>
+          </section>
           <div id="preferences-panel"></div>
-          <button id="reset-prefs" type="button">Reset defaults</button>
-        </details>
-      </section>
+        </div>
+        <footer class="drawer-footer">
+          <button type="button" class="btn btn-secondary" id="reset-prefs">Reset defaults</button>
+        </footer>
+      </aside>
+      <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

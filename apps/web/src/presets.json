@@ -1,0 +1,173 @@
+{
+  "presets": [
+    {
+      "id": "balanced",
+      "name": "Balanced",
+      "description": "Default weights — favors simple, hold-m1 auto bounces.",
+      "weights": {}
+    },
+    {
+      "id": "beginner",
+      "name": "Beginner",
+      "description": "Easy inputs, few rockets, no binds — forgiving setups first.",
+      "weights": {
+        "SIMPLE": 100,
+        "NOMOVEMENTBIND": 50,
+        "NOACTIONBIND": 45,
+        "ONEROCKET": 35,
+        "ZEROROCKET": 25,
+        "FABOUNCE": 55,
+        "ABOUNCE": 40,
+        "ASTANDBOUNCE": 35,
+        "FASTANDBOUNCE": 40,
+        "CONSIST": 30,
+        "NOMOVING": 25,
+        "STRAFE": -60,
+        "DIAGONAL": -40,
+        "TWOTHREEROCKETS": -25,
+        "ONETICK": -1000,
+        "TWOTICK": -1000
+      }
+    },
+    {
+      "id": "auto-bounce",
+      "name": "Hold M1 Auto",
+      "description": "Fully automatic bounces — hold fire and look down.",
+      "weights": {
+        "FABOUNCE": 90,
+        "FASTANDBOUNCE": 70,
+        "FASBOUNCE": 50,
+        "ABOUNCE": 60,
+        "ASTANDBOUNCE": 55,
+        "ASBOUNCE": 35,
+        "SIMPLE": 45,
+        "ONEROCKET": 20
+      }
+    },
+    {
+      "id": "speedrun",
+      "name": "Speedrun",
+      "description": "Fastest time-to-bounce with good exit speed.",
+      "weights": {
+        "QUICK": 90,
+        "SPEED": 70,
+        "COMPACT": 45,
+        "ONEROCKET": 30,
+        "SIMPLE": 35,
+        "FABOUNCE": 25,
+        "TWOTHREEROCKETS": -20,
+        "SHOTGUN": -15
+      }
+    },
+    {
+      "id": "max-height",
+      "name": "Max Height",
+      "description": "Peak trajectory — CTAP and multi-rocket height setups.",
+      "weights": {
+        "HEIGHT": 100,
+        "DIST": 55,
+        "CTAP_JDS": 50,
+        "TWOTHREEROCKETS": 40,
+        "SPEED": 25,
+        "JDS": 20,
+        "COMPACT": -30,
+        "QUICK": -20
+      }
+    },
+    {
+      "id": "jumpbug",
+      "name": "Jumpbug",
+      "description": "Jumpbug and jumpbug powerbounce setups.",
+      "weights": {
+        "JB": 100,
+        "JBPB": 65,
+        "SJBPB": 45,
+        "BOUNCE": 15,
+        "SIMPLE": 25
+      }
+    },
+    {
+      "id": "bhop",
+      "name": "Bhop & Power",
+      "description": "Bhop hops and powerbounce windows.",
+      "weights": {
+        "BHOP": 85,
+        "PB": 65,
+        "SPB": 45,
+        "BOUNCE": 35,
+        "STANDBOUNCE": 25,
+        "SIMPLE": 30
+      }
+    },
+    {
+      "id": "consistency",
+      "name": "Consistency",
+      "description": "Reliable, repeatable setups — no diagonal or tick-perfect tricks.",
+      "weights": {
+        "CONSIST": 85,
+        "NOMOVING": 55,
+        "NOMOVEMENTBIND": 50,
+        "SIMPLE": 70,
+        "NOACTIONBIND": 35,
+        "DIAGONAL": -50,
+        "STRAFE": -40,
+        "ONETICK": -1000,
+        "TWOTICK": -1000,
+        "MOVEUP": -20
+      }
+    },
+    {
+      "id": "synced",
+      "name": "Synced Tech",
+      "description": "Prefired synced bounces and standing syncs.",
+      "weights": {
+        "SBOUNCE": 75,
+        "SSTANDBOUNCE": 65,
+        "ASBOUNCE": 55,
+        "FASBOUNCE": 50,
+        "ASSTANDBOUNCE": 40,
+        "FASSTANDBOUNCE": 35,
+        "SPB": 40,
+        "SJBPB": 30
+      }
+    },
+    {
+      "id": "pro",
+      "name": "Pro / Advanced",
+      "description": "Tick-perfect CTAP, strafe binds, and multi-rocket tech.",
+      "weights": {
+        "STRAFE": 55,
+        "MOVEUP": 35,
+        "TWOTHREEROCKETS": 45,
+        "CTAP_JDS": 40,
+        "ONETICK": 25,
+        "TWOTICK": 20,
+        "SPEED": 35,
+        "HEIGHT": 30,
+        "PB": 30,
+        "SBOUNCE": 25,
+        "SIMPLE": -20
+      }
+    },
+    {
+      "id": "stock",
+      "name": "Stock Launcher",
+      "description": "Prefer stock rocket launcher setups only.",
+      "weights": {
+        "STOCK": 80,
+        "ORIG": -40,
+        "MANG": -40
+      }
+    },
+    {
+      "id": "mangler",
+      "name": "Mangler",
+      "description": "Prefer Cow Mangler setups.",
+      "weights": {
+        "MANG": 80,
+        "STOCK": -30,
+        "ORIG": -30
+      }
+    }
+  ]
+}
