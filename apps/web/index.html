@@ -213,7 +213,13 @@
                   <h2>Precomputed setups</h2>
                   <p class="panel-desc">Ranked by your preference weights</p>
                 </div>
-                <label class="page-size-control">
+                <div class="panel-header-actions">
+                  <label class="preset-select-control">
+                    <span class="sr-only">Ranking preset</span>
+                    <span aria-hidden="true">Preset</span>
+                    <select id="preset-select"></select>
+                  </label>
+                  <label class="page-size-control">
                   <span class="sr-only">Results per page</span>
                   <span aria-hidden="true">Show</span>
                   <select id="page-size">
@@ -222,7 +228,8 @@
                     <option value="250">250</option>
                     <option value="999999">All</option>
                   </select>
-                </label>
+                  </label>
+                </div>
               </header>
               <p id="setup-status" class="panel-status" role="status"></p>
               <div id="setup-results" class="setup-list" role="list"></div>
@@ -246,6 +253,13 @@
           </button>
         </header>
         <div class="drawer-body">
+          <section class="preset-section" aria-label="Preset configurations">
+            <div class="preset-section-header">
+              <h3>Preset configs</h3>
+              <p>One-click weight profiles for simulated setup ranking.</p>
+            </div>
+            <div id="preset-grid" class="preset-grid" role="list"></div>
+          </section>
           <div id="preferences-panel"></div>
         </div>
         <footer class="drawer-footer">

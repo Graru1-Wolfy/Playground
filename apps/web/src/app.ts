@@ -3,14 +3,25 @@ import { formatSetupCard } from "./formatSetup.js";
 import { normalizeHeight } from "./height.js";
 import { loadSetupsForHeight } from "./lookup.js";
 import {
+  getActivePreset,
+  getPresetById,
+  presetConfigs,
+  resolvePresetWeights,
+  setActivePresetId,
+  type PresetConfig,
+} from "./presets.js";
+import {
   loadWeights,
   preferencesConfig,
   resetWeights,
   saveWeight,
+  saveWeights,
   scoreSetup,
 } from "./preferences.js";
 
 import type { DecodedSetup } from "@playground/schema";
+
+const CUSTOM_PRESET_ID = "custom";
 
 let currentSetups: DecodedSetup[] = [];
 let maxDisplayed = 20;
@@ -59,6 +70,73 @@ function toggleSidebar(): void {
   el<HTMLElement>("app").querySelector(".sidebar")?.classList.toggle("open");
 }
 
+function applyPreset(preset: PresetConfig): void {
+  saveWeights(resolvePresetWeights(preset));
+  setActivePresetId(preset.id);
+  renderPresetControls();
+  renderPreferences();
+  void rerankAndDisplay();
+}
+
+function markCustomPreset(): void {
+  setActivePresetId(null);
+  renderPresetControls();
+}
+
+function renderPresetGrid(): void {
+  const grid = el<HTMLDivElement>("preset-grid");
+  grid.innerHTML = "";
+  const active = getActivePreset();
+
+  for (const preset of presetConfigs) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "preset-card";
+    button.role = "listitem";
+    button.dataset.presetId = preset.id;
+    button.setAttribute("aria-pressed", String(active?.id === preset.id));
+    if (active?.id === preset.id) {
+      button.classList.add("active");
+    }
+
+    button.innerHTML = [
+      `<span class="preset-card-name">${preset.name}</span>`,
+      `<span class="preset-card-desc">${preset.description}</span>`,
+    ].join("");
+
+    button.addEventListener("click", () => applyPreset(preset));
+    grid.appendChild(button);
+  }
+}
+
+function renderPresetSelect(): void {
+  const select = el<HTMLSelectElement>("preset-select");
+  const active = getActivePreset();
+  const currentValue = active?.id ?? CUSTOM_PRESET_ID;
+
+  select.innerHTML = "";
+  for (const preset of presetConfigs) {
+    const option = document.createElement("option");
+    option.value = preset.id;
+    option.textContent = preset.name;
+    select.appendChild(option);
+  }
+
+  const customOption = document.createElement("option");
+  customOption.value = CUSTOM_PRESET_ID;
+  customOption.textContent = "Custom";
+  select.appendChild(customOption);
+
+  select.value = presetConfigs.some((preset) => preset.id === currentValue)
+    ? currentValue
+    : CUSTOM_PRESET_ID;
+}
+
+function renderPresetControls(): void {
+  renderPresetGrid();
+  renderPresetSelect();
+}
+
 function renderPreferences(): void {
   const panel = el<HTMLDivElement>("preferences-panel");
   panel.innerHTML = "";
@@ -84,6 +162,7 @@ function renderPreferences(): void {
       input.value = String(weights[pref.id] ?? pref.defaultWeight);
       input.addEventListener("change", () => {
         saveWeight(pref.id, Number(input.value));
+        markCustomPreset();
         void rerankAndDisplay();
       });
       row.append(name, input);
@@ -91,6 +170,11 @@ function renderPreferences(): void {
     }
     panel.appendChild(section);
   }
+}
+
+function presetLabel(): string {
+  const active = getActivePreset();
+  return active?.name ?? "Custom";
 }
 
 async function rerankAndDisplay(): Promise<void> {
@@ -107,10 +191,12 @@ async function rerankAndDisplay(): Promise<void> {
   });
 
   const status = el<HTMLParagraphElement>("setup-status");
-  status.textContent =
+  const presetName = presetLabel();
+  const baseStatus =
     currentSetups.length === 0
       ? "No precomputed file for this height (bucket 0–99 only in MVP)."
       : `Showing ${Math.min(limit, scored.length)} of ${scored.length} setups`;
+  status.textContent = `${baseStatus} · Preset: ${presetName}`;
 
   updateStats(
     Number(el<HTMLInputElement>("height-input").value),
@@ -167,10 +253,21 @@ function bindNavigation(): void {
   }
 }
 
+function bindPresetControls(): void {
+  el<HTMLSelectElement>("preset-select").addEventListener("change", (e) => {
+    const value = (e.target as HTMLSelectElement).value;
+    if (value === CUSTOM_PRESET_ID) return;
+    const preset = getPresetById(value);
+    if (preset) applyPreset(preset);
+  });
+}
+
 export function initApp(): void {
+  renderPresetControls();
   renderPreferences();
   bindDrawerControls();
   bindNavigation();
+  bindPresetControls();
 
   el<HTMLButtonElement>("check-btn").addEventListener("click", () => void runCheck());
   el<HTMLInputElement>("height-input").addEventListener("keydown", (e) => {
@@ -182,6 +279,11 @@ export function initApp(): void {
   });
   el<HTMLButtonElement>("reset-prefs").addEventListener("click", () => {
     resetWeights();
+    const balanced = getPresetById("balanced");
+    if (balanced) {
+      setActivePresetId("balanced");
+    }
+    renderPresetControls();
     renderPreferences();
     void rerankAndDisplay();
   });
