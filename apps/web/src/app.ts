@@ -1,7 +1,7 @@
 import { formatDefaultGrid, runDefaultChecks } from "./defaultCheck.js";
 import { formatSetupCard, setupMatchesFilter } from "./formatSetup.js";
 import { normalizeHeight } from "./height.js";
-import { loadSetupsForHeight } from "./lookup.js";
+import { loadSetupsWithSource } from "./lookup.js";
 import {
   loadWeights,
   preferencesConfig,
@@ -14,6 +14,7 @@ import { copyToClipboard, debounce, el, setLiveStatus, showElement } from "./ui.
 import type { DecodedSetup } from "@playground/schema";
 
 let currentSetups: DecodedSetup[] = [];
+let setupDataSource: "generated" | "sample" | "none" = "none";
 let maxDisplayed = 20;
 let filterQuery = "";
 let checkGeneration = 0;
@@ -132,10 +133,14 @@ async function rerankAndDisplay(): Promise<void> {
     status.textContent = "No precomputed data for this height";
     showElement(el<HTMLDivElement>("setup-empty"), true);
     showElement(el<HTMLDivElement>("setup-loading"), false);
+    showElement(el<HTMLDivElement>("setup-list-header"), false);
   } else {
     showElement(el<HTMLDivElement>("setup-empty"), false);
-    const filterNote = filterQuery.trim() ? ` (${filtered} match filter)` : "";
-    status.textContent = `Showing ${Math.min(limit, filtered)} of ${filtered}${filterNote} · ${total} total`;
+    showElement(el<HTMLDivElement>("setup-list-header"), true);
+    const filterNote = filterQuery.trim() ? ` · ${filtered} match` : "";
+    const sourceNote =
+      setupDataSource === "sample" ? " · sample data" : setupDataSource === "generated" ? "" : "";
+    status.textContent = `${Math.min(limit, filtered)}/${filtered}${filterNote} · ${total} setups${sourceNote}`;
   }
 }
 
@@ -182,8 +187,11 @@ async function runCheck(): Promise<void> {
 
   el<HTMLDivElement>("default-results").innerHTML = formatDefaultGrid(runDefaultChecks(height));
 
-  currentSetups = await loadSetupsForHeight(height);
+  const { setups, source } = await loadSetupsWithSource(height);
   if (generation !== checkGeneration) return;
+
+  currentSetups = setups;
+  setupDataSource = source;
 
   showElement(el<HTMLDivElement>("setup-loading"), false);
   await rerankAndDisplay();

@@ -18,6 +18,9 @@ npm run build:packages
 # Generate data if needed (see packages/engine-sim)
 engine-sim --range 0-99 --workers 4
 
+# Optional: refresh bundled sample setups for dev/screenshots (height 64)
+PYTHONPATH=packages/engine-sim/src python3 scripts/write-web-sample-data.py
+
 # Dev server (serves ../../data/generated at /data)
 npm run dev:web
 ```
