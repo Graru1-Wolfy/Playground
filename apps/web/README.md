@@ -46,7 +46,8 @@ npm run build:android
 bash scripts/build-android-apk.sh debug
 ```
 
-**Download:** [Latest GitHub Release APK](https://github.com/Graru1-Wolfy/Playground/releases/latest)
+**Download:** [Latest GitHub Release APK](https://github.com/Graru1-Wolfy/Playground/releases/latest)  
+Direct: [bounce-check-v1.0.1.apk](https://github.com/Graru1-Wolfy/Playground/releases/download/bounce-check-v1.0.1/bounce-check-v1.0.1.apk)
 
 Output: `apps/web/android/app/build/outputs/apk/release/app-release.apk`
 
@@ -84,6 +85,8 @@ Install: Chrome menu → **Install app** or **Add to Home screen**.
 After deploy: `https://graru1-wolfy.github.io/Playground/`
 
 Open in Chrome → install from the menu. Offline caching works via the service worker after the first load.
+
+If the URL returns 404, confirm **Settings → Pages → Build and deployment → Source: GitHub Actions**, then check the **Deploy GitHub Pages** workflow on `main`.
 
 ## Production build
 
