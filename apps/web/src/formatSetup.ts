@@ -42,51 +42,27 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
   const launcherClass = LAUNCHER_COLORS[launcher] ?? "launcher-any";
   const rockets = setup.num_rockets;
   const speeds = setup.speeds.filter((s) => Number.isFinite(s)).map((s) => `${s.toFixed(0)}`);
-  const bounceTags = flagSummary(setup.bounce_flag);
-  const standTags = flagSummary(setup.standing_bounce_flag);
+  const allTags = [...flagSummary(setup.bounce_flag), ...flagSummary(setup.standing_bounce_flag)];
   const scorePct = options.maxScore > 0 ? Math.round((options.score / options.maxScore) * 100) : 0;
   const idStr = setup.ID.toString();
 
-  const speedHtml = speeds.length
-    ? `<div class="setup-stat">
-        <span class="setup-stat-label">Speeds</span>
-        <span class="setup-stat-value mono">${speeds.map((s) => `${s} u/s`).join(", ")}</span>
-      </div>`
-    : "";
-
-  const bounceHtml = bounceTags.length
-    ? `<div class="setup-tags-row"><span class="setup-tags-label">Bounce</span>${renderTags(bounceTags)}</div>`
-    : "";
-  const standHtml = standTags.length
-    ? `<div class="setup-tags-row"><span class="setup-tags-label">Standing</span>${renderTags(standTags)}</div>`
-    : "";
+  const metaParts = [
+    speeds.length ? `<span class="setup-meta mono">${speeds.join("/")} u/s</span>` : "",
+    allTags.length ? `<span class="setup-tags">${renderTags(allTags)}</span>` : "",
+  ].filter(Boolean);
 
   return `
     <article class="setup-card" data-setup-id="${escapeHtml(idStr)}">
-      <div class="setup-rank" aria-label="Rank ${options.rank}">#${options.rank}</div>
-      <div class="setup-main">
-        <header class="setup-head">
-          <div class="setup-title">
-            <span class="launcher-pill ${launcherClass}">${escapeHtml(launcher)}</span>
-            <span class="setup-rockets">${rockets} rocket${rockets === 1 ? "" : "s"}</span>
-          </div>
-          <div class="setup-score-wrap">
-            <span class="setup-score mono">${Math.round(options.score)}</span>
-            <div class="score-bar" role="presentation">
-              <div class="score-bar-fill" style="width: ${scorePct}%"></div>
-            </div>
-          </div>
-        </header>
-        <div class="setup-body">
-          ${speedHtml}
-          ${bounceHtml}
-          ${standHtml}
-        </div>
-        <footer class="setup-foot">
-          <span class="setup-id mono">id ${escapeHtml(idStr)}</span>
-          <button type="button" class="btn btn-ghost btn-sm copy-id-btn" data-copy="${escapeHtml(idStr)}">Copy ID</button>
-        </footer>
+      <span class="setup-rank" aria-label="Rank ${options.rank}">#${options.rank}</span>
+      <span class="launcher-pill ${launcherClass}">${escapeHtml(launcher)}</span>
+      <span class="setup-rockets">${rockets}r</span>
+      <div class="setup-meta-wrap">${metaParts.join("")}</div>
+      <div class="setup-score-wrap">
+        <span class="setup-score mono">${Math.round(options.score)}</span>
+        <div class="score-bar" role="presentation"><div class="score-bar-fill" style="width: ${scorePct}%"></div></div>
       </div>
+      <span class="setup-id mono" title="${escapeHtml(idStr)}">${escapeHtml(idStr.slice(0, 8))}…</span>
+      <button type="button" class="btn btn-ghost btn-sm copy-id-btn" data-copy="${escapeHtml(idStr)}" aria-label="Copy setup ID">⧉</button>
     </article>`;
 }
 
