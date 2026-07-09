@@ -31,6 +31,43 @@ Open the URL printed by Vite (usually `http://localhost:5173/Playground/`).
 
 The app is a **Progressive Web App** — run it in Chrome on Android, or install it to your home screen.
 
+### Installable APK (native app)
+
+Build a **signed release APK** with Capacitor (bundles the web UI + sample setups offline):
+
+```bash
+# One-time: Android SDK (Linux/macOS)
+bash scripts/setup-android-sdk.sh
+
+# Signed release (dev keystore — sideload / GitHub releases)
+npm run build:android
+
+# Debug build (unsigned debug key)
+bash scripts/build-android-apk.sh debug
+```
+
+**Download:** [Latest GitHub Release APK](https://github.com/Graru1-Wolfy/Playground/releases/latest)
+
+Output: `apps/web/android/app/build/outputs/apk/release/app-release.apk`
+
+Install on a USB-connected device:
+
+```bash
+adb install -r apps/web/android/app/build/outputs/apk/release/app-release.apk
+```
+
+Or download the APK from GitHub Releases and open it on your phone (enable “Install unknown apps” for your file manager).
+
+**Dev signing key** (sideload only, not Play Store production):
+
+| Property | Value |
+|----------|-------|
+| Keystore | `apps/web/android/keystore/bounce-check-dev.jks` |
+| Alias | `bouncecheck-dev` |
+| Password | `bouncecheck-dev` |
+
+App id: `com.playground.bouncecheck` · launcher name: **Bounce Check** · version **1.0.0**
+
 ### Same Wi‑Fi (local dev)
 
 ```bash

@@ -7,14 +7,25 @@
     "dev": "vite",
     "dev:host": "vite --host",
     "build": "tsc && vite build",
+    "build:capacitor": "VITE_CAPACITOR=true tsc && VITE_CAPACITOR=true vite build",
     "preview": "vite preview",
-    "preview:host": "vite preview --host"
+    "preview:host": "vite preview --host",
+    "cap:sync": "cap sync android",
+    "cap:open:android": "cap open android",
+    "cap:build:android": "cd android && ./gradlew assembleDebug",
+    "cap:build:android:release": "cd android && ./gradlew assembleRelease",
+    "android:apk": "npm run build:capacitor && npm run cap:sync && npm run cap:build:android",
+    "android:apk:release": "npm run build:capacitor && npm run cap:sync && npm run cap:build:android:release"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
     "@playground/engine-fast": "*",
     "@playground/schema": "*"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.3",

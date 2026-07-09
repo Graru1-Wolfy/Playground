@@ -8,8 +8,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "../..");
 const dataRoot = path.join(repoRoot, "data", "generated");
 
-/** GitHub Pages project site base path. */
-const base = process.env.VITE_BASE_PATH ?? "/Playground/";
+const isCapacitor = process.env.VITE_CAPACITOR === "true";
+/** GitHub Pages project site base path; use relative base for Capacitor APK bundles. */
+const base = isCapacitor ? "./" : (process.env.VITE_BASE_PATH ?? "/Playground/");
 
 export default defineConfig({
   base,
@@ -30,46 +31,50 @@ export default defineConfig({
         });
       },
     },
-    VitePWA({
-      registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "icon-192.svg", "icon-512.svg"],
-      manifest: {
-        name: "TF2 Live Bounce Checker",
-        short_name: "Bounce Check",
-        description: "Live TF2 bounce checker — DEFAULT checks and precomputed setups",
-        theme_color: "#12161e",
-        background_color: "#0c0f14",
-        display: "standalone",
-        orientation: "any",
-        start_url: base,
-        scope: base,
-        icons: [
-          {
-            src: "icon-192.svg",
-            sizes: "192x192",
-            type: "image/svg+xml",
-            purpose: "any",
-          },
-          {
-            src: "icon-512.svg",
-            sizes: "512x512",
-            type: "image/svg+xml",
-            purpose: "any",
-          },
-          {
-            src: "icon-512.svg",
-            sizes: "512x512",
-            type: "image/svg+xml",
-            purpose: "maskable",
-          },
-        ],
-      },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,svg,bin,woff2}"],
-        navigateFallback: `${base}index.html`,
-        navigateFallbackDenylist: [/^\/data\//],
-      },
-    }),
+    ...(isCapacitor
+      ? []
+      : [
+          VitePWA({
+            registerType: "autoUpdate",
+            includeAssets: ["favicon.svg", "icon-192.svg", "icon-512.svg"],
+            manifest: {
+              name: "TF2 Live Bounce Checker",
+              short_name: "Bounce Check",
+              description: "Live TF2 bounce checker — DEFAULT checks and precomputed setups",
+              theme_color: "#12161e",
+              background_color: "#0c0f14",
+              display: "standalone",
+              orientation: "any",
+              start_url: base,
+              scope: base,
+              icons: [
+                {
+                  src: "icon-192.svg",
+                  sizes: "192x192",
+                  type: "image/svg+xml",
+                  purpose: "any",
+                },
+                {
+                  src: "icon-512.svg",
+                  sizes: "512x512",
+                  type: "image/svg+xml",
+                  purpose: "any",
+                },
+                {
+                  src: "icon-512.svg",
+                  sizes: "512x512",
+                  type: "image/svg+xml",
+                  purpose: "maskable",
+                },
+              ],
+            },
+            workbox: {
+              globPatterns: ["**/*.{js,css,html,ico,svg,bin,woff2}"],
+              navigateFallback: `${base}index.html`,
+              navigateFallbackDenylist: [/^\/data\//],
+            },
+          }),
+        ]),
   ],
   resolve: {
     alias: {

@@ -13,6 +13,8 @@
     "dev:web:android": "npm run dev:host -w @playground/web",
     "android:url": "bash scripts/android-dev-url.sh",
     "preview:web": "npm run preview:host -w @playground/web",
+    "build:android": "bash scripts/build-android-apk.sh",
+    "android:icons": "node scripts/generate-app-icon.mjs",
     "test": "npm run test -w @playground/engine-fast && npm run test -w @playground/schema"
   }
 }
