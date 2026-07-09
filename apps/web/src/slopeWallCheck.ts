@@ -31,13 +31,17 @@ function angleBounce(
   weapon: WeaponName,
   crouched: boolean,
   land: LandType,
+  teleheight: number,
 ): string {
-  const angles = getBounceAngles(height, { ang: true, crouched, weapon }, land);
+  const angles = getBounceAngles(height, { ang: true, crouched, weapon }, land, teleheight);
   if (!angles || (Array.isArray(angles[0]) && angles.length === 0)) return "—";
   return `<span class="angle-badge">${formatAngles(angles)}</span>`;
 }
 
-export function runSlopeWallChecks(input: SlopeWallInput): {
+export function runSlopeWallChecks(
+  input: SlopeWallInput,
+  teleheight = 1,
+): {
   effective: number | null;
   rows: SlopeWallRow[];
 } {
@@ -48,12 +52,12 @@ export function runSlopeWallChecks(input: SlopeWallInput): {
 
   const rows = LAUNCHERS.map((launcher) => ({
     launcher,
-    walkUnc: angleBounce(effective, launcher, false, LandType.UNCROUCHED),
-    walkCro: angleBounce(effective, launcher, false, LandType.CROUCHED),
-    walkJb: angleBounce(effective, launcher, false, LandType.JUMPBUG),
-    crouchUnc: angleBounce(effective, launcher, true, LandType.UNCROUCHED),
-    crouchCro: angleBounce(effective, launcher, true, LandType.CROUCHED),
-    crouchJb: angleBounce(effective, launcher, true, LandType.JUMPBUG),
+    walkUnc: angleBounce(effective, launcher, false, LandType.UNCROUCHED, teleheight),
+    walkCro: angleBounce(effective, launcher, false, LandType.CROUCHED, teleheight),
+    walkJb: angleBounce(effective, launcher, false, LandType.JUMPBUG, teleheight),
+    crouchUnc: angleBounce(effective, launcher, true, LandType.UNCROUCHED, teleheight),
+    crouchCro: angleBounce(effective, launcher, true, LandType.CROUCHED, teleheight),
+    crouchJb: angleBounce(effective, launcher, true, LandType.JUMPBUG, teleheight),
   }));
 
   return { effective, rows };

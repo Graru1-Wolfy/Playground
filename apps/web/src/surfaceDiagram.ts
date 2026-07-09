@@ -12,6 +12,8 @@ export interface SurfaceDiagramModel {
   slopeDeg: number;
   verticalHeight: number;
   hasWall: boolean;
+  ceilingGap: number | null;
+  teleheight: number;
   standable: boolean;
   effective: number | null;
   /** World Z of horizontal floor plane (bounce start). */
@@ -20,7 +22,12 @@ export interface SurfaceDiagramModel {
   bounceZ: number;
 }
 
-export function buildSurfaceDiagramModel(input: SlopeWallInput): SurfaceDiagramModel {
+export interface SurfaceDiagramInput extends SlopeWallInput {
+  ceilingGap?: number | null;
+  teleheight?: number;
+}
+
+export function buildSurfaceDiagramModel(input: SurfaceDiagramInput): SurfaceDiagramModel {
   const standable = isSlopeStandable(input.slopeDeg);
   const floorZ = input.verticalHeight + DIST_EPSILON;
   const nz = slopeNormalZ(input.slopeDeg);
@@ -37,6 +44,8 @@ export function buildSurfaceDiagramModel(input: SlopeWallInput): SurfaceDiagramM
     slopeDeg: input.slopeDeg,
     verticalHeight: input.verticalHeight,
     hasWall: input.hasWall,
+    ceilingGap: input.ceilingGap ?? null,
+    teleheight: input.teleheight ?? 1,
     standable,
     effective: effectiveBounceHeight(input),
     floorZ,
@@ -55,7 +64,12 @@ export function renderSurfaceDiagramSvg(model: SurfaceDiagramModel): string {
   const ox = padL;
   const oy = H - padB;
 
-  const maxH = Math.max(model.verticalHeight, model.floorZ, 24) * 1.15;
+  const maxH = Math.max(
+    model.verticalHeight,
+    model.floorZ,
+    model.ceilingGap !== null ? model.floorZ + model.ceilingGap : 0,
+    24,
+  ) * 1.15;
   const spanX = 200;
   const sx = (spanX - padL - padR) / Math.max(maxH * 0.6, 40);
   const sy = (oy - padT) / maxH;
@@ -91,12 +105,40 @@ export function renderSurfaceDiagramSvg(model: SurfaceDiagramModel): string {
       ${label(g0[0] + 6, g0[1] + 14, `Ground ${Math.round(model.slopeDeg)}°`, "surface-label-ground")}
     </g>`);
 
-  // Floor plane (marked when using slope/wall mode)
-  if (model.slopeDeg > 0.5 || model.hasWall) {
+  // Floor plane
+  if (
+    model.verticalHeight > 0 ||
+    model.slopeDeg > 0.5 ||
+    model.hasWall ||
+    model.ceilingGap !== null
+  ) {
     surfaces.push(`
       <g class="surface-group surface-floor" data-surface="floor">
         <line class="surface-outline surface-outline-dashed" x1="${f0[0]}" y1="${f0[1]}" x2="${f1[0]}" y2="${f1[1]}" />
         ${label(f1[0] - 42, f1[1] - 6, "Floor", "surface-label-floor")}
+      </g>`);
+  }
+
+  // Ceiling (marked when ceiling gap enabled)
+  if (model.ceilingGap !== null) {
+    const ceilZ = model.floorZ + model.ceilingGap;
+    const c0 = toSvg(-8, ceilZ);
+    const c1 = toSvg(run * 0.85, ceilZ);
+    surfaces.push(`
+      <g class="surface-group surface-ceiling" data-surface="ceiling">
+        <line class="surface-outline surface-outline-dashed" x1="${c0[0]}" y1="${c0[1]}" x2="${c1[0]}" y2="${c1[1]}" />
+        ${label(c1[0] - 48, c1[1] - 6, "Ceiling", "surface-label-ceiling")}
+      </g>`);
+  }
+
+  // Teleport trigger band at floor
+  if (model.teleheight > 0) {
+    const t0 = toSvg(run * 0.55, model.floorZ);
+    const t1 = toSvg(run * 0.55, model.floorZ + model.teleheight);
+    surfaces.push(`
+      <g class="surface-group surface-teleport" data-surface="teleport">
+        <line class="surface-outline surface-outline-tele" x1="${t0[0]}" y1="${t0[1]}" x2="${t1[0]}" y2="${t1[1]}" />
+        ${label(t1[0] + 4, t1[1] - 2, `Tele ${formatTele(model.teleheight)}`, "surface-label-teleport")}
       </g>`);
   }
 
@@ -154,15 +196,27 @@ function label(x: number, y: number, text: string, className: string): string {
   return `<text class="surface-label ${className}" x="${x}" y="${y}">${text}</text>`;
 }
 
+function formatTele(value: number): string {
+  return value.toFixed(3).replace(/\.?0+$/, "") || "0";
+}
+
 function buildLegend(model: SurfaceDiagramModel): string {
   const items: { key: string; text: string; cls: string }[] = [
     { key: "ground", text: "Ground", cls: "legend-ground" },
   ];
   if (model.slopeDeg > 0.5 || model.hasWall) {
     items.push({ key: "floor", text: "Floor", cls: "legend-floor" });
+  } else if (model.verticalHeight > 0 || model.ceilingGap !== null) {
+    items.push({ key: "floor", text: "Floor", cls: "legend-floor" });
   }
   if (model.hasWall) {
     items.push({ key: "wall", text: "Wall", cls: "legend-wall" });
+  }
+  if (model.ceilingGap !== null) {
+    items.push({ key: "ceiling", text: "Ceiling", cls: "legend-ceiling" });
+  }
+  if (model.teleheight > 0) {
+    items.push({ key: "teleport", text: "Tele", cls: "legend-teleport" });
   }
   if ((model.slopeDeg > 0.5 || model.hasWall) && model.standable) {
     items.push({ key: "bounce", text: "Bounce pt", cls: "legend-bounce" });
@@ -184,6 +238,6 @@ function buildLegend(model: SurfaceDiagramModel): string {
   return `<g class="surface-legend" transform="translate(${300 - 88}, ${148 - 8 - items.length * 13})">${rows}</g>`;
 }
 
-export function renderSurfaceDiagram(input: SlopeWallInput): string {
+export function renderSurfaceDiagram(input: SurfaceDiagramInput): string {
   return renderSurfaceDiagramSvg(buildSurfaceDiagramModel(input));
 }

@@ -456,6 +456,17 @@ body::before {
   filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.35));
 }
 
+.surface-ceiling .surface-outline {
+  stroke: #fbbf24;
+  filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.35));
+}
+
+.surface-teleport .surface-outline-tele {
+  stroke: #38bdf8;
+  stroke-width: 2;
+  stroke-dasharray: 2 2;
+}
+
 .surface-wall .surface-outline {
   stroke: #a78bfa;
   filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.45));
@@ -489,6 +500,14 @@ body::before {
 
 .surface-label-floor {
   fill: #4ade80;
+}
+
+.surface-label-ceiling {
+  fill: #fbbf24;
+}
+
+.surface-label-teleport {
+  fill: #7dd3fc;
 }
 
 .surface-label-wall {
@@ -542,6 +561,16 @@ body::before {
 .legend-swatch-floor {
   stroke: #4ade80;
   stroke-dasharray: 4 3;
+}
+
+.legend-swatch-ceiling {
+  stroke: #fbbf24;
+  stroke-dasharray: 4 3;
+}
+
+.legend-swatch-teleport {
+  stroke: #38bdf8;
+  stroke-dasharray: 2 2;
 }
 
 .legend-swatch-wall {
@@ -731,6 +760,129 @@ body::before {
   background: rgba(232, 117, 42, 0.15);
   border-color: var(--accent);
   color: var(--accent-bright);
+}
+
+.chip-sm {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.68rem;
+}
+
+/* ─── Env dropdown sliders ──────────────────────────────────────── */
+.env-dropdowns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.env-dropdown {
+  flex: 1 1 200px;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.env-dropdown summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0.4rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.env-dropdown summary::-webkit-details-marker {
+  display: none;
+}
+
+.env-dropdown summary::before {
+  content: "▸";
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  transition: transform var(--transition-fast);
+}
+
+.env-dropdown[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.env-summary-value {
+  font-size: 0.72rem;
+  color: var(--accent-bright);
+}
+
+.env-dropdown-body {
+  padding: 0 0.6rem 0.55rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.env-slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 0.35rem;
+}
+
+.env-slider-row input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  cursor: pointer;
+}
+
+.env-slider-row input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--accent-bright);
+  border: 2px solid var(--bg-deep);
+}
+
+.env-slider-row input[type="range"]:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.env-value {
+  min-width: 2.2rem;
+  text-align: right;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.env-presets {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.env-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.env-toggle input {
+  accent-color: var(--accent);
+}
+
+.env-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
 }
 
 /* ─── DEFAULT table ─────────────────────────────────────────────── */

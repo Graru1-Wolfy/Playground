@@ -20,13 +20,25 @@ export interface DefaultCheckRow {
   jumpbug: number;
 }
 
-export function runDefaultChecks(height: number): DefaultCheckRow[] {
-  return DEFAULT_TYPES.map(({ label, bounce }) => ({
-    label,
-    uncrouched: checkBounce(height, bounce, LandType.UNCROUCHED),
-    crouched: checkBounce(height, bounce, LandType.CROUCHED),
-    jumpbug: checkBounce(height, bounce, LandType.JUMPBUG),
-  }));
+export interface BounceCheckOptions {
+  teleheight?: number;
+  ceilingGap?: number | null;
+}
+
+export function runDefaultChecks(height: number, options: BounceCheckOptions = {}): DefaultCheckRow[] {
+  const teleheight = options.teleheight ?? 1;
+  const ceilingGap = options.ceilingGap ?? null;
+
+  return DEFAULT_TYPES.map(({ label, bounce }) => {
+    const checkHeight =
+      bounce.ceiling && ceilingGap !== null ? ceilingGap : height;
+    return {
+      label,
+      uncrouched: checkBounce(checkHeight, bounce, LandType.UNCROUCHED, teleheight),
+      crouched: checkBounce(checkHeight, bounce, LandType.CROUCHED, teleheight),
+      jumpbug: checkBounce(checkHeight, bounce, LandType.JUMPBUG, teleheight),
+    };
+  });
 }
 
 const START_ICONS: Record<string, string> = {

@@ -1,3 +1,4 @@
+import { bindBounceEnvControls, readBounceContextFromDom } from "./bounceEnvUi.js";
 import { formatDefaultGrid, runDefaultChecks } from "./defaultCheck.js";
 import { formatSetupCard, setupMatchesFilter } from "./formatSetup.js";
 import { normalizeHeight } from "./height.js";
@@ -163,7 +164,7 @@ function bindCopyButtons(container: HTMLElement): void {
   }
 }
 
-function renderSlopeWallChecks(height: number): void {
+function renderSlopeWallChecks(height: number, ctx = readBounceContextFromDom()): void {
   const slopeDeg = Number(el<HTMLInputElement>("slope-slider").value);
   const hasWall = el<HTMLInputElement>("wall-toggle").checked;
   el<HTMLOutputElement>("slope-display").textContent = `${slopeDeg}°`;
@@ -172,7 +173,13 @@ function renderSlopeWallChecks(height: number): void {
   const results = el<HTMLDivElement>("slope-wall-results");
   const diagram = el<HTMLDivElement>("surface-diagram");
 
-  const input = { verticalHeight: height, slopeDeg, hasWall };
+  const input = {
+    verticalHeight: height,
+    slopeDeg,
+    hasWall,
+    ceilingGap: ctx.ceilingGap,
+    teleheight: ctx.teleheight,
+  };
   diagram.innerHTML = renderSurfaceDiagram(input);
 
   if (slopeDeg <= 0 && !hasWall) {
@@ -181,7 +188,7 @@ function renderSlopeWallChecks(height: number): void {
     return;
   }
 
-  const { effective, rows } = runSlopeWallChecks(input);
+  const { effective, rows } = runSlopeWallChecks(input, ctx.teleheight);
   note.textContent = slopeWallSummary(input, effective);
   results.innerHTML = formatSlopeWallGrid(rows, effective === null);
 }
@@ -205,15 +212,24 @@ async function runCheck(): Promise<void> {
 
   syncHeightControls(height);
 
+  const ctx = readBounceContextFromDom();
+
   const note = el<HTMLParagraphElement>("height-note");
+  const envParts: string[] = [];
+  if (ctx.teleheight !== 1) envParts.push(`tele ${ctx.teleheight}`);
+  if (ctx.ceilingGap !== null) envParts.push(`ceil ${ctx.ceilingGap}`);
+  const envNote = envParts.length ? ` · ${envParts.join(" · ")}` : "";
   note.textContent =
     raw !== height
-      ? `Terminal velocity remap: ${raw} → ${height}`
-      : `Lookup height: ${height} · bucket ${Math.floor(height / 100) * 100}–${Math.floor(height / 100) * 100 + 99}`;
+      ? `Terminal velocity remap: ${raw} → ${height}${envNote}`
+      : `Lookup height: ${height} · bucket ${Math.floor(height / 100) * 100}–${Math.floor(height / 100) * 100 + 99}${envNote}`;
 
-  el<HTMLDivElement>("default-results").innerHTML = formatDefaultGrid(runDefaultChecks(height));
+  el<HTMLDivElement>("default-results").innerHTML = formatDefaultGrid(runDefaultChecks(height, {
+    teleheight: ctx.teleheight,
+    ceilingGap: ctx.ceilingGap,
+  }));
 
-  renderSlopeWallChecks(height);
+  renderSlopeWallChecks(height, ctx);
 
   const { setups, source } = await loadSetupsWithSource(height);
   if (generation !== checkGeneration) return;
@@ -278,6 +294,10 @@ export function initApp(): void {
 
   el<HTMLInputElement>("wall-toggle").addEventListener("change", () => {
     renderSlopeWallChecks(Number(heightInput.value));
+  });
+
+  bindBounceEnvControls(() => {
+    debouncedCheck();
   });
 
   el<HTMLSelectElement>("page-size").addEventListener("change", (e) => {
