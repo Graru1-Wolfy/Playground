@@ -9,6 +9,8 @@ import {
   saveWeight,
   scoreSetup,
 } from "./preferences.js";
+import { formatSlopeWallGrid, runSlopeWallChecks } from "./slopeWallCheck.js";
+import { slopeWallSummary } from "./slopeWall.js";
 import { copyToClipboard, debounce, el, setLiveStatus, showElement } from "./ui.js";
 
 import type { DecodedSetup } from "@playground/schema";
@@ -160,6 +162,26 @@ function bindCopyButtons(container: HTMLElement): void {
   }
 }
 
+function renderSlopeWallChecks(height: number): void {
+  const slopeDeg = Number(el<HTMLInputElement>("slope-slider").value);
+  const hasWall = el<HTMLInputElement>("wall-toggle").checked;
+  el<HTMLOutputElement>("slope-display").textContent = `${slopeDeg}°`;
+
+  const note = el<HTMLParagraphElement>("slope-wall-note");
+  const results = el<HTMLDivElement>("slope-wall-results");
+
+  if (slopeDeg <= 0 && !hasWall) {
+    note.textContent = "Flat ground — use Instant DEFAULT";
+    results.innerHTML = `<p class="hint slope-wall-empty">Set ground slope or enable wall for angled bounce intervals.</p>`;
+    return;
+  }
+
+  const input = { verticalHeight: height, slopeDeg, hasWall };
+  const { effective, rows } = runSlopeWallChecks(input);
+  note.textContent = slopeWallSummary(input, effective);
+  results.innerHTML = formatSlopeWallGrid(rows);
+}
+
 async function runCheck(): Promise<void> {
   const generation = ++checkGeneration;
   setLiveStatus("loading");
@@ -186,6 +208,8 @@ async function runCheck(): Promise<void> {
       : `Lookup height: ${height} · bucket ${Math.floor(height / 100) * 100}–${Math.floor(height / 100) * 100 + 99}`;
 
   el<HTMLDivElement>("default-results").innerHTML = formatDefaultGrid(runDefaultChecks(height));
+
+  renderSlopeWallChecks(height);
 
   const { setups, source } = await loadSetupsWithSource(height);
   if (generation !== checkGeneration) return;
@@ -243,6 +267,14 @@ export function initApp(): void {
       void runCheck();
     });
   }
+
+  el<HTMLInputElement>("slope-slider").addEventListener("input", () => {
+    renderSlopeWallChecks(Number(heightInput.value));
+  });
+
+  el<HTMLInputElement>("wall-toggle").addEventListener("change", () => {
+    renderSlopeWallChecks(Number(heightInput.value));
+  });
 
   el<HTMLSelectElement>("page-size").addEventListener("change", (e) => {
     maxDisplayed = Number((e.target as HTMLSelectElement).value);

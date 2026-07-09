@@ -83,6 +83,30 @@
           <div id="default-results" class="default-grid" role="region" aria-label="DEFAULT bounce results"></div>
         </section>
 
+        <section class="panel panel-slope-wall" aria-labelledby="slope-wall-heading">
+          <div class="panel-head panel-head-tight panel-head-split">
+            <div class="panel-head-left">
+              <h2 id="slope-wall-heading">Slopes &amp; walls</h2>
+              <p id="slope-wall-note" class="hint setup-status"></p>
+            </div>
+            <span class="badge badge-map">Map geometry</span>
+          </div>
+          <div class="slope-wall-controls">
+            <label class="slope-field">
+              <span>Ground slope</span>
+              <div class="slope-input-row">
+                <input id="slope-slider" type="range" min="0" max="45" step="1" value="0" aria-label="Ground slope in degrees" />
+                <output id="slope-display" class="mono" for="slope-slider">0°</output>
+              </div>
+            </label>
+            <label class="slope-wall-toggle">
+              <input id="wall-toggle" type="checkbox" />
+              <span>Artificial wall at ground</span>
+            </label>
+          </div>
+          <div id="slope-wall-results" class="slope-wall-results" role="region" aria-label="Slope and wall angle bounce results"></div>
+        </section>
+
         <section class="panel panel-setups" aria-labelledby="setups-heading">
           <div class="panel-head panel-head-tight panel-head-split">
             <div class="panel-head-left">
