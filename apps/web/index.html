@@ -3,54 +3,167 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TF2 Bounce Checker</title>
+    <meta name="description" content="Live TF2 bounce checker — instant DEFAULT analysis and ranked precomputed setups." />
+    <title>TF2 Live Bounce Checker</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="app">
-      <header>
-        <h1>TF2 Bounce Checker</h1>
-        <p class="subtitle">Analytical DEFAULT checks + precomputed setups (heights 0–99)</p>
+    <div id="app" class="app-shell">
+      <header class="site-header">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 24L16 6l10 18H6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+              <path d="M11 20h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+            </svg>
+          </div>
+          <div class="brand-copy">
+            <h1>TF2 Live Bounce Checker</h1>
+            <p class="brand-tagline">Analytical DEFAULT · Precomputed setups · Preference ranking</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <span class="live-pill" id="live-status" aria-live="polite">
+            <span class="live-dot" aria-hidden="true"></span>
+            Live
+          </span>
+          <button type="button" class="btn btn-ghost" id="prefs-toggle" aria-expanded="false" aria-controls="prefs-drawer">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+            </svg>
+            Preferences
+          </button>
+        </div>
       </header>
 
-      <section class="panel">
-        <label for="height-input">Target height</label>
-        <div class="row">
-          <input id="height-input" type="number" min="0" step="1" value="64" />
-          <button id="check-btn" type="button">Check</button>
+      <main class="main-grid">
+        <section class="panel panel-hero" aria-labelledby="height-heading">
+          <div class="panel-head">
+            <div>
+              <h2 id="height-heading">Target height</h2>
+              <p class="panel-sub">Enter feet height — results update live as you type</p>
+            </div>
+            <div class="height-readout" aria-live="polite">
+              <span class="height-readout-value" id="height-display">64</span>
+              <span class="height-readout-unit">ft</span>
+            </div>
+          </div>
+
+          <div class="height-control">
+            <input
+              id="height-slider"
+              type="range"
+              min="0"
+              max="99"
+              step="1"
+              value="64"
+              aria-label="Height slider"
+            />
+            <div class="height-input-row">
+              <div class="input-wrap">
+                <input id="height-input" type="number" min="0" step="1" value="64" inputmode="numeric" />
+                <span class="input-suffix">ft</span>
+              </div>
+              <button id="check-btn" type="button" class="btn btn-primary">
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M4 10l4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Check
+              </button>
+            </div>
+          </div>
+
+          <div class="height-presets" role="group" aria-label="Quick height presets">
+            <button type="button" class="chip" data-height="32">32</button>
+            <button type="button" class="chip" data-height="48">48</button>
+            <button type="button" class="chip chip-active" data-height="64">64</button>
+            <button type="button" class="chip" data-height="80">80</button>
+            <button type="button" class="chip" data-height="96">96</button>
+          </div>
+
+          <p id="height-note" class="hint"></p>
+        </section>
+
+        <section class="panel panel-defaults" aria-labelledby="defaults-heading">
+          <div class="panel-head">
+            <div>
+              <h2 id="defaults-heading">Instant DEFAULT</h2>
+              <p class="panel-sub">Analytical bounce check — no simulation required</p>
+            </div>
+            <span class="badge badge-analytical">Analytical</span>
+          </div>
+          <div id="default-results" class="default-grid" role="region" aria-label="DEFAULT bounce results"></div>
+        </section>
+
+        <section class="panel panel-setups" aria-labelledby="setups-heading">
+          <div class="panel-head panel-head-split">
+            <div>
+              <h2 id="setups-heading">Precomputed setups</h2>
+              <p id="setup-status" class="panel-sub hint"></p>
+            </div>
+            <div class="setup-toolbar">
+              <label class="toolbar-field">
+                <span class="sr-only">Filter setups</span>
+                <input id="setup-filter" type="search" placeholder="Filter by launcher, tag…" />
+              </label>
+              <label class="toolbar-field toolbar-compact">
+                Show
+                <select id="page-size">
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                  <option value="250">250</option>
+                  <option value="999999">All</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div id="setup-loading" class="loading-state hidden" aria-hidden="true">
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+            <div class="skeleton-card"></div>
+          </div>
+
+          <div id="setup-empty" class="empty-state hidden" role="status">
+            <div class="empty-icon" aria-hidden="true">∅</div>
+            <p>No precomputed setups for this height.</p>
+            <p class="hint">MVP supports heights 0–99. Try a different value or use DEFAULT checks above.</p>
+          </div>
+
+          <ol id="setup-results" class="setup-list"></ol>
+        </section>
+      </main>
+
+      <aside id="prefs-drawer" class="prefs-drawer" aria-label="Preference weights" aria-hidden="true">
+        <div class="prefs-backdrop" id="prefs-backdrop" tabindex="-1"></div>
+        <div class="prefs-panel">
+          <header class="prefs-header">
+            <div>
+              <h2>Preferences</h2>
+              <p class="panel-sub">Weight setups to match your playstyle. Saved locally.</p>
+            </div>
+            <button type="button" class="btn btn-icon" id="prefs-close" aria-label="Close preferences">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </header>
+          <div id="preferences-panel" class="prefs-body"></div>
+          <footer class="prefs-footer">
+            <button id="reset-prefs" type="button" class="btn btn-ghost">Reset defaults</button>
+          </footer>
         </div>
-        <p id="height-note" class="hint"></p>
-      </section>
+      </aside>
 
-      <section class="panel">
-        <h2>Instant DEFAULT (analytical)</h2>
-        <div id="default-results"></div>
-      </section>
-
-      <section class="panel">
-        <div class="row spread">
-          <h2>Precomputed setups</h2>
-          <label>
-            Show
-            <select id="page-size">
-              <option value="20">20</option>
-              <option value="50">50</option>
-              <option value="250">250</option>
-              <option value="999999">All</option>
-            </select>
-          </label>
-        </div>
-        <p id="setup-status" class="hint"></p>
-        <ol id="setup-results"></ol>
-      </section>
-
-      <section class="panel">
-        <details id="prefs-details">
-          <summary>Preferences</summary>
-          <div id="preferences-panel"></div>
-          <button id="reset-prefs" type="button">Reset defaults</button>
-        </details>
-      </section>
+      <footer class="site-footer">
+        <p>Heights 0–99 · Terminal velocity remap above 8000 · Data from <code>engine-sim</code></p>
+      </footer>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
