@@ -183,7 +183,7 @@ function renderSlopeWallChecks(height: number): void {
 
   const { effective, rows } = runSlopeWallChecks(input);
   note.textContent = slopeWallSummary(input, effective);
-  results.innerHTML = formatSlopeWallGrid(rows);
+  results.innerHTML = formatSlopeWallGrid(rows, effective === null);
 }
 
 async function runCheck(): Promise<void> {

@@ -59,9 +59,11 @@ export function runSlopeWallChecks(input: SlopeWallInput): {
   return { effective, rows };
 }
 
-export function formatSlopeWallGrid(rows: SlopeWallRow[]): string {
+export function formatSlopeWallGrid(rows: SlopeWallRow[], invalid = false): string {
   if (!rows.length) {
-    return `<p class="hint slope-wall-empty">Enable slope or wall to see angled bounce intervals.</p>`;
+    return invalid
+      ? `<p class="hint slope-wall-empty">No angle intervals for this slope/wall geometry.</p>`
+      : `<p class="hint slope-wall-empty">Set ground slope or enable wall for angled bounce intervals.</p>`;
   }
 
   const head = `<thead><tr>
