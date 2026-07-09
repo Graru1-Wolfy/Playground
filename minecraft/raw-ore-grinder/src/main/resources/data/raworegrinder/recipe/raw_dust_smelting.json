@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:smelting",
+  "category": "misc",
+  "ingredient": {
+    "item": "raworegrinder:raw_dust"
+  },
+  "result": {
+    "id": "minecraft:iron_nugget",
+    "count": 1
+  },
+  "experience": 0.35,
+  "cookingtime": 200
+}
