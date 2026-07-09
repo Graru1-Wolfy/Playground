@@ -402,18 +402,154 @@ body::before {
   color: var(--text-secondary);
 }
 
-.slope-wall-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-  user-select: none;
+.input-wrap[data-state="invalid"] input {
+  border-color: #e85d5d;
 }
 
-.slope-wall-toggle input {
-  accent-color: #a78bfa;
+.input-validation {
+  flex: 1 1 100%;
+  margin: 0;
+  min-height: 0.85rem;
+  font-size: 0.68rem;
+  color: #e85d5d;
+}
+
+.input-validation:empty {
+  display: none;
+}
+
+.btn-compute {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-compute:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+}
+
+.btn-compute.is-loading {
+  pointer-events: none;
+}
+
+.btn-compute.is-loading .btn-icon {
+  animation: compute-spin 0.8s linear infinite;
+}
+
+@keyframes compute-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.summary-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.summary-icon {
+  color: var(--text-muted);
+}
+
+/* ─── Switch toggles ─────────────────────────────────────────────── */
+.switch-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.switch-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.switch-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 2.1rem;
+  height: 1.15rem;
+  border-radius: 999px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: calc(1.15rem - 4px);
+  height: calc(1.15rem - 4px);
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.switch-toggle input:checked + .switch-track {
+  background: color-mix(in srgb, var(--accent) 35%, var(--bg-elevated));
+  border-color: var(--accent);
+}
+
+.switch-toggle input:checked + .switch-track .switch-thumb {
+  transform: translateX(0.95rem);
+  background: var(--accent-bright);
+}
+
+.switch-toggle input:focus-visible + .switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.switch-toggle input:disabled + .switch-track {
+  opacity: 0.45;
+}
+
+.switch-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.switch-icon {
+  color: var(--text-muted);
+}
+
+.slope-wall-switch {
+  margin-left: auto;
+}
+
+.slope-wall-switch input:checked + .switch-track {
+  background: color-mix(in srgb, #a78bfa 35%, var(--bg-elevated));
+  border-color: #a78bfa;
+}
+
+.slope-wall-switch input:checked + .switch-track .switch-thumb {
+  background: #c4b5fd;
+}
+
+.env-dropdown-body .switch-toggle {
+  margin-top: 0.4rem;
 }
 
 .slope-wall-layout {
@@ -867,20 +1003,6 @@ body::before {
   display: flex;
   gap: 0.3rem;
   margin-top: 0.35rem;
-}
-
-.env-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 0.4rem;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.env-toggle input {
-  accent-color: var(--accent);
 }
 
 .env-hint {

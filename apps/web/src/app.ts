@@ -1,7 +1,7 @@
 import { bindBounceEnvControls, readBounceContextFromDom } from "./bounceEnvUi.js";
 import { formatDefaultGrid, runDefaultChecks } from "./defaultCheck.js";
 import { formatSetupCard, setupMatchesFilter } from "./formatSetup.js";
-import { normalizeHeight } from "./height.js";
+import { guardComputeInput } from "./inputGuard.js";
 import { loadSetupsWithSource } from "./lookup.js";
 import {
   loadWeights,
@@ -22,6 +22,36 @@ let setupDataSource: "generated" | "sample" | "none" = "none";
 let maxDisplayed = 20;
 let filterQuery = "";
 let checkGeneration = 0;
+let lastComputedHeight: number | null = null;
+
+function readRawHeight(): string {
+  return el<HTMLInputElement>("height-input").value;
+}
+
+function updateComputeGuard(): void {
+  const guard = guardComputeInput(readRawHeight(), readBounceContextFromDom());
+  const btn = el<HTMLButtonElement>("compute-btn");
+  const validation = el<HTMLParagraphElement>("height-validation");
+  const inputWrap = document.querySelector<HTMLElement>(".input-wrap");
+
+  btn.disabled = !guard.valid || btn.classList.contains("is-loading");
+  validation.textContent = guard.valid ? "" : guard.message;
+  inputWrap?.setAttribute("data-state", guard.valid ? "idle" : "invalid");
+
+  if (guard.valid && guard.height !== undefined) {
+    syncHeightControls(guard.height);
+  }
+}
+
+function previewHeightFromControls(): void {
+  const guard = guardComputeInput(readRawHeight(), readBounceContextFromDom());
+  if (guard.valid && guard.height !== undefined) {
+    syncHeightControls(guard.height);
+    el<HTMLParagraphElement>("height-validation").textContent = "";
+    document.querySelector<HTMLElement>(".input-wrap")?.setAttribute("data-state", "idle");
+  }
+  updateComputeGuard();
+}
 
 function syncHeightControls(height: number): void {
   const input = el<HTMLInputElement>("height-input");
@@ -193,22 +223,25 @@ function renderSlopeWallChecks(height: number, ctx = readBounceContextFromDom())
   results.innerHTML = formatSlopeWallGrid(rows, effective === null);
 }
 
-async function runCheck(): Promise<void> {
+async function runCompute(): Promise<void> {
+  const guard = guardComputeInput(readRawHeight(), readBounceContextFromDom());
+  updateComputeGuard();
+  if (!guard.valid || guard.height === undefined) {
+    setLiveStatus("error");
+    return;
+  }
+
   const generation = ++checkGeneration;
+  const btn = el<HTMLButtonElement>("compute-btn");
+  btn.classList.add("is-loading");
+  btn.disabled = true;
   setLiveStatus("loading");
   showElement(el<HTMLDivElement>("setup-loading"), true);
   showElement(el<HTMLDivElement>("setup-empty"), false);
 
-  const raw = Number(el<HTMLInputElement>("height-input").value);
-  let height: number;
-  try {
-    height = normalizeHeight(raw);
-  } catch {
-    setLiveStatus("error");
-    showElement(el<HTMLDivElement>("setup-loading"), false);
-    el<HTMLParagraphElement>("height-note").textContent = "Enter a valid non-negative height.";
-    return;
-  }
+  const raw = guard.rawHeight ?? guard.height;
+  const height = guard.height;
+  lastComputedHeight = height;
 
   syncHeightControls(height);
 
@@ -237,9 +270,11 @@ async function runCheck(): Promise<void> {
   currentSetups = setups;
   setupDataSource = source;
 
+  btn.classList.remove("is-loading");
   showElement(el<HTMLDivElement>("setup-loading"), false);
   await rerankAndDisplay();
   setLiveStatus("ready");
+  updateComputeGuard();
 }
 
 function openPrefs(): void {
@@ -258,7 +293,13 @@ function closePrefs(): void {
   document.body.classList.remove("prefs-open");
 }
 
-const debouncedCheck = debounce(() => void runCheck(), 280);
+function slopeWallHeight(): number {
+  const guard = guardComputeInput(readRawHeight(), readBounceContextFromDom());
+  if (guard.valid && guard.height !== undefined) return guard.height;
+  return lastComputedHeight ?? 64;
+}
+
+const debouncedPreview = debounce(() => previewHeightFromControls(), 180);
 
 export function initApp(): void {
   renderPreferences();
@@ -266,38 +307,47 @@ export function initApp(): void {
   const heightInput = el<HTMLInputElement>("height-input");
   const heightSlider = el<HTMLInputElement>("height-slider");
 
-  el<HTMLButtonElement>("check-btn").addEventListener("click", () => void runCheck());
+  updateComputeGuard();
+
+  el<HTMLButtonElement>("compute-btn").addEventListener("click", () => void runCompute());
 
   heightInput.addEventListener("input", () => {
-    debouncedCheck();
+    debouncedPreview();
   });
 
   heightInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") void runCheck();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      void runCompute();
+    }
   });
 
   heightSlider.addEventListener("input", () => {
     heightInput.value = heightSlider.value;
-    debouncedCheck();
+    debouncedPreview();
   });
 
   for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
     chip.addEventListener("click", () => {
       heightInput.value = chip.dataset.height ?? "64";
-      void runCheck();
+      updateComputeGuard();
+      void runCompute();
     });
   }
 
   el<HTMLInputElement>("slope-slider").addEventListener("input", () => {
-    renderSlopeWallChecks(Number(heightInput.value));
+    renderSlopeWallChecks(slopeWallHeight());
   });
 
   el<HTMLInputElement>("wall-toggle").addEventListener("change", () => {
-    renderSlopeWallChecks(Number(heightInput.value));
+    renderSlopeWallChecks(slopeWallHeight());
   });
 
   bindBounceEnvControls(() => {
-    debouncedCheck();
+    updateComputeGuard();
+    if (lastComputedHeight !== null) {
+      renderSlopeWallChecks(slopeWallHeight());
+    }
   });
 
   el<HTMLSelectElement>("page-size").addEventListener("change", (e) => {
@@ -324,5 +374,5 @@ export function initApp(): void {
     if (e.key === "Escape") closePrefs();
   });
 
-  void runCheck();
+  void runCompute();
 }

@@ -25,7 +25,7 @@ export function setLiveStatus(state: "idle" | "loading" | "ready" | "error"): vo
   pill.dataset.state = state;
   const labels: Record<typeof state, string> = {
     idle: "Idle",
-    loading: "Checking…",
+    loading: "Computing…",
     ready: "Live",
     error: "Error",
   };
