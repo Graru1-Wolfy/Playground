@@ -18,11 +18,35 @@ npm run build:packages
 # Generate data if needed (see packages/engine-sim)
 engine-sim --range 0-99 --workers 4
 
+# Optional: refresh bundled sample setups for dev/screenshots (height 64)
+PYTHONPATH=packages/engine-sim/src python3 scripts/write-web-sample-data.py
+
 # Dev server (serves ../../data/generated at /data)
 npm run dev:web
 ```
 
 Open the URL printed by Vite (usually `http://localhost:5173/Playground/`).
+
+## Android (phone / tablet)
+
+The app is a **Progressive Web App** — run it in Chrome on Android, or install it to your home screen.
+
+### Same Wi‑Fi (local dev)
+
+```bash
+npm run dev:web:android
+bash scripts/android-dev-url.sh
+```
+
+On your Android device (same network as this machine), open the printed URL in Chrome, e.g. `http://192.168.x.x:5173/Playground/`.
+
+Install: Chrome menu → **Install app** or **Add to Home screen**.
+
+### Production (HTTPS)
+
+After deploy: `https://graru1-wolfy.github.io/Playground/`
+
+Open in Chrome → install from the menu. Offline caching works via the service worker after the first load.
 
 ## Production build
 

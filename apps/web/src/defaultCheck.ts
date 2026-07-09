@@ -20,29 +20,63 @@ export interface DefaultCheckRow {
   jumpbug: number;
 }
 
-function labelFor(code: number): string {
-  if (code === 0) return "—";
-  if (code === 1) return "bounce";
-  if (code === 2) return "double";
-  return String(code);
+export interface BounceCheckOptions {
+  teleheight?: number;
+  ceilingGap?: number | null;
 }
 
-export function runDefaultChecks(height: number): DefaultCheckRow[] {
-  return DEFAULT_TYPES.map(({ label, bounce }) => ({
-    label,
-    uncrouched: checkBounce(height, bounce, LandType.UNCROUCHED),
-    crouched: checkBounce(height, bounce, LandType.CROUCHED),
-    jumpbug: checkBounce(height, bounce, LandType.JUMPBUG),
-  }));
+export function runDefaultChecks(height: number, options: BounceCheckOptions = {}): DefaultCheckRow[] {
+  const teleheight = options.teleheight ?? 1;
+  const ceilingGap = options.ceilingGap ?? null;
+
+  return DEFAULT_TYPES.map(({ label, bounce }) => {
+    const checkHeight =
+      bounce.ceiling && ceilingGap !== null ? ceilingGap : height;
+    return {
+      label,
+      uncrouched: checkBounce(checkHeight, bounce, LandType.UNCROUCHED, teleheight),
+      crouched: checkBounce(checkHeight, bounce, LandType.CROUCHED, teleheight),
+      jumpbug: checkBounce(checkHeight, bounce, LandType.JUMPBUG, teleheight),
+    };
+  });
 }
 
+const START_ICONS: Record<string, string> = {
+  Walk: "🚶",
+  "Crouch Walk": "🦆",
+  Jump: "⬆",
+  "Crouch Jump": "⬆",
+  Ctap: "⚡",
+  Ceilingsmash: "⬇",
+};
+
+function bounceBadgeCompact(code: number): string {
+  if (code === 0) return `<span class="bounce-badge bounce-none">—</span>`;
+  if (code === 1) return `<span class="bounce-badge bounce-yes">B</span>`;
+  if (code === 2) return `<span class="bounce-badge bounce-double">2×</span>`;
+  return `<span class="bounce-badge bounce-other">${code}</span>`;
+}
+
+export function formatDefaultGrid(rows: DefaultCheckRow[]): string {
+  const head = `<thead><tr><th>Start</th><th>Unc</th><th>Cro</th><th>JB</th></tr></thead>`;
+  const body = rows
+    .map((row) => {
+      const hasBounce =
+        row.uncrouched > 0 || row.crouched > 0 || row.jumpbug > 0;
+      const icon = START_ICONS[row.label] ?? "";
+      return `<tr class="${hasBounce ? "default-row-active" : ""}">
+        <th scope="row"><span class="default-label">${icon} ${row.label}</span></th>
+        <td>${bounceBadgeCompact(row.uncrouched)}</td>
+        <td>${bounceBadgeCompact(row.crouched)}</td>
+        <td>${bounceBadgeCompact(row.jumpbug)}</td>
+      </tr>`;
+    })
+    .join("");
+
+  return `<table class="default-table"><caption class="sr-only">DEFAULT bounce results by start type and landing</caption>${head}<tbody>${body}</tbody></table>`;
+}
+
+/** @deprecated Use formatDefaultGrid */
 export function formatDefaultTable(rows: DefaultCheckRow[]): string {
-  const lines = ["<table class=\"default-table\"><thead><tr><th>Start</th><th>Uncrouched</th><th>Crouched</th><th>Jumpbug</th></tr></thead><tbody>"];
-  for (const row of rows) {
-    lines.push(
-      `<tr><td>${row.label}</td><td>${labelFor(row.uncrouched)}</td><td>${labelFor(row.crouched)}</td><td>${labelFor(row.jumpbug)}</td></tr>`,
-    );
-  }
-  lines.push("</tbody></table>");
-  return lines.join("");
+  return formatDefaultGrid(rows);
 }
