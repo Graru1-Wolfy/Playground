@@ -5,6 +5,10 @@ on:
     tags:
       - "bounce-check-v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (optional, e.g. bounce-check-v1.0.1)"
+        required: false
 
 permissions:
   contents: write

@@ -15,6 +15,10 @@
     "preview:web": "npm run preview:host -w @playground/web",
     "build:android": "bash scripts/build-android-apk.sh",
     "android:icons": "node scripts/generate-app-icon.mjs",
+    "screenshots:web": "node scripts/capture-web-screenshots.mjs",
     "test": "npm run test -w @playground/engine-fast && npm run test -w @playground/schema"
+  },
+  "devDependencies": {
+    "puppeteer": "^25.3.0"
   }
 }

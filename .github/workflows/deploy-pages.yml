@@ -8,7 +8,10 @@ on:
       - "packages/engine-fast/**"
       - "packages/schema/**"
       - "scripts/prepare-web-data.sh"
+      - "scripts/write-web-sample-data.py"
       - ".github/workflows/deploy-pages.yml"
+      - "package.json"
+      - "package-lock.json"
   workflow_dispatch:
 
 permissions:
@@ -47,11 +50,13 @@ jobs:
           path: data/generated
           key: bounce-data-000to099-v1
 
-      - name: Generate missing height-0 sample if no cache
+      - name: Generate missing bucket data if no cache
         run: |
           if [ ! -f data/generated/000to099/0.bin.gz ]; then
-            engine-sim --height 0
+            echo "No cache — generating heights 0-99 (this may take a while on cold start)..."
+            engine-sim --range 0-99 --workers 4
           fi
+          ls -la data/generated/000to099/*.bin.gz 2>/dev/null | wc -l
 
       - name: Build web app
         run: |
