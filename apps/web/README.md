@@ -27,6 +27,27 @@ npm run dev:web
 
 Open the URL printed by Vite (usually `http://localhost:5173/Playground/`).
 
+## Android (phone / tablet)
+
+The app is a **Progressive Web App** — run it in Chrome on Android, or install it to your home screen.
+
+### Same Wi‑Fi (local dev)
+
+```bash
+npm run dev:web:android
+bash scripts/android-dev-url.sh
+```
+
+On your Android device (same network as this machine), open the printed URL in Chrome, e.g. `http://192.168.x.x:5173/Playground/`.
+
+Install: Chrome menu → **Install app** or **Add to Home screen**.
+
+### Production (HTTPS)
+
+After deploy: `https://graru1-wolfy.github.io/Playground/`
+
+Open in Chrome → install from the menu. Offline caching works via the service worker after the first load.
+
 ## Production build
 
 ```bash
