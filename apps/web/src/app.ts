@@ -9,6 +9,7 @@ import {
   saveWeight,
   scoreSetup,
 } from "./preferences.js";
+import { renderSurfaceDiagram } from "./surfaceDiagram.js";
 import { formatSlopeWallGrid, runSlopeWallChecks } from "./slopeWallCheck.js";
 import { slopeWallSummary } from "./slopeWall.js";
 import { copyToClipboard, debounce, el, setLiveStatus, showElement } from "./ui.js";
@@ -169,6 +170,10 @@ function renderSlopeWallChecks(height: number): void {
 
   const note = el<HTMLParagraphElement>("slope-wall-note");
   const results = el<HTMLDivElement>("slope-wall-results");
+  const diagram = el<HTMLDivElement>("surface-diagram");
+
+  const input = { verticalHeight: height, slopeDeg, hasWall };
+  diagram.innerHTML = renderSurfaceDiagram(input);
 
   if (slopeDeg <= 0 && !hasWall) {
     note.textContent = "Flat ground — use Instant DEFAULT";
@@ -176,7 +181,6 @@ function renderSlopeWallChecks(height: number): void {
     return;
   }
 
-  const input = { verticalHeight: height, slopeDeg, hasWall };
   const { effective, rows } = runSlopeWallChecks(input);
   note.textContent = slopeWallSummary(input, effective);
   results.innerHTML = formatSlopeWallGrid(rows);

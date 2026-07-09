@@ -413,8 +413,164 @@ body::before {
   accent-color: #a78bfa;
 }
 
+.slope-wall-layout {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) 1fr;
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.surface-diagram-wrap {
+  min-width: 0;
+  background: var(--bg-deep);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.25rem;
+  overflow: hidden;
+}
+
+.surface-diagram {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.surface-outline {
+  fill: none;
+  stroke-width: 2.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.surface-outline-dashed {
+  stroke-dasharray: 5 4;
+}
+
+.surface-ground .surface-outline {
+  stroke: #e8752a;
+  filter: drop-shadow(0 0 4px rgba(232, 117, 42, 0.45));
+}
+
+.surface-floor .surface-outline {
+  stroke: #4ade80;
+  filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.35));
+}
+
+.surface-wall .surface-outline {
+  stroke: #a78bfa;
+  filter: drop-shadow(0 0 4px rgba(167, 139, 250, 0.45));
+}
+
+.surface-marker {
+  fill: var(--bg-deep);
+  stroke-width: 2;
+}
+
+.surface-ground .surface-marker {
+  stroke: #e8752a;
+}
+
+.surface-marker-bounce {
+  fill: rgba(96, 165, 250, 0.25);
+  stroke: #60a5fa;
+}
+
+.surface-label {
+  font-family: var(--font-body);
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.surface-label-ground {
+  fill: #f5923d;
+}
+
+.surface-label-floor {
+  fill: #4ade80;
+}
+
+.surface-label-wall {
+  fill: #c4b5fd;
+}
+
+.surface-label-bounce {
+  fill: #93c5fd;
+}
+
+.surface-axis-line {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+.surface-axis-text {
+  fill: var(--text-muted);
+  font-size: 7px;
+  font-family: var(--font-mono);
+}
+
+.surface-dim-line {
+  stroke: var(--text-muted);
+  stroke-width: 1;
+  stroke-dasharray: 2 2;
+}
+
+.surface-dim-text {
+  fill: var(--text-muted);
+  font-size: 7px;
+  font-family: var(--font-mono);
+  text-anchor: end;
+}
+
+.surface-warn {
+  fill: #f87171;
+  font-size: 9px;
+  font-weight: 600;
+  text-anchor: middle;
+}
+
+.surface-legend .legend-swatch {
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+
+.legend-swatch-ground {
+  stroke: #e8752a;
+}
+
+.legend-swatch-floor {
+  stroke: #4ade80;
+  stroke-dasharray: 4 3;
+}
+
+.legend-swatch-wall {
+  stroke: #a78bfa;
+}
+
+.legend-swatch-bounce {
+  stroke: #60a5fa;
+}
+
+.legend-text {
+  fill: var(--text-muted);
+  font-size: 7px;
+  font-family: var(--font-body);
+}
+
 .slope-wall-results {
   overflow-x: auto;
+  min-width: 0;
+}
+
+@media (max-width: 720px) {
+  .slope-wall-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .surface-diagram-wrap {
+    max-width: 280px;
+  }
 }
 
 .slope-wall-table th,
