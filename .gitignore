@@ -12,6 +12,11 @@ __pycache__/
 node_modules/
 dist/
 apps/web/dist/
+apps/web/android/.gradle/
+apps/web/android/app/build/
+apps/web/android/build/
+apps/web/android/local.properties
+*.apk
 
 # Generated bounce data (manifest.json is committed)
 data/generated/**/*
