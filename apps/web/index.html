@@ -22,31 +22,34 @@
   </head>
   <body>
     <div id="app" class="app-shell">
-      <header class="site-header">
-        <div class="brand">
-          <div class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M6 24L16 6l10 18H6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-              <path d="M11 20h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            </svg>
+      <div class="top-stack">
+        <header class="site-header">
+          <div class="brand">
+            <div class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 24L16 6l10 18H6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                <path d="M11 20h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </div>
+            <h1>
+              <span class="brand-title-full">TF2 Live Bounce Checker</span>
+              <span class="brand-title-short">Bounce Check</span>
+            </h1>
           </div>
-          <h1>TF2 Live Bounce Checker</h1>
-        </div>
-        <div class="header-actions">
-          <span class="live-pill" id="live-status" aria-live="polite">
-            <span class="live-dot" aria-hidden="true"></span>
-            Live
-          </span>
-          <button type="button" class="btn btn-ghost btn-compact" id="prefs-toggle" aria-expanded="false" aria-controls="prefs-drawer">
-            <svg class="icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M3 5h10M3 8h10M3 11h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-            </svg>
-            Prefs
-          </button>
-        </div>
-      </header>
+          <div class="header-actions">
+            <span class="live-pill" id="live-status" aria-live="polite">
+              <span class="live-dot" aria-hidden="true"></span>
+              Live
+            </span>
+            <button type="button" class="btn btn-ghost btn-compact" id="prefs-toggle" aria-expanded="false" aria-controls="prefs-drawer">
+              <svg class="icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 5h10M3 8h10M3 11h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+              Prefs
+            </button>
+          </div>
+        </header>
 
-      <main class="main-grid">
         <section class="panel panel-hero" aria-labelledby="height-heading">
           <div class="hero-top">
             <h2 id="height-heading">Target height</h2>
@@ -167,16 +170,19 @@
               </div>
             </details>
           </div>
-        </section>
 
-        <section class="panel panel-defaults" aria-labelledby="defaults-heading">
-          <div class="panel-head panel-head-tight">
-            <h2 id="defaults-heading">Instant DEFAULT</h2>
-            <span class="badge badge-analytical">Analytical</span>
+          <div class="hero-defaults" aria-labelledby="defaults-heading">
+            <div class="hero-defaults-head">
+              <h2 id="defaults-heading">Instant DEFAULT</h2>
+              <span class="badge badge-analytical">Analytical</span>
+              <p id="default-context" class="hint default-context" aria-live="polite"></p>
+            </div>
+            <div id="default-results" class="default-grid" role="region" aria-label="DEFAULT bounce results"></div>
           </div>
-          <div id="default-results" class="default-grid" role="region" aria-label="DEFAULT bounce results"></div>
         </section>
+      </div>
 
+      <main class="main-grid">
         <section class="panel panel-slope-wall" aria-labelledby="slope-wall-heading">
           <div class="panel-head panel-head-tight panel-head-split">
             <div class="panel-head-left">

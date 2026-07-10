@@ -304,6 +304,12 @@ async function runCompute(): Promise<void> {
       ? `Terminal velocity remap: ${raw} → ${height}${envNote}`
       : `Lookup height: ${height} · bucket ${Math.floor(height / 100) * 100}–${Math.floor(height / 100) * 100 + 99}${envNote}`;
 
+  const defaultContext = el<HTMLParagraphElement>("default-context");
+  const contextParts = [`Height ${height} ft`];
+  if (ctx.teleheight !== 1) contextParts.push(`tele ${ctx.teleheight}`);
+  if (ctx.ceilingGap !== null) contextParts.push(`ceiling ${ctx.ceilingGap} ft`);
+  defaultContext.textContent = contextParts.join(" · ");
+
   el<HTMLDivElement>("default-results").innerHTML = formatDefaultGrid(runDefaultChecks(height, {
     teleheight: ctx.teleheight,
     ceilingGap: ctx.ceilingGap,
