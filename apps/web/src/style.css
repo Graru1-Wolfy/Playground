@@ -1423,6 +1423,73 @@ body::before {
   color: var(--text-primary);
 }
 
+.default-table tbody th .default-guide {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.65rem;
+  line-height: 1.35;
+  white-space: normal;
+}
+
+.default-binds-panel {
+  margin-top: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.default-binds-panel > summary {
+  cursor: pointer;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  list-style-position: outside;
+}
+
+.default-binds-panel > summary::-webkit-details-marker {
+  color: var(--text-muted);
+}
+
+.default-binds-panel[open] > summary {
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.default-guide-grid {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2);
+}
+
+@media (min-width: 640px) {
+  .default-guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.default-guide-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.default-guide-card h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
 .bounce-badge {
   display: inline-flex;
   align-items: center;
@@ -1970,6 +2037,61 @@ body.setup-modal-open {
 .setup-detail-empty {
   margin: 0;
   font-size: 0.75rem;
+}
+
+.setup-detail-section-prominent {
+  padding: var(--space-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.setup-detail-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.setup-detail-section-head h3 {
+  margin: 0;
+}
+
+.setup-bind-block {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--accent-bright);
+  overflow-x: auto;
+}
+
+.setup-bind-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.68rem;
+}
+
+.setup-instruction-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.setup-instruction-list li + li {
+  margin-top: 0.25rem;
+}
+
+.setup-instruction-list-compact {
+  font-size: 0.72rem;
+  padding-left: 1rem;
 }
 
 @media (min-width: 720px) {

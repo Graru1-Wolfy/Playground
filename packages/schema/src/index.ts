@@ -16,3 +16,13 @@ export type {
   SetupListResponse,
 } from "./types.js";
 export { preferencesConfig } from "./preferences.js";
+export {
+  DEFAULT_START_GUIDES,
+  formatBindBlock,
+  formatGuideBindBlock,
+  generateSetupBinds,
+  generateSetupInstructions,
+  movementBind,
+  actionBind,
+} from "./binds.js";
+export type { BindPair, DefaultStartGuide, SetupBinds } from "./binds.js";

@@ -1,5 +1,11 @@
 import type { DecodedSetup } from "@playground/schema";
-import { getSetupTags, preferencesConfig } from "@playground/schema";
+import {
+  formatBindBlock,
+  generateSetupBinds,
+  generateSetupInstructions,
+  getSetupTags,
+  preferencesConfig,
+} from "@playground/schema";
 import { launcherClass, launcherName } from "./formatSetup.js";
 import { copyToClipboard, el, escapeHtml } from "./ui.js";
 
@@ -119,6 +125,13 @@ export function formatSetupDetailHtml(setup: DecodedSetup, context: SetupDetailC
       : `<span class="hint">—</span>`;
 
   const sections = [...preferenceSections(setup), engineSection(setup)];
+  const binds = generateSetupBinds(setup);
+  const instructions = generateSetupInstructions(setup);
+
+  const bindBlock = formatBindBlock(binds);
+  const instructionMarkup = instructions
+    .map((line) => `<li>${escapeHtml(line)}</li>`)
+    .join("");
 
   const sectionMarkup = sections
     .map((section) => {
@@ -150,6 +163,18 @@ export function formatSetupDetailHtml(setup: DecodedSetup, context: SetupDetailC
         <span class="setup-meta mono setup-speeds">${speedMarkup}</span>
       </div>
     </div>
+    <section class="setup-detail-section setup-detail-section-prominent">
+      <div class="setup-detail-section-head">
+        <h3>Binds</h3>
+        <button type="button" class="btn btn-ghost btn-sm setup-copy-binds" data-copy-text="${escapeHtml(bindBlock)}">Copy binds</button>
+      </div>
+      <pre class="setup-bind-block mono">${escapeHtml(bindBlock)}</pre>
+      <p class="hint setup-bind-hint">Example: <span class="mono">bind shift +walk</span> · <span class="mono">bind mouse1 +strike</span></p>
+    </section>
+    <section class="setup-detail-section setup-detail-section-prominent">
+      <h3>Instructions</h3>
+      <ol class="setup-instruction-list">${instructionMarkup}</ol>
+    </section>
     ${sectionMarkup}`;
 }
 
@@ -163,6 +188,18 @@ export function openSetupDetail(setup: DecodedSetup, context: SetupDetailContext
   openSetupId = setup.ID.toString();
   title.textContent = `Setup #${context.rank}`;
   body.innerHTML = formatSetupDetailHtml(setup, context);
+  for (const btn of body.querySelectorAll<HTMLButtonElement>(".setup-copy-binds")) {
+    btn.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      const text = btn.dataset.copyText ?? "";
+      const ok = await copyToClipboard(text);
+      const original = btn.textContent;
+      btn.textContent = ok ? "Copied!" : "Failed";
+      setTimeout(() => {
+        btn.textContent = original;
+      }, 1500);
+    });
+  }
 
   modal.classList.add("open");
   modal.setAttribute("aria-hidden", "false");

@@ -37,5 +37,11 @@ describe("formatSetupDetailHtml", () => {
     expect(html).toContain("Height");
     expect(html).toContain("Setup ID");
     expect(html).toContain("123456789");
+    expect(html).toContain("Binds");
+    expect(html).toContain("Instructions");
+    expect(html).toContain("alias +walk");
+    expect(html).toContain("alias +strike");
+    expect(html).toContain("Movement:");
+    expect(html).toContain("Copy binds");
   });
 });
