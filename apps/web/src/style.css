@@ -1446,6 +1446,28 @@ body::before {
   line-height: 1.25;
 }
 
+.pref-row-toggle {
+  grid-template-columns: 1fr auto;
+}
+
+.pref-row-toggle .pref-input-wrap {
+  width: auto;
+  justify-content: flex-end;
+}
+
+.pref-switch {
+  flex-shrink: 0;
+}
+
+.pref-switch .switch-track {
+  width: 1.85rem;
+  height: 1rem;
+}
+
+.pref-switch input:checked + .switch-track .switch-thumb {
+  transform: translateX(0.85rem);
+}
+
 .pref-input-wrap {
   display: flex;
   align-items: center;

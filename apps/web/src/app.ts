@@ -4,11 +4,15 @@ import { formatSetupCard, setupMatchesFilter } from "./formatSetup.js";
 import { guardComputeInput } from "./inputGuard.js";
 import { loadSetupsWithSource } from "./lookup.js";
 import {
+  isPreferenceEnabled,
+  isSliderPreference,
   loadWeights,
   preferencesConfig,
   resetWeights,
   saveWeight,
   scoreSetup,
+  weightFromToggle,
+  type PreferenceDefinition,
 } from "./preferences.js";
 import { renderSurfaceDiagram } from "./surfaceDiagram.js";
 import { formatSlopeWallGrid, runSlopeWallChecks } from "./slopeWallCheck.js";
@@ -73,6 +77,69 @@ function syncHeightControls(height: number): void {
   }
 }
 
+function renderPreferenceControl(
+  pref: PreferenceDefinition,
+  weight: number,
+  onChange: () => void,
+): HTMLElement {
+  const inputWrap = document.createElement("div");
+  inputWrap.className = "pref-input-wrap";
+
+  if (isSliderPreference(pref)) {
+    const input = document.createElement("input");
+    input.id = `pref-${pref.id}`;
+    input.type = "range";
+    input.min = "-1000";
+    input.max = "255";
+    input.step = "1";
+    input.value = String(weight);
+    input.className = "pref-slider";
+    input.setAttribute("aria-label", `${pref.label} weight`);
+
+    const value = document.createElement("output");
+    value.className = "pref-value mono";
+    value.htmlFor = input.id;
+    value.textContent = input.value;
+
+    input.addEventListener("input", () => {
+      value.textContent = input.value;
+      saveWeight(pref.id, Number(input.value));
+      onChange();
+    });
+
+    inputWrap.append(input, value);
+    return inputWrap;
+  }
+
+  const toggle = document.createElement("label");
+  toggle.className = "switch-toggle pref-switch";
+  toggle.htmlFor = `pref-${pref.id}`;
+
+  const input = document.createElement("input");
+  input.id = `pref-${pref.id}`;
+  input.type = "checkbox";
+  input.role = "switch";
+  input.checked = isPreferenceEnabled(pref, weight);
+  input.setAttribute("aria-label", pref.label);
+
+  const track = document.createElement("span");
+  track.className = "switch-track";
+  track.setAttribute("aria-hidden", "true");
+  const thumb = document.createElement("span");
+  thumb.className = "switch-thumb";
+  track.append(thumb);
+
+  toggle.append(input, track);
+
+  input.addEventListener("change", () => {
+    saveWeight(pref.id, weightFromToggle(pref, input.checked));
+    onChange();
+  });
+
+  inputWrap.append(toggle);
+  return inputWrap;
+}
+
 function renderPreferences(): void {
   const panel = el<HTMLDivElement>("preferences-panel");
   panel.innerHTML = "";
@@ -87,11 +154,10 @@ function renderPreferences(): void {
 
     for (const pref of group.preferences) {
       const row = document.createElement("div");
-      row.className = "pref-row";
+      row.className = `pref-row${isSliderPreference(pref) ? "" : " pref-row-toggle"}`;
 
-      const labelWrap = document.createElement("label");
+      const labelWrap = document.createElement("div");
       labelWrap.className = "pref-label";
-      labelWrap.htmlFor = `pref-${pref.id}`;
 
       const name = document.createElement("span");
       name.className = "pref-name";
@@ -103,31 +169,12 @@ function renderPreferences(): void {
 
       labelWrap.append(name, desc);
 
-      const inputWrap = document.createElement("div");
-      inputWrap.className = "pref-input-wrap";
-
-      const input = document.createElement("input");
-      input.id = `pref-${pref.id}`;
-      input.type = "range";
-      input.min = "-1000";
-      input.max = "255";
-      input.step = "1";
-      input.value = String(weights[pref.id] ?? pref.defaultWeight);
-      input.className = "pref-slider";
-
-      const value = document.createElement("output");
-      value.className = "pref-value mono";
-      value.htmlFor = input.id;
-      value.textContent = input.value;
-
-      input.addEventListener("input", () => {
-        value.textContent = input.value;
-        saveWeight(pref.id, Number(input.value));
-        void rerankAndDisplay();
-      });
-
-      inputWrap.append(input, value);
-      row.append(labelWrap, inputWrap);
+      row.append(
+        labelWrap,
+        renderPreferenceControl(pref, weights[pref.id] ?? pref.defaultWeight, () => {
+          void rerankAndDisplay();
+        }),
+      );
       section.appendChild(row);
     }
     panel.appendChild(section);
