@@ -133,6 +133,36 @@ const MOVEMENT_LABELS = [
   "+moveup + right + strafe",
 ];
 
+const MOVEMENT_DESCRIPTIONS = [
+  "Empty +walk alias — stand still off the edge.",
+  "Hold +forward over the drop.",
+  "Hold +back over the drop.",
+  "Hold +moveleft over the drop.",
+  "Hold +moveright over the drop.",
+  "Hold +forward and +moveleft (diagonal).",
+  "Hold +forward and +moveright (diagonal).",
+  "Hold +back and +moveleft (diagonal).",
+  "Hold +back and +moveright (diagonal).",
+  "+moveup with +forward.",
+  "+moveup with +back.",
+  "+moveup with +moveleft.",
+  "+moveup with +moveright.",
+  "+moveup, +forward, and +moveleft.",
+  "+moveup, +forward, and +moveright.",
+  "+moveup, +back, and +moveleft.",
+  "+moveup, +back, and +moveright.",
+  "+forward, +moveleft, +strafe, and +left.",
+  "+forward, +moveright, +strafe, and +right.",
+  "+back, +moveleft, +strafe, and +left.",
+  "+back, +moveright, +strafe, and +right.",
+  "+moveup, +forward, +moveleft, +strafe, and +left.",
+  "+moveup, +forward, +moveright, +strafe, and +right.",
+  "+moveup, +back, +moveleft, +strafe, and +left.",
+  "+moveup, +back, +moveright, +strafe, and +right.",
+  "+moveup, +moveleft, +strafe, and +left.",
+  "+moveup, +moveright, +strafe, and +right.",
+];
+
 const ACTION_LABELS = [
   "Shoot only",
   "Shoot only (crouched start)",
@@ -145,6 +175,116 @@ const ACTION_LABELS = [
   "CTAP jump duck shoot (1 tick early)",
   "CTAP jump duck shoot (2 ticks early)",
 ];
+
+const ACTION_DESCRIPTIONS = [
+  "+strike fires +attack only.",
+  "Start crouched, then +strike fires +attack.",
+  "+strike does +attack with a jump tap.",
+  "+strike jump-shoots and holds +duck.",
+  "+strike CTAP jump duck shoot (+duck tap).",
+  "Quickswap to slot1, then jump shoot.",
+  "Quickswap to slot1, then jump duck shoot.",
+  "Quickswap to slot1, then CTAP jump duck shoot.",
+  "CTAP jump duck shoot, rocket prefire 1 tick early.",
+  "CTAP jump duck shoot, rocket prefire 2 ticks early.",
+];
+
+/** Movement patterns excluded for Original to remove symmetries (engine-sim). */
+const ORIGINAL_EXCLUDED_MOVEMENT = new Set([4, 6, 8, 12, 14, 16, 18, 20, 23, 24, 26]);
+
+export const MOVEMENT_PATTERN_COUNT = MOVEMENT_BINDS.length;
+export const ACTION_PATTERN_COUNT = ACTION_BINDS.length;
+
+export function isValidMovementPattern(index: number): boolean {
+  return Number.isInteger(index) && index >= 0 && index < MOVEMENT_PATTERN_COUNT;
+}
+
+export function isValidActionPattern(index: number): boolean {
+  return Number.isInteger(index) && index >= 0 && index < ACTION_PATTERN_COUNT;
+}
+
+export function isMovementAllowedForLauncher(launcher: number, pattern: number): boolean {
+  if (!isValidMovementPattern(pattern)) return false;
+  if (launcher === 1 && ORIGINAL_EXCLUDED_MOVEMENT.has(pattern)) return false;
+  return true;
+}
+
+export function describeMovementPattern(index: number): string | null {
+  return MOVEMENT_LABELS[index] ?? null;
+}
+
+export function describeActionPattern(index: number): string | null {
+  return ACTION_LABELS[index] ?? null;
+}
+
+export function describeMovementPatternDetail(index: number): string | null {
+  return MOVEMENT_DESCRIPTIONS[index] ?? null;
+}
+
+export function describeActionPatternDetail(index: number): string | null {
+  return ACTION_DESCRIPTIONS[index] ?? null;
+}
+
+export function inferMovementPattern(setup: DecodedSetup): number | null {
+  if (isValidMovementPattern(setup.start_moving)) {
+    return isMovementAllowedForLauncher(setup.launcher, setup.start_moving)
+      ? setup.start_moving
+      : null;
+  }
+  if (setup.NOMOVING && setup.NOMOVING > 0) return 0;
+  return null;
+}
+
+export function inferActionPattern(setup: DecodedSetup): number | null {
+  if (isValidActionPattern(setup.start_action)) return setup.start_action;
+  if (setup.ONETICK && setup.ONETICK > 0) return 8;
+  if (setup.TWOTICK && setup.TWOTICK > 0) return 9;
+  if (setup.CTAP_JDS && setup.CTAP_JDS > 0) return 4;
+  if (setup.JDS && setup.JDS > 0) return 3;
+  if (setup.JS && setup.JS > 0) return 2;
+  if (setup.SHOTGUN && setup.SHOTGUN > 0) {
+    if (setup.CTAP_JDS && setup.CTAP_JDS > 0) return 7;
+    if (setup.JDS && setup.JDS > 0 || (setup.CROUCHED && setup.CROUCHED > 0)) return 6;
+    return 5;
+  }
+  if (setup.CROUCHED && setup.CROUCHED > 0) return 1;
+  return null;
+}
+
+export function resolveMovementPattern(setup: DecodedSetup): number | null {
+  return inferMovementPattern(setup);
+}
+
+export function resolveActionPattern(setup: DecodedSetup): number | null {
+  return inferActionPattern(setup);
+}
+
+export function hasResolvablePatterns(setup: DecodedSetup): boolean {
+  return resolveMovementPattern(setup) !== null && resolveActionPattern(setup) !== null;
+}
+
+export interface ResolvedSetupPatterns {
+  movement: number;
+  action: number;
+  movementLabel: string;
+  actionLabel: string;
+  movementDetail: string;
+  actionDetail: string;
+}
+
+export function resolveSetupPatterns(setup: DecodedSetup): ResolvedSetupPatterns | null {
+  const movement = resolveMovementPattern(setup);
+  const action = resolveActionPattern(setup);
+  if (movement === null || action === null) return null;
+
+  const movementLabel = describeMovementPattern(movement);
+  const actionLabel = describeActionPattern(action);
+  const movementDetail = describeMovementPatternDetail(movement);
+  const actionDetail = describeActionPatternDetail(action);
+  if (!movementLabel || !actionLabel || !movementDetail || !actionDetail) return null;
+
+  return { movement, action, movementLabel, actionLabel, movementDetail, actionDetail };
+}
 
 export const DEFAULT_START_GUIDES: DefaultStartGuide[] = [
   {
@@ -221,17 +361,24 @@ export const DEFAULT_START_GUIDES: DefaultStartGuide[] = [
   },
 ];
 
-export function movementBind(startMoving: number): BindPair {
-  return MOVEMENT_BINDS[startMoving] ?? MOVEMENT_BINDS[0]!;
+export function movementBind(startMoving: number): BindPair | null {
+  if (!isValidMovementPattern(startMoving)) return null;
+  return MOVEMENT_BINDS[startMoving] ?? null;
 }
 
-export function actionBind(startAction: number): BindPair {
-  return ACTION_BINDS[startAction] ?? ACTION_BINDS[0]!;
+export function actionBind(startAction: number): BindPair | null {
+  if (!isValidActionPattern(startAction)) return null;
+  return ACTION_BINDS[startAction] ?? null;
 }
 
-export function generateSetupBinds(setup: DecodedSetup): SetupBinds {
-  const movement = movementBind(setup.start_moving);
-  const action = actionBind(setup.start_action);
+export function generateSetupBinds(setup: DecodedSetup): SetupBinds | null {
+  const resolved = resolveSetupPatterns(setup);
+  if (!resolved) return null;
+
+  const movement = movementBind(resolved.movement);
+  const action = actionBind(resolved.action);
+  if (!movement || !action) return null;
+
   return {
     movement,
     action,
@@ -263,17 +410,20 @@ function rocketCrouchNotes(setup: DecodedSetup): string[] {
 
 export function generateSetupInstructions(setup: DecodedSetup): string[] {
   const lines: string[] = [];
+  const patterns = resolveSetupPatterns(setup);
 
-  lines.push(`Movement: ${MOVEMENT_LABELS[setup.start_moving] ?? `pattern ${setup.start_moving}`}.`);
-  lines.push(`Start action: ${ACTION_LABELS[setup.start_action] ?? `pattern ${setup.start_action}`}.`);
+  if (patterns) {
+    lines.push(`Movement: ${patterns.movementLabel} — ${patterns.movementDetail}`);
+    lines.push(`Start action: ${patterns.actionLabel} — ${patterns.actionDetail}`);
+  }
 
-  if (setup.start_action === 1) {
+  if (patterns?.action === 1) {
     lines.push("Start crouched before pressing +strike.");
   }
-  if (setup.start_action === 8) {
+  if (patterns?.action === 8) {
     lines.push("Prefire 1 tick early.");
   }
-  if (setup.start_action === 9) {
+  if (patterns?.action === 9) {
     lines.push("Prefire 2 ticks early.");
   }
 
@@ -310,11 +460,14 @@ export function generateSetupInstructions(setup: DecodedSetup): string[] {
     lines.push(autoDelayInstruction("Auto synced standing bounce", setup.tick_delay_auto_synced_standing_bounce));
   } else if (setup.FASTANDBOUNCE && setup.FASTANDBOUNCE > 0 && isSetDelay(setup.tick_delay_auto_standing_bounce)) {
     lines.push(autoDelayInstruction("Fully auto standing bounce", setup.tick_delay_auto_standing_bounce));
-  } else if (setup.ASTANDBOUNCE && setup.ASTANDBOUNCE > 0 && isSetDelay(setup.tick_delay_auto_standing_bounce)) {
+  } else   if (setup.ASTANDBOUNCE && setup.ASTANDBOUNCE > 0 && isSetDelay(setup.tick_delay_auto_standing_bounce)) {
     lines.push(autoDelayInstruction("Auto standing bounce", setup.tick_delay_auto_standing_bounce));
   }
 
-  lines.push("Bind keys: bind <key> +walk and bind <key> +strike.");
+  if (patterns) {
+    lines.push("Bind keys: bind <key> +walk and bind <key> +strike.");
+  }
+
   lines.push(...rocketCrouchNotes(setup));
 
   return lines;

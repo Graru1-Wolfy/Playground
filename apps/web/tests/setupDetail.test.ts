@@ -39,6 +39,9 @@ describe("formatSetupDetailHtml", () => {
     expect(html).toContain("Setup ID");
     expect(html).toContain("123456789");
     expect(html).toContain("Execution steps");
+    expect(html).toContain("Start pattern");
+    expect(html).toContain("Forward");
+    expect(html).toContain("Shoot only");
     expect(html).toContain("Config script");
     expect(html).toContain("Consistency reliability");
     expect(html).toContain("alias +walk");

@@ -5,6 +5,7 @@ import {
   generateSetupInstructions,
   getSetupTags,
   preferencesConfig,
+  resolveSetupPatterns,
 } from "@playground/schema";
 import type { DefaultCheckRow, DefaultDetailContext } from "./defaultCheck.js";
 import { defaultSetupId, formatDefaultDetailHtml, isDefaultSetupId } from "./defaultCheck.js";
@@ -98,8 +99,6 @@ function engineSection(setup: DecodedSetup): DetailSection {
       { label: "Setup ID", value: setup.ID.toString() },
       { label: "Launcher code", value: String(setup.launcher) },
       { label: "Rockets", value: String(setup.num_rockets) },
-      { label: "Start moving", value: String(setup.start_moving) },
-      { label: "Start action", value: String(setup.start_action) },
       { label: "Tick delay auto bounce", value: String(setup.tick_delay_auto_bounce) },
       { label: "Tick delay auto synced bounce", value: String(setup.tick_delay_auto_synced_bounce) },
       { label: "Tick delay auto standing bounce", value: String(setup.tick_delay_auto_standing_bounce) },
@@ -118,6 +117,43 @@ function engineSection(setup: DecodedSetup): DetailSection {
     ],
     tags: [],
   };
+}
+
+function renderPatternSection(setup: DecodedSetup): string {
+  const patterns = resolveSetupPatterns(setup);
+  if (!patterns) return "";
+
+  return `
+    <section class="setup-detail-section setup-detail-section-prominent">
+      <h3>Start pattern</h3>
+      <div class="setup-pattern-cards">
+        <article class="setup-pattern-card">
+          <span class="setup-pattern-kind">Movement</span>
+          <strong class="setup-pattern-label">${escapeHtml(patterns.movementLabel)}</strong>
+          <p class="hint setup-pattern-detail">${escapeHtml(patterns.movementDetail)}</p>
+        </article>
+        <article class="setup-pattern-card">
+          <span class="setup-pattern-kind">Start action</span>
+          <strong class="setup-pattern-label">${escapeHtml(patterns.actionLabel)}</strong>
+          <p class="hint setup-pattern-detail">${escapeHtml(patterns.actionDetail)}</p>
+        </article>
+      </div>
+    </section>`;
+}
+
+function renderScriptSection(binds: ReturnType<typeof generateSetupBinds>): string {
+  if (!binds) return "";
+
+  const bindBlock = formatBindBlock(binds);
+  return `
+    <section class="setup-detail-section setup-detail-section-script setup-detail-section-prominent">
+      <div class="setup-detail-section-head">
+        <h3>Config script</h3>
+        <button type="button" class="btn btn-ghost btn-sm setup-copy-binds" data-copy-text="${escapeHtml(bindBlock)}">Copy script</button>
+      </div>
+      <pre class="setup-bind-block mono">${escapeHtml(bindBlock)}</pre>
+      <p class="hint setup-bind-hint">Example: <span class="mono">bind shift +walk</span> · <span class="mono">bind mouse1 +strike</span></p>
+    </section>`;
 }
 
 function renderReliabilityBlock(percent: number, meta: string): string {
@@ -154,8 +190,8 @@ export function formatSetupDetailHtml(setup: DecodedSetup, context: SetupDetailC
   const binds = generateSetupBinds(setup);
   const instructions = generateSetupInstructions(setup);
   const reliability = setupReliabilityPercent(setup);
+  const patternSection = renderPatternSection(setup);
 
-  const bindBlock = formatBindBlock(binds);
   const instructionMarkup = instructions
     .map((line) => `<li>${escapeHtml(line)}</li>`)
     .join("");
@@ -196,19 +232,13 @@ export function formatSetupDetailHtml(setup: DecodedSetup, context: SetupDetailC
         <span class="setup-meta mono setup-speeds">${speedMarkup}</span>
       </div>
     </div>
+    ${patternSection}
     <section class="setup-detail-section setup-detail-section-prominent">
       <h3>Execution steps</h3>
       <ol class="setup-instruction-list">${instructionMarkup}</ol>
     </section>
     ${sectionMarkup}
-    <section class="setup-detail-section setup-detail-section-script setup-detail-section-prominent">
-      <div class="setup-detail-section-head">
-        <h3>Config script</h3>
-        <button type="button" class="btn btn-ghost btn-sm setup-copy-binds" data-copy-text="${escapeHtml(bindBlock)}">Copy script</button>
-      </div>
-      <pre class="setup-bind-block mono">${escapeHtml(bindBlock)}</pre>
-      <p class="hint setup-bind-hint">Example: <span class="mono">bind shift +walk</span> · <span class="mono">bind mouse1 +strike</span></p>
-    </section>`;
+    ${renderScriptSection(binds)}`;
 }
 
 let openSetupId: string | null = null;

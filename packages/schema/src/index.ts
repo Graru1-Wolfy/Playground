@@ -18,11 +18,26 @@ export type {
 export { preferencesConfig } from "./preferences.js";
 export {
   DEFAULT_START_GUIDES,
+  ACTION_PATTERN_COUNT,
+  MOVEMENT_PATTERN_COUNT,
+  describeActionPattern,
+  describeActionPatternDetail,
+  describeMovementPattern,
+  describeMovementPatternDetail,
   formatBindBlock,
   formatGuideBindBlock,
   generateSetupBinds,
   generateSetupInstructions,
+  hasResolvablePatterns,
+  inferActionPattern,
+  inferMovementPattern,
+  isMovementAllowedForLauncher,
+  isValidActionPattern,
+  isValidMovementPattern,
   movementBind,
   actionBind,
+  resolveActionPattern,
+  resolveMovementPattern,
+  resolveSetupPatterns,
 } from "./binds.js";
-export type { BindPair, DefaultStartGuide, SetupBinds } from "./binds.js";
+export type { BindPair, DefaultStartGuide, ResolvedSetupPatterns, SetupBinds } from "./binds.js";

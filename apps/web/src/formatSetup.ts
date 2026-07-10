@@ -1,5 +1,5 @@
 import type { DecodedSetup } from "@playground/schema";
-import { getSetupTags } from "@playground/schema";
+import { getSetupTags, resolveSetupPatterns } from "@playground/schema";
 import { escapeHtml } from "./ui.js";
 
 const LAUNCHERS = ["Stock", "Original", "Mangler"] as const;
@@ -47,10 +47,14 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
           .join("")}<span class="setup-speed-unit"> u/s</span></span>`
       : "";
   const tags = getSetupTags(setup);
+  const patterns = resolveSetupPatterns(setup);
   const scorePct = options.maxScore > 0 ? Math.round((options.score / options.maxScore) * 100) : 0;
   const idStr = setup.ID.toString();
 
   const metaParts = [
+    patterns
+      ? `<span class="setup-pattern hint" title="${escapeHtml(`${patterns.movementDetail} · ${patterns.actionDetail}`)}">${escapeHtml(patterns.movementLabel)} · ${escapeHtml(patterns.actionLabel)}</span>`
+      : "",
     speedMarkup,
     tags.length ? `<span class="setup-tags">${renderTags(tags)}</span>` : "",
   ].filter(Boolean);
