@@ -3,9 +3,16 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+GRADLE="${ROOT}/apps/web/android/app/build.gradle"
 export ANDROID_HOME="${ANDROID_HOME:-/opt/android-sdk}"
 export PATH="${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${PATH}"
 VARIANT="${1:-release}"
+
+read_apk_version() {
+  local version_name
+  version_name="$(grep 'versionName "' "${GRADLE}" | head -1 | sed 's/.*versionName "\([^"]*\)".*/\1/')"
+  echo "${version_name}"
+}
 
 if [ ! -x "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" ]; then
   echo "Android SDK not found. Run: bash scripts/setup-android-sdk.sh"
@@ -16,6 +23,8 @@ if [ ! -f "${ROOT}/apps/web/android/keystore.properties" ]; then
   echo "Missing apps/web/android/keystore.properties"
   exit 1
 fi
+
+VERSION="$(read_apk_version)"
 
 cd "${ROOT}"
 npm run build:packages
@@ -28,14 +37,14 @@ if [ "${VARIANT}" = "debug" ]; then
 else
   npm run android:apk:release -w @playground/web
   APK="${ROOT}/apps/web/android/app/build/outputs/apk/release/app-release.apk"
-  OUT="/opt/cursor/artifacts/bounce-check-v1.0.2.apk"
+  OUT="/opt/cursor/artifacts/bounce-check-v${VERSION}.apk"
 fi
 
 if [ -f "${APK}" ]; then
   mkdir -p /opt/cursor/artifacts
   cp "${APK}" "${OUT}"
   echo ""
-  echo "APK ready:"
+  echo "APK ready (v${VERSION}):"
   echo "  ${APK}"
   echo "  ${OUT}"
   echo ""
