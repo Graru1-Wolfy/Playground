@@ -44,6 +44,13 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --status-bar-bg: #12161e;
+  --safe-top-fallback: 0px;
+}
+
+html.native-shell {
+  --safe-top-fallback: 28px;
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--safe-top-fallback));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), 0px);
 }
 
 *,
@@ -827,6 +834,24 @@ body::before {
   margin-top: var(--space-2);
   padding-top: var(--space-2);
   border-top: 1px solid var(--border-subtle);
+  overflow: hidden;
+  max-height: 24rem;
+  opacity: 1;
+  transition:
+    max-height 0.28s ease,
+    opacity 0.22s ease,
+    margin 0.28s ease,
+    padding 0.28s ease,
+    border-width 0.28s ease;
+}
+
+.top-stack.defaults-retracted .hero-defaults {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  padding-top: 0;
+  border-top-width: 0;
+  pointer-events: none;
 }
 
 .hero-defaults-head {
@@ -1476,10 +1501,6 @@ body::before {
   inset: 0;
   z-index: 100;
   pointer-events: none;
-  padding-top: var(--safe-top);
-  padding-right: var(--safe-right);
-  padding-bottom: var(--safe-bottom);
-  padding-left: var(--safe-left);
 }
 
 .prefs-drawer.open {
@@ -1500,16 +1521,17 @@ body::before {
 
 .prefs-panel {
   position: absolute;
-  top: 0;
-  right: 0;
-  width: var(--drawer-w);
-  height: 100%;
+  top: var(--safe-top);
+  right: var(--safe-right);
+  bottom: var(--safe-bottom);
+  width: min(var(--drawer-w), calc(100% - var(--safe-left) - var(--safe-right)));
   background: var(--bg-raised);
   border-left: 1px solid var(--border-strong);
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
+  transform: translateX(calc(100% + var(--safe-right)));
   transition: transform 200ms ease;
+  box-sizing: border-box;
 }
 
 .prefs-drawer.open .prefs-panel {
@@ -1522,6 +1544,7 @@ body::before {
   justify-content: space-between;
   padding: var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .prefs-header h2 {
@@ -1541,7 +1564,9 @@ body::before {
 
 .prefs-footer {
   padding: var(--space-2) var(--space-3);
+  padding-bottom: max(var(--space-2), var(--safe-bottom));
   border-top: 1px solid var(--border-subtle);
+  flex-shrink: 0;
 }
 
 .pref-group {

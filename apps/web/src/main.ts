@@ -13,6 +13,9 @@ async function configureNativeChrome(): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
+  if (Capacitor.isNativePlatform()) {
+    document.documentElement.classList.add("native-shell");
+  }
   await configureNativeChrome();
   if (
     import.meta.env.PROD &&

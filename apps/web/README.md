@@ -47,7 +47,7 @@ bash scripts/build-android-apk.sh debug
 ```
 
 **Download:** [Latest GitHub Release APK](https://github.com/Graru1-Wolfy/Playground/releases/latest)  
-Direct: [bounce-check-v1.0.5.apk](https://github.com/Graru1-Wolfy/Playground/releases/download/bounce-check-v1.0.5/bounce-check-v1.0.5.apk)
+Direct: [bounce-check-v1.0.6.apk](https://github.com/Graru1-Wolfy/Playground/releases/download/bounce-check-v1.0.6/bounce-check-v1.0.6.apk)
 
 ### API server download
 
@@ -72,7 +72,7 @@ Or download the APK from GitHub Releases and open it on your phone (enable “In
 | Alias | `bouncecheck-dev` |
 | Password | `bouncecheck-dev` |
 
-App id: `com.playground.bouncecheck` · launcher name: **Bounce Check** · version **1.0.5**
+App id: `com.playground.bouncecheck` · launcher name: **Bounce Check** · version **1.0.6**
 
 ### Same Wi‑Fi (local dev)
 

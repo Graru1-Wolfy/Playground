@@ -76,6 +76,9 @@ export function bindBounceEnvControls(onChange: () => void): void {
     min: TELEHEIGHT_MIN,
     max: TELEHEIGHT_MAX,
     step: TELEHEIGHT_STEP,
+    onInput: (teleheight) => {
+      syncTeleportDisplay(teleheight);
+    },
     onSnap: (teleheight) => {
       syncTeleportDisplay(teleheight);
       persistBounceContext(readBounceContextFromDom());
@@ -105,6 +108,9 @@ export function bindBounceEnvControls(onChange: () => void): void {
     min: CEILING_GAP_MIN,
     max: CEILING_GAP_MAX,
     step: 1,
+    onInput: (gap) => {
+      el<HTMLOutputElement>("ceiling-display").textContent = String(gap);
+    },
     onSnap: (gap) => {
       syncCeilingDisplay(gap, true);
       el<HTMLInputElement>("ceiling-enabled").checked = true;

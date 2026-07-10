@@ -7,9 +7,9 @@ describe("snapToStep", () => {
     expect(snapToStep(64.6, 0, 99, 1)).toBe(65);
   });
 
-  it("snaps teleheight to 1/32 increments", () => {
-    expect(snapToStep(1.02, 0, 2, 0.03125)).toBeCloseTo(1.03125, 5);
-    expect(snapToStep(1.01, 0, 2, 0.03125)).toBeCloseTo(1, 5);
+  it("snaps teleheight to 1/32 increments without float drift", () => {
+    expect(snapToStep(1.01, 0, 2, 0.03125)).toBe(1);
+    expect(snapToStep(1.03125, 0, 2, 0.03125)).toBe(1.03125);
   });
 
   it("clamps to min and max", () => {

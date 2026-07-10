@@ -24,6 +24,7 @@ import {
   TRAJECTORY_WEIGHT_MIN,
   TRAJECTORY_WEIGHT_STEP,
 } from "./sliderSnap.js";
+import { bindDefaultsScrollRetract } from "./scrollChrome.js";
 
 import type { DecodedSetup } from "@playground/schema";
 
@@ -119,10 +120,13 @@ function renderPreferenceControl(
     value.htmlFor = input.id;
     value.textContent = input.value;
 
-    bindRigidSlider(input, {
+  bindRigidSlider(input, {
       min: TRAJECTORY_WEIGHT_MIN,
       max: TRAJECTORY_WEIGHT_MAX,
       step: TRAJECTORY_WEIGHT_STEP,
+      onInput: (snapped) => {
+        value.textContent = String(snapped);
+      },
       onSnap: (snapped) => {
         value.textContent = String(snapped);
         saveWeight(pref.id, snapped);
@@ -403,6 +407,10 @@ export function initApp(): void {
     min: 0,
     max: 99,
     step: 1,
+    onInput: (height) => {
+      heightInput.value = String(height);
+      el<HTMLSpanElement>("height-display").textContent = String(height);
+    },
     onSnap: (height) => {
       heightInput.value = String(height);
       debouncedPreview();
@@ -413,6 +421,9 @@ export function initApp(): void {
     min: 0,
     max: 45,
     step: 1,
+    onInput: (deg) => {
+      el<HTMLOutputElement>("slope-display").textContent = `${deg}°`;
+    },
     onSnap: (deg) => {
       el<HTMLOutputElement>("slope-display").textContent = `${deg}°`;
       renderSlopeWallChecks(slopeWallHeight());
@@ -461,6 +472,8 @@ export function initApp(): void {
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") closePrefs();
   });
+
+  bindDefaultsScrollRetract(el<HTMLElement>("top-stack"));
 
   void runCompute();
 }
