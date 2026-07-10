@@ -24,7 +24,7 @@ import {
   TRAJECTORY_WEIGHT_STEP,
 } from "./sliderSnap.js";
 import { bindStepper, createStepperElement } from "./stepper.js";
-import { bindDefaultsScrollRetract } from "./scrollChrome.js";
+import { bindAnalyticalCollapse } from "./scrollChrome.js";
 
 import type { DecodedSetup } from "@playground/schema";
 
@@ -473,7 +473,7 @@ export function initApp(): void {
     if (e.key === "Escape") closePrefs();
   });
 
-  bindDefaultsScrollRetract(el<HTMLElement>("hero-results"));
+  bindAnalyticalCollapse(el<HTMLElement>("hero-analytical"));
 
   void runCompute();
 }

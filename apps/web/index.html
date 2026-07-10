@@ -188,20 +188,31 @@
               </div>
             </details>
           </div>
+
+          <div id="hero-analytical" class="hero-defaults safe-sub">
+            <button
+              type="button"
+              class="hero-defaults-head hero-defaults-toggle"
+              id="analytical-toggle"
+              aria-expanded="true"
+              aria-controls="default-results"
+            >
+              <h2 id="defaults-heading">Instant DEFAULT</h2>
+              <span class="badge badge-analytical">Analytical</span>
+              <svg class="icon collapse-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <p id="default-context" class="hint default-context" aria-live="polite"></p>
+            </button>
+            <div class="hero-defaults-body">
+              <div id="default-results" class="default-grid" role="region" aria-label="DEFAULT bounce results"></div>
+            </div>
+          </div>
         </section>
       </div>
 
-      <section id="hero-results" class="hero-results panel panel-hero" aria-label="Bounce results">
-          <div class="hero-defaults hero-retractable safe-sub" aria-labelledby="defaults-heading">
-            <div class="hero-defaults-head">
-              <h2 id="defaults-heading">Instant DEFAULT</h2>
-              <span class="badge badge-analytical">Analytical</span>
-              <p id="default-context" class="hint default-context" aria-live="polite"></p>
-            </div>
-            <div id="default-results" class="default-grid" role="region" aria-label="DEFAULT bounce results"></div>
-          </div>
-
-          <div class="hero-simulation hero-retractable safe-sub" aria-labelledby="simulation-heading">
+      <section id="hero-results" class="hero-results panel panel-hero" aria-label="Simulation results">
+          <div class="hero-simulation safe-sub" aria-labelledby="simulation-heading">
             <div class="hero-simulation-head">
               <h2 id="simulation-heading">Simulation setups</h2>
               <span class="badge badge-simulation">Simulation</span>
