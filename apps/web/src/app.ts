@@ -19,11 +19,11 @@ import { formatSlopeWallGrid, runSlopeWallChecks } from "./slopeWallCheck.js";
 import { slopeWallSummary } from "./slopeWall.js";
 import { copyToClipboard, debounce, el, setLiveStatus, showElement } from "./ui.js";
 import {
-  bindRigidSlider,
   TRAJECTORY_WEIGHT_MAX,
   TRAJECTORY_WEIGHT_MIN,
   TRAJECTORY_WEIGHT_STEP,
 } from "./sliderSnap.js";
+import { bindStepper, createStepperElement } from "./stepper.js";
 import { bindDefaultsScrollRetract } from "./scrollChrome.js";
 
 import type { DecodedSetup } from "@playground/schema";
@@ -71,14 +71,9 @@ function syncHeightControls(height: number): void {
 
   input.value = String(height);
   display.textContent = String(height);
-  slider.setAttribute("aria-valuenow", String(height));
 
   const sliderMax = Number(slider.max);
-  if (height <= sliderMax) {
-    slider.value = String(height);
-  } else {
-    slider.value = String(sliderMax);
-  }
+  slider.value = String(Math.min(height, sliderMax));
 
   for (const chip of document.querySelectorAll<HTMLButtonElement>(".height-preset[data-height]")) {
     chip.classList.toggle("chip-active", Number(chip.dataset.height) === height);
@@ -94,49 +89,44 @@ function renderPreferenceControl(
   inputWrap.className = "pref-input-wrap";
 
   if (isSliderPreference(pref)) {
-    const lane = document.createElement("div");
-    lane.className = "slider-lane pref-slider-lane";
+    const { root, input, decBtn, incBtn } = createStepperElement({
+      className: "stepper-pref",
+      min: TRAJECTORY_WEIGHT_MIN,
+      max: TRAJECTORY_WEIGHT_MAX,
+      step: TRAJECTORY_WEIGHT_STEP,
+      value: Math.min(TRAJECTORY_WEIGHT_MAX, Math.max(TRAJECTORY_WEIGHT_MIN, weight)),
+      inputId: `pref-${pref.id}`,
+      decLabel: `Decrease ${pref.label} weight`,
+      incLabel: `Increase ${pref.label} weight`,
+    });
 
-    const input = document.createElement("input");
-    input.id = `pref-${pref.id}`;
-    input.type = "range";
-    input.min = String(TRAJECTORY_WEIGHT_MIN);
-    input.max = String(TRAJECTORY_WEIGHT_MAX);
-    input.step = String(TRAJECTORY_WEIGHT_STEP);
-    input.value = String(Math.min(TRAJECTORY_WEIGHT_MAX, Math.max(TRAJECTORY_WEIGHT_MIN, weight)));
-    input.className = "pref-slider";
-    input.setAttribute("aria-label", `${pref.label} weight`);
-
-    const scale = document.createElement("div");
-    scale.className = "slider-scale";
-    scale.setAttribute("aria-hidden", "true");
-    const minLabel = document.createElement("span");
-    minLabel.textContent = pref.id === "SPEED" ? "min speed" : "min";
-    const maxLabel = document.createElement("span");
-    maxLabel.textContent = pref.id === "SPEED" ? "max speed" : "max";
-    scale.append(minLabel, maxLabel);
-
+    const valueSlot = document.createElement("span");
+    valueSlot.className = "stepper-body";
     const value = document.createElement("output");
-    value.className = "pref-value mono";
+    value.className = "stepper-value pref-value mono";
     value.htmlFor = input.id;
     value.textContent = input.value;
+    valueSlot.append(value);
+    root.insertBefore(valueSlot, incBtn);
 
-  bindRigidSlider(input, {
+    bindStepper({
+      input,
+      decBtn,
+      incBtn,
       min: TRAJECTORY_WEIGHT_MIN,
       max: TRAJECTORY_WEIGHT_MAX,
       step: TRAJECTORY_WEIGHT_STEP,
       onInput: (snapped) => {
         value.textContent = String(snapped);
       },
-      onSnap: (snapped) => {
+      onChange: (snapped) => {
         value.textContent = String(snapped);
         saveWeight(pref.id, snapped);
         onChange();
       },
     });
 
-    lane.append(input, scale);
-    inputWrap.append(lane, value);
+    inputWrap.append(root);
     return inputWrap;
   }
 
@@ -240,7 +230,7 @@ async function rerankAndDisplay(): Promise<void> {
   const filtered = scored.length;
 
   if (total === 0) {
-    status.textContent = "No precomputed data for this height";
+    status.textContent = "No simulation data for this height";
     showElement(el<HTMLDivElement>("setup-empty"), true);
     showElement(el<HTMLDivElement>("setup-loading"), false);
     showElement(el<HTMLDivElement>("setup-list-header"), false);
@@ -404,30 +394,37 @@ export function initApp(): void {
     }
   });
 
-  bindRigidSlider(heightSlider, {
+  bindStepper({
+    input: heightSlider,
+    decBtn: el<HTMLButtonElement>("height-dec"),
+    incBtn: el<HTMLButtonElement>("height-inc"),
     min: 0,
-    max: 99,
+    max: 9999,
     step: 1,
-    onInput: (height) => {
-      heightInput.value = String(height);
-      el<HTMLSpanElement>("height-display").textContent = String(height);
-      heightSlider.setAttribute("aria-valuenow", String(height));
+    readValue: () => Number(heightInput.value) || 0,
+    writeValue: (height) => {
+      syncHeightControls(height);
     },
-    onSnap: (height) => {
-      heightInput.value = String(height);
-      heightSlider.setAttribute("aria-valuenow", String(height));
+    onInput: () => {
+      updateComputeGuard();
+    },
+    onChange: () => {
       debouncedPreview();
     },
   });
 
-  bindRigidSlider(el<HTMLInputElement>("slope-slider"), {
+  bindStepper({
+    input: el<HTMLInputElement>("slope-slider"),
+    decBtn: el<HTMLButtonElement>("slope-dec"),
+    incBtn: el<HTMLButtonElement>("slope-inc"),
     min: 0,
     max: 45,
     step: 1,
+    format: (deg) => String(deg),
     onInput: (deg) => {
       el<HTMLOutputElement>("slope-display").textContent = `${deg}°`;
     },
-    onSnap: (deg) => {
+    onChange: (deg) => {
       el<HTMLOutputElement>("slope-display").textContent = `${deg}°`;
       renderSlopeWallChecks(slopeWallHeight());
     },

@@ -11,8 +11,8 @@ import {
   TELEHEIGHT_STEP,
   type BounceContext,
 } from "./bounceEnv.js";
-import { bindRigidSlider } from "./sliderSnap.js";
 import { el } from "./ui.js";
+import { bindStepper } from "./stepper.js";
 
 export function readBounceContextFromDom(): BounceContext {
   const teleheight = clampTele(Number(el<HTMLInputElement>("teleport-slider").value));
@@ -59,6 +59,8 @@ export function syncCeilingDisplay(value: number, enabled: boolean): void {
   el<HTMLSpanElement>("ceiling-summary").textContent = enabled ? String(value) : "off";
   const disabled = !enabled;
   el<HTMLInputElement>("ceiling-slider").disabled = disabled;
+  el<HTMLButtonElement>("ceiling-dec").disabled = disabled;
+  el<HTMLButtonElement>("ceiling-inc").disabled = disabled;
   for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-ceiling]")) {
     btn.disabled = disabled;
     btn.classList.toggle("chip-active", !disabled && Number(btn.dataset.ceiling) === value);
@@ -72,14 +74,18 @@ export function persistBounceContext(ctx: BounceContext): void {
 export function bindBounceEnvControls(onChange: () => void): void {
   syncBounceContextToDom();
 
-  bindRigidSlider(el<HTMLInputElement>("teleport-slider"), {
+  bindStepper({
+    input: el<HTMLInputElement>("teleport-slider"),
+    decBtn: el<HTMLButtonElement>("tele-dec"),
+    incBtn: el<HTMLButtonElement>("tele-inc"),
     min: TELEHEIGHT_MIN,
     max: TELEHEIGHT_MAX,
     step: TELEHEIGHT_STEP,
+    format: formatTeleheight,
     onInput: (teleheight) => {
       syncTeleportDisplay(teleheight);
     },
-    onSnap: (teleheight) => {
+    onChange: (teleheight) => {
       syncTeleportDisplay(teleheight);
       persistBounceContext(readBounceContextFromDom());
       onChange();
@@ -104,14 +110,18 @@ export function bindBounceEnvControls(onChange: () => void): void {
     onChange();
   });
 
-  bindRigidSlider(el<HTMLInputElement>("ceiling-slider"), {
+  bindStepper({
+    input: el<HTMLInputElement>("ceiling-slider"),
+    decBtn: el<HTMLButtonElement>("ceiling-dec"),
+    incBtn: el<HTMLButtonElement>("ceiling-inc"),
     min: CEILING_GAP_MIN,
     max: CEILING_GAP_MAX,
     step: 1,
+    isDisabled: () => !el<HTMLInputElement>("ceiling-enabled").checked,
     onInput: (gap) => {
       el<HTMLOutputElement>("ceiling-display").textContent = String(gap);
     },
-    onSnap: (gap) => {
+    onChange: (gap) => {
       syncCeilingDisplay(gap, true);
       el<HTMLInputElement>("ceiling-enabled").checked = true;
       persistBounceContext(readBounceContextFromDom());

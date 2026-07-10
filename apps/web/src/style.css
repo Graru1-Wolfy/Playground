@@ -380,6 +380,12 @@ body::before {
   border: 1px solid rgba(167, 139, 250, 0.25);
 }
 
+.badge-simulation {
+  background: rgba(232, 117, 42, 0.12);
+  color: var(--accent-bright);
+  border: 1px solid rgba(232, 117, 42, 0.28);
+}
+
 /* ─── Slopes & walls ────────────────────────────────────────────── */
 .panel-slope-wall {
   border-color: rgba(167, 139, 250, 0.15);
@@ -408,28 +414,10 @@ body::before {
   gap: var(--space-2);
 }
 
-#slope-slider {
-  flex: 1;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 4px;
-  border-radius: 999px;
-  background: var(--bg-elevated);
-  cursor: pointer;
-}
-
-#slope-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #a78bfa;
-  border: 2px solid var(--bg-raised);
-}
-
 #slope-display {
-  min-width: 2rem;
-  font-size: 0.78rem;
+  min-width: 2.5rem;
+  text-align: center;
+  font-size: 0.82rem;
   color: var(--text-secondary);
 }
 
@@ -830,12 +818,14 @@ body::before {
   scroll-margin-top: calc(var(--safe-top) + 3.5rem);
 }
 
-.hero-defaults {
+.hero-defaults,
+.hero-simulation,
+.hero-retractable {
   margin-top: var(--space-2);
   padding-top: var(--space-2);
   border-top: 1px solid var(--border-subtle);
   overflow: hidden;
-  max-height: 24rem;
+  max-height: 2400px;
   opacity: 1;
   transition:
     max-height 0.28s ease,
@@ -845,7 +835,7 @@ body::before {
     border-width 0.28s ease;
 }
 
-.top-stack.defaults-retracted .hero-defaults {
+.top-stack.defaults-retracted .hero-retractable {
   max-height: 0;
   opacity: 0;
   margin-top: 0;
@@ -854,7 +844,8 @@ body::before {
   pointer-events: none;
 }
 
-.hero-defaults-head {
+.hero-defaults-head,
+.hero-simulation-head {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -862,13 +853,24 @@ body::before {
   margin-bottom: var(--space-2);
 }
 
-.hero-defaults-head h2 {
+.hero-defaults-head h2,
+.hero-simulation-head h2 {
   margin: 0;
   font-family: var(--font-display);
   font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.hero-simulation .setup-status {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+.setup-toolbar-hero {
+  margin-bottom: var(--space-2);
 }
 
 .default-context {
@@ -918,13 +920,6 @@ body::before {
   line-height: 1.35;
 }
 
-.height-readout {
-  display: flex;
-  align-items: baseline;
-  gap: 0.15rem;
-  flex-shrink: 0;
-}
-
 .height-readout-value {
   font-family: var(--font-display);
   font-size: 1.75rem;
@@ -933,69 +928,130 @@ body::before {
   color: var(--accent-bright);
 }
 
-.height-readout-unit {
+/* ─── Arrow steppers ────────────────────────────────────────────── */
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.stepper-btn:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.stepper-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.stepper-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.stepper-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.stepper-body {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.15rem;
+  min-width: 3rem;
+}
+
+.stepper-value {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-primary);
+}
+
+.stepper-unit {
   font-size: 0.75rem;
   color: var(--text-muted);
 }
 
-.height-slider-block {
-  width: 100%;
+.stepper-hero {
+  flex-shrink: 0;
 }
 
-.height-slider-block input[type="range"] {
-  -webkit-appearance: none;
-  appearance: none;
-  display: block;
-  width: 100%;
+.stepper-hero .stepper-value {
+  font-size: 1.75rem;
+  color: var(--accent-bright);
+}
+
+.stepper-hero .stepper-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.stepper-env,
+.stepper-slope,
+.stepper-pref {
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.stepper-env .stepper-value,
+.stepper-slope .stepper-value {
+  min-width: 2.75rem;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.stepper-pref .stepper-value {
+  min-width: 2rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+.stepper-pref .stepper-btn {
+  width: 2rem;
   height: 2rem;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  cursor: pointer;
 }
 
-.height-slider-block input[type="range"]::-webkit-slider-runnable-track {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-}
-
-.height-slider-block input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px;
-  height: 22px;
-  margin-top: -9px;
-  border-radius: 50%;
-  background: var(--accent-bright);
-  border: 2px solid #1a0e06;
-  box-shadow: 0 0 0 2px rgba(232, 117, 42, 0.25);
-  cursor: grab;
-}
-
-.height-slider-block input[type="range"]::-moz-range-track {
-  height: 6px;
-  border-radius: 999px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-}
-
-.height-slider-block input[type="range"]::-moz-range-thumb {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--accent-bright);
-  border: 2px solid #1a0e06;
-  cursor: grab;
-}
-
-.height-slider-scale {
-  display: flex;
-  justify-content: space-between;
+.stepper-range-hint {
+  flex-shrink: 0;
   font-size: 0.62rem;
   color: var(--text-muted);
-  font-family: var(--font-mono);
-  padding: 0 0.15rem;
+}
+
+.env-stepper-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.env-stepper-row .stepper {
+  flex: 1 1 auto;
+}
+
+.env-value {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
 }
 
 .height-presets {
@@ -1800,7 +1856,8 @@ body::before {
     font-size: 0.7rem;
   }
 
-  .hero-defaults-head {
+  .hero-defaults-head,
+  .hero-simulation-head {
     margin-bottom: var(--space-1);
   }
 
@@ -1809,6 +1866,7 @@ body::before {
     gap: var(--space-1);
   }
 
+  .stepper-hero .stepper-value,
   .height-readout-value {
     font-size: 1.5rem;
   }
