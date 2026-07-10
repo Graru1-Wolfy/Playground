@@ -71,6 +71,7 @@ function syncHeightControls(height: number): void {
 
   input.value = String(height);
   display.textContent = String(height);
+  slider.setAttribute("aria-valuenow", String(height));
 
   const sliderMax = Number(slider.max);
   if (height <= sliderMax) {
@@ -79,7 +80,7 @@ function syncHeightControls(height: number): void {
     slider.value = String(sliderMax);
   }
 
-  for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
+  for (const chip of document.querySelectorAll<HTMLButtonElement>(".height-preset[data-height]")) {
     chip.classList.toggle("chip-active", Number(chip.dataset.height) === height);
   }
 }
@@ -410,9 +411,11 @@ export function initApp(): void {
     onInput: (height) => {
       heightInput.value = String(height);
       el<HTMLSpanElement>("height-display").textContent = String(height);
+      heightSlider.setAttribute("aria-valuenow", String(height));
     },
     onSnap: (height) => {
       heightInput.value = String(height);
+      heightSlider.setAttribute("aria-valuenow", String(height));
       debouncedPreview();
     },
   });
@@ -430,7 +433,7 @@ export function initApp(): void {
     },
   });
 
-  for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
+  for (const chip of document.querySelectorAll<HTMLButtonElement>(".height-preset[data-height]")) {
     chip.addEventListener("click", () => {
       heightInput.value = chip.dataset.height ?? "64";
       updateComputeGuard();

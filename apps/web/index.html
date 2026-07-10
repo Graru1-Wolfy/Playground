@@ -51,17 +51,19 @@
         </header>
 
         <section class="panel panel-hero" aria-labelledby="height-heading">
-          <div class="hero-top">
-            <h2 id="height-heading">Target height</h2>
-            <div class="height-readout" aria-live="polite">
-              <span class="height-readout-value" id="height-display">64</span>
-              <span class="height-readout-unit">ft</span>
+          <div class="height-panel safe-sub">
+            <div class="height-panel-head">
+              <div class="height-panel-title">
+                <h2 id="height-heading">Target height</h2>
+                <p id="height-note" class="hint height-note"></p>
+              </div>
+              <div class="height-readout" aria-live="polite">
+                <span class="height-readout-value" id="height-display">64</span>
+                <span class="height-readout-unit">ft</span>
+              </div>
             </div>
-            <p id="height-note" class="hint hero-hint"></p>
-          </div>
 
-          <div class="hero-controls safe-sub">
-            <div class="slider-lane slider-lane-grow">
+            <div class="height-slider-block">
               <input
                 id="height-slider"
                 type="range"
@@ -70,31 +72,38 @@
                 step="1"
                 value="64"
                 aria-label="Height slider"
+                aria-valuemin="0"
+                aria-valuemax="99"
+                aria-valuenow="64"
               />
-              <div class="slider-scale" aria-hidden="true">
+              <div class="height-slider-scale" aria-hidden="true">
                 <span>0</span>
                 <span>99</span>
               </div>
             </div>
-            <div class="input-wrap" data-state="idle">
-              <input id="height-input" type="number" min="0" step="1" value="64" inputmode="numeric" aria-label="Height in feet" aria-describedby="height-validation" />
-              <span class="input-suffix">ft</span>
-            </div>
-            <button id="compute-btn" type="button" class="btn btn-primary btn-compact btn-compute" disabled aria-describedby="height-validation">
-              <svg class="icon btn-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M4 4h8v8H4V4z" stroke="currentColor" stroke-width="1.5" fill="none" />
-                <path d="M7 7l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              Compute
-            </button>
-            <p id="height-validation" class="input-validation hint" role="alert" aria-live="polite"></p>
+
             <div class="height-presets" role="group" aria-label="Quick height presets">
-              <button type="button" class="chip" data-height="96">96</button>
-              <button type="button" class="chip" data-height="80">80</button>
-              <button type="button" class="chip chip-active" data-height="64">64</button>
-              <button type="button" class="chip" data-height="48">48</button>
-              <button type="button" class="chip" data-height="32">32</button>
+              <button type="button" class="chip height-preset" data-height="96">96</button>
+              <button type="button" class="chip height-preset" data-height="80">80</button>
+              <button type="button" class="chip height-preset chip-active" data-height="64">64</button>
+              <button type="button" class="chip height-preset" data-height="48">48</button>
+              <button type="button" class="chip height-preset" data-height="32">32</button>
             </div>
+
+            <div class="height-action-row">
+              <div class="input-wrap" data-state="idle">
+                <input id="height-input" type="number" min="0" step="1" value="64" inputmode="numeric" aria-label="Height in feet" aria-describedby="height-validation" />
+                <span class="input-suffix">ft</span>
+              </div>
+              <button id="compute-btn" type="button" class="btn btn-primary btn-compact btn-compute" disabled aria-describedby="height-validation">
+                <svg class="icon btn-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M4 4h8v8H4V4z" stroke="currentColor" stroke-width="1.5" fill="none" />
+                  <path d="M7 7l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                Compute
+              </button>
+            </div>
+            <p id="height-validation" class="input-validation hint" role="alert" aria-live="polite"></p>
           </div>
 
           <div class="env-dropdowns safe-sub">
