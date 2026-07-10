@@ -33,7 +33,7 @@ export interface SetupCardOptions {
 
 export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions): string {
   const launcher = launcherName(setup.launcher, setup.num_rockets);
-  const launcherClass = LAUNCHER_COLORS[launcher] ?? "launcher-any";
+  const pillClass = launcherClass(setup.launcher, setup.num_rockets);
   const rockets = setup.num_rockets;
   const speeds = setup.speeds.filter((s) => Number.isFinite(s)).sort((a, b) => b - a);
   const speedMarkup =
@@ -63,8 +63,8 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
       tabindex="0"
       aria-label="Setup rank ${options.rank}, ${escapeHtml(launcher)}, score ${Math.round(options.score)}"
     >
-      <span class="setup-rank" aria-label="Rank ${options.rank}">#${options.rank}</span>
-      <span class="launcher-pill ${launcherClass}">${escapeHtml(launcher)}</span>
+      <span class="setup-rank" data-rank="${options.rank}" aria-label="Rank ${options.rank}">#${options.rank}</span>
+      <span class="launcher-pill ${pillClass}">${escapeHtml(launcher)}</span>
       <span class="setup-rockets">${rockets}r</span>
       <div class="setup-meta-wrap">${metaParts.join("")}</div>
       <div class="setup-score-wrap">
@@ -72,6 +72,9 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
         <div class="score-bar" role="presentation"><div class="score-bar-fill" style="width: ${scorePct}%"></div></div>
       </div>
       <span class="setup-id mono" title="${escapeHtml(idStr)}">${escapeHtml(idStr.slice(0, 8))}…</span>
+      <span class="setup-card-chevron" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
       <button type="button" class="btn btn-ghost btn-sm copy-id-btn" data-copy="${escapeHtml(idStr)}" aria-label="Copy setup ID">⧉</button>
     </article>`;
 }
