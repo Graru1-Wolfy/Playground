@@ -17,6 +17,7 @@
     "android:url": "bash scripts/android-dev-url.sh",
     "preview:web": "npm run preview:host -w @playground/web",
     "build:android": "bash scripts/build-android-apk.sh",
+    "package:api": "bash scripts/package-api-release.sh",
     "android:icons": "node scripts/generate-app-icon.mjs",
     "screenshots:web": "node scripts/capture-web-screenshots.mjs",
     "test": "npm run test -w @playground/engine-fast && npm run test -w @playground/schema && npm run test -w @playground/api"

@@ -28,7 +28,7 @@ if [ "${VARIANT}" = "debug" ]; then
 else
   npm run android:apk:release -w @playground/web
   APK="${ROOT}/apps/web/android/app/build/outputs/apk/release/app-release.apk"
-  OUT="/opt/cursor/artifacts/bounce-check-v1.0.1.apk"
+  OUT="/opt/cursor/artifacts/bounce-check-v1.0.2.apk"
 fi
 
 if [ -f "${APK}" ]; then

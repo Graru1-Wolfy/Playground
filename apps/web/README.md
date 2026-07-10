@@ -47,7 +47,12 @@ bash scripts/build-android-apk.sh debug
 ```
 
 **Download:** [Latest GitHub Release APK](https://github.com/Graru1-Wolfy/Playground/releases/latest)  
-Direct: [bounce-check-v1.0.1.apk](https://github.com/Graru1-Wolfy/Playground/releases/download/bounce-check-v1.0.1/bounce-check-v1.0.1.apk)
+Direct: [bounce-check-v1.0.2.apk](https://github.com/Graru1-Wolfy/Playground/releases/download/bounce-check-v1.0.2/bounce-check-v1.0.2.apk)
+
+### API server download
+
+**Download:** [bounce-api-v0.6.0.tar.gz](https://github.com/Graru1-Wolfy/Playground/releases/download/bounce-api-v0.6.0/bounce-api-v0.6.0.tar.gz)  
+Run locally: `npm run dev:api` or see `apps/api/README.md`
 
 Output: `apps/web/android/app/build/outputs/apk/release/app-release.apk`
 

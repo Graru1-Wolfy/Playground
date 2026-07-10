@@ -12,6 +12,7 @@ __pycache__/
 node_modules/
 dist/
 apps/web/dist/
+dist-release/
 apps/web/android/.gradle/
 apps/web/android/app/build/
 apps/web/android/build/
