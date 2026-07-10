@@ -1,0 +1,34 @@
+name: API
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/engine-fast/**"
+      - "packages/schema/**"
+      - ".github/workflows/api.yml"
+  pull_request:
+    paths:
+      - "apps/api/**"
+      - "packages/engine-fast/**"
+      - "packages/schema/**"
+      - ".github/workflows/api.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install and test API
+        run: |
+          npm ci
+          npm run build:packages
+          npm run build:api
+          npm run test -w @playground/api

@@ -2,13 +2,16 @@
   "name": "playground",
   "private": true,
   "workspaces": [
+    "apps/api",
     "apps/web",
     "packages/engine-fast",
     "packages/schema"
   ],
   "scripts": {
     "build:packages": "npm run build -w @playground/engine-fast && npm run build -w @playground/schema",
+    "build:api": "npm run build -w @playground/api",
     "build:web": "npm run build -w @playground/web",
+    "dev:api": "npm run dev -w @playground/api",
     "dev:web": "npm run dev -w @playground/web",
     "dev:web:android": "npm run dev:host -w @playground/web",
     "android:url": "bash scripts/android-dev-url.sh",
@@ -16,7 +19,7 @@
     "build:android": "bash scripts/build-android-apk.sh",
     "android:icons": "node scripts/generate-app-icon.mjs",
     "screenshots:web": "node scripts/capture-web-screenshots.mjs",
-    "test": "npm run test -w @playground/engine-fast && npm run test -w @playground/schema"
+    "test": "npm run test -w @playground/engine-fast && npm run test -w @playground/schema && npm run test -w @playground/api"
   },
   "devDependencies": {
     "puppeteer": "^25.3.0"
