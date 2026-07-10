@@ -1,4 +1,5 @@
 import type { DecodedSetup } from "@playground/schema";
+import { getSetupTags } from "@playground/schema";
 import { escapeHtml } from "./ui.js";
 
 const LAUNCHERS = ["Stock", "Original", "Mangler"] as const;
@@ -13,17 +14,6 @@ const LAUNCHER_COLORS: Record<string, string> = {
 export function launcherName(code: number, numRockets: number): string {
   if (numRockets === 0) return "Any";
   return LAUNCHERS[code] ?? `Launcher ${code}`;
-}
-
-function flagSummary(flag: number): { label: string; tone: string }[] {
-  const tags: { label: string; tone: string }[] = [];
-  if (flag & 1) tags.push({ label: "bounce", tone: "tag-bounce" });
-  if (flag & 2) tags.push({ label: "auto", tone: "tag-auto" });
-  if (flag & 4) tags.push({ label: "full-auto↓", tone: "tag-fullauto" });
-  if (flag & 8) tags.push({ label: "stand-auto", tone: "tag-stand" });
-  if (flag & 16) tags.push({ label: "sync", tone: "tag-sync" });
-  if (flag & 32) tags.push({ label: "sync-auto", tone: "tag-sync" });
-  return tags;
 }
 
 function renderTags(tags: { label: string; tone: string }[]): string {
@@ -42,13 +32,13 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
   const launcherClass = LAUNCHER_COLORS[launcher] ?? "launcher-any";
   const rockets = setup.num_rockets;
   const speeds = setup.speeds.filter((s) => Number.isFinite(s)).map((s) => `${s.toFixed(0)}`);
-  const allTags = [...flagSummary(setup.bounce_flag), ...flagSummary(setup.standing_bounce_flag)];
+  const tags = getSetupTags(setup);
   const scorePct = options.maxScore > 0 ? Math.round((options.score / options.maxScore) * 100) : 0;
   const idStr = setup.ID.toString();
 
   const metaParts = [
     speeds.length ? `<span class="setup-meta mono">${speeds.join("/")} u/s</span>` : "",
-    allTags.length ? `<span class="setup-tags">${renderTags(allTags)}</span>` : "",
+    tags.length ? `<span class="setup-tags">${renderTags(tags)}</span>` : "",
   ].filter(Boolean);
 
   return `
@@ -75,14 +65,12 @@ export function setupMatchesFilter(setup: DecodedSetup, query: string): boolean 
   if (!query.trim()) return true;
   const q = query.trim().toLowerCase();
   const launcher = launcherName(setup.launcher, setup.num_rockets).toLowerCase();
-  const bounceTags = flagSummary(setup.bounce_flag).map((t) => t.label);
-  const standTags = flagSummary(setup.standing_bounce_flag).map((t) => t.label);
+  const tagLabels = getSetupTags(setup, 20).map((t) => t.label);
   const haystack = [
     launcher,
     String(setup.num_rockets),
     setup.ID.toString(),
-    ...bounceTags,
-    ...standTags,
+    ...tagLabels,
     ...setup.speeds.map((s) => String(Math.round(s))),
   ].join(" ");
   return haystack.toLowerCase().includes(q);

@@ -1,23 +1,15 @@
-import preferencesConfig from "./preferences.json";
-import type { DecodedSetup } from "@playground/schema";
+import {
+  preferencesConfig,
+  scoreSetup,
+  TRAJECTORY_FLAG_IDS,
+  type PreferenceWeights,
+} from "@playground/schema";
 
-export type PreferenceWeights = Record<string, number>;
-
-export interface PreferenceDefinition {
-  id: string;
-  label: string;
-  defaultWeight: number;
-  description: string;
-}
+export type { PreferenceWeights };
+export type PreferenceDefinition = (typeof preferencesConfig.groups)[number]["preferences"][number];
 
 /** Continuous scoring factors — keep range sliders. */
-export const SLIDER_PREFERENCE_IDS = new Set<string>([
-  "HEIGHT",
-  "DIST",
-  "SPEED",
-  "COMPACT",
-  "QUICK",
-]);
+export const SLIDER_PREFERENCE_IDS = TRAJECTORY_FLAG_IDS;
 
 const STORAGE_PREFIX = "bounce-pref-";
 
@@ -64,15 +56,4 @@ export function resetWeights(): void {
   }
 }
 
-export function scoreSetup(setup: DecodedSetup, weights: PreferenceWeights): number {
-  let score = 0;
-  for (const [key, weight] of Object.entries(weights)) {
-    const val = setup[key];
-    if (typeof val === "number") {
-      score += val * weight;
-    }
-  }
-  return score;
-}
-
-export { preferencesConfig };
+export { preferencesConfig, scoreSetup };

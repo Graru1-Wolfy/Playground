@@ -1545,17 +1545,33 @@ body::before {
   }
 
   .setup-card {
-    grid-template-columns: 1.5rem 1fr auto;
-    grid-template-rows: auto auto;
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+    grid-template-areas:
+      "rank launcher score"
+      "meta meta meta"
+      "copy copy copy";
+    gap: 0.25rem 0.4rem;
+  }
+
+  .setup-rank {
+    grid-area: rank;
+  }
+
+  .launcher-pill {
+    grid-area: launcher;
+  }
+
+  .setup-rockets {
+    display: none;
   }
 
   .setup-meta-wrap {
-    grid-column: 2 / -1;
+    grid-area: meta;
   }
 
   .setup-score-wrap {
-    grid-column: 3;
-    grid-row: 1;
+    grid-area: score;
+    justify-self: end;
   }
 
   .setup-id {
@@ -1563,8 +1579,8 @@ body::before {
   }
 
   .copy-id-btn {
-    grid-column: 3;
-    grid-row: 2;
+    grid-area: copy;
+    justify-self: end;
   }
 
   .panel-head-split {

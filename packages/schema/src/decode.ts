@@ -51,7 +51,7 @@ export const FLAG_NAMES = [
 
 export type SetupFlag = (typeof FLAG_NAMES)[number];
 
-export interface DecodedSetup {
+export interface DecodedSetupCore {
   ID: bigint;
   launcher: number;
   start_moving: number;
@@ -66,8 +66,9 @@ export interface DecodedSetup {
   rocket_fired_crouched_flag: number;
   rocket_hit_crouched_flag: number;
   speeds: number[];
-  [key: string]: number | bigint | number[] | undefined;
 }
+
+export type DecodedSetup = DecodedSetupCore & Partial<Record<SetupFlag, number>>;
 
 export function decodeSetup(view: DataView, offset: number): DecodedSetup {
   let cursor = offset;
@@ -122,4 +123,13 @@ export function decodeSetupFile(buffer: ArrayBuffer): DecodedSetup[] {
     setups.push(decodeSetup(view, offset));
   }
   return setups;
+}
+
+/** Decode from Node Buffer / Uint8Array without accidental pool offset bugs. */
+export function decodeSetupBytes(data: Uint8Array | ArrayBuffer): DecodedSetup[] {
+  if (data instanceof ArrayBuffer) {
+    return decodeSetupFile(data);
+  }
+  const slice = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength);
+  return decodeSetupFile(slice as ArrayBuffer);
 }

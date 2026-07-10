@@ -63,13 +63,13 @@
         },
         {
           "id": "NOMOVEMENTBIND",
-          "label": "No movement bind required",
+          "label": "No movement bind",
           "defaultWeight": 0,
           "description": "WASD-only movement."
         },
         {
           "id": "NOACTIONBIND",
-          "label": "No action bind required",
+          "label": "No action bind",
           "defaultWeight": 0,
           "description": "Jump or fire only."
         }
@@ -127,7 +127,7 @@
         },
         {
           "id": "FASSTANDBOUNCE",
-          "label": "Auto synced standing bounce",
+          "label": "Fully auto synced standing bounce",
           "defaultWeight": 0,
           "description": "Fully auto synced standing bounce."
         }
@@ -226,13 +226,13 @@
         },
         {
           "id": "NOMOVING",
-          "label": "Non-moving starts",
+          "label": "Non-moving start",
           "defaultWeight": 0,
           "description": "No movement keys."
         },
         {
           "id": "DIAGONAL",
-          "label": "Diagonal movement",
+          "label": "Diagonal",
           "defaultWeight": 0,
           "description": "Diagonal movement."
         },
@@ -261,19 +261,19 @@
         },
         {
           "id": "ZEROROCKET",
-          "label": "0 rocket setup",
+          "label": "0 rocket",
           "defaultWeight": 0,
           "description": "No rockets in initial action."
         },
         {
           "id": "ONEROCKET",
-          "label": "1 rocket setup",
+          "label": "1 rocket",
           "defaultWeight": 0,
           "description": "Exactly 1 rocket."
         },
         {
           "id": "TWOTHREEROCKETS",
-          "label": "2-3 rocket setup",
+          "label": "2–3 rockets",
           "defaultWeight": 0,
           "description": "2 or 3 rockets."
         },
@@ -291,19 +291,19 @@
         },
         {
           "id": "CTAP_JDS",
-          "label": "Ctap jump duck shoot",
+          "label": "CTAP JDS",
           "defaultWeight": 0,
           "description": "CTAP JDS start."
         },
         {
           "id": "ONETICK",
-          "label": "Shoot 1 tick early",
+          "label": "1 tick early",
           "defaultWeight": -1000,
           "description": "CTAP JDS 1 tick early."
         },
         {
           "id": "TWOTICK",
-          "label": "Shoot 2 ticks early",
+          "label": "2 ticks early",
           "defaultWeight": -1000,
           "description": "CTAP JDS 2 ticks early."
         }

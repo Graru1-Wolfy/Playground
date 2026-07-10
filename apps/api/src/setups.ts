@@ -2,7 +2,16 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
-import { decodeSetupFile, type DecodedSetup } from "@playground/schema";
+import {
+  decodeSetupBytes,
+  rankSetups,
+  serializeSetup,
+  type DecodedSetup,
+  type RankedSetup,
+  type SerializedSetup,
+  type SetupDataSource,
+} from "@playground/schema";
+import type { PreferenceWeights } from "@playground/schema";
 import { heightBucket } from "./height.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -10,7 +19,7 @@ const repoRoot = path.resolve(__dirname, "../../..");
 
 export interface SetupLoadResult {
   setups: DecodedSetup[];
-  source: "generated" | "sample" | "none";
+  source: SetupDataSource;
 }
 
 export interface ApiPaths {
@@ -38,11 +47,7 @@ async function readFileIfExists(filePath: string): Promise<Buffer | null> {
 }
 
 function decodeBuffer(buffer: Buffer): DecodedSetup[] {
-  const arrayBuffer = buffer.buffer.slice(
-    buffer.byteOffset,
-    buffer.byteOffset + buffer.byteLength,
-  ) as ArrayBuffer;
-  return decodeSetupFile(arrayBuffer);
+  return decodeSetupBytes(buffer);
 }
 
 export async function loadSetupsForHeight(
@@ -74,14 +79,20 @@ export async function loadSetupsForHeight(
   return { setups: [], source: "none" };
 }
 
-export function serializeSetup(setup: DecodedSetup): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(setup)) {
-    if (typeof value === "bigint") {
-      out[key] = value.toString();
-    } else {
-      out[key] = value;
-    }
-  }
-  return out;
+export function prepareSetupResults(
+  setups: DecodedSetup[],
+  options: {
+    ranked?: boolean;
+    limit?: number;
+    weights?: PreferenceWeights;
+  } = {},
+): { results: RankedSetup[] | SerializedSetup[]; ranked: boolean } {
+  const ranked = options.ranked !== false;
+  const list = ranked ? rankSetups(setups, options.weights) : setups.map(serializeSetup);
+  const limit = options.limit;
+  const slice =
+    limit !== undefined ? list.slice(0, Math.max(0, Math.floor(limit))) : list;
+  return { results: slice, ranked };
 }
+
+export { serializeSetup };
