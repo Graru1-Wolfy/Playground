@@ -88,23 +88,43 @@ export function bindStepper(options: StepperOptions): () => void {
     };
 
     let committedOnUp = false;
+    let startX = 0;
+    let startY = 0;
+    let moved = false;
 
-    const startRepeat = (): void => {
+    const startRepeat = (clientX: number, clientY: number): void => {
       if (btn.disabled) return;
       committedOnUp = false;
+      moved = false;
+      startX = clientX;
+      startY = clientY;
       stepOnce(false);
       repeatTimer = setTimeout(() => {
+        if (moved) return;
         repeatInterval = setInterval(() => stepOnce(false), REPEAT_INTERVAL_MS);
       }, REPEAT_DELAY_MS);
     };
 
     btn.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
-      event.preventDefault();
-      startRepeat();
+      startRepeat(event.clientX, event.clientY);
+    });
+
+    btn.addEventListener("pointermove", (event) => {
+      if (repeatTimer === null && repeatInterval === null) return;
+      const dx = Math.abs(event.clientX - startX);
+      const dy = Math.abs(event.clientY - startY);
+      if (dx > 8 || dy > 8) {
+        moved = true;
+        clearRepeat();
+      }
     });
 
     const stopRepeat = (): void => {
+      if (moved) {
+        clearRepeat();
+        return;
+      }
       if (repeatTimer !== null || repeatInterval !== null) {
         apply(read(), true);
         committedOnUp = true;
@@ -117,11 +137,12 @@ export function bindStepper(options: StepperOptions): () => void {
     btn.addEventListener("pointercancel", stopRepeat);
 
     btn.addEventListener("click", (event) => {
-      event.preventDefault();
       if (committedOnUp) {
         committedOnUp = false;
         return;
       }
+      if (moved) return;
+      event.preventDefault();
       stepOnce(true);
     });
   };

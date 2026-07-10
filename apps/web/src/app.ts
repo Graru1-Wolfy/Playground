@@ -473,7 +473,7 @@ export function initApp(): void {
     if (e.key === "Escape") closePrefs();
   });
 
-  bindDefaultsScrollRetract(el<HTMLElement>("top-stack"));
+  bindDefaultsScrollRetract(el<HTMLElement>("hero-results"));
 
   void runCompute();
 }

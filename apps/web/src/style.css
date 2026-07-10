@@ -798,6 +798,26 @@ body::before {
   border: 1px solid rgba(232, 117, 42, 0.18);
 }
 
+.hero-results {
+  margin: 0 calc(-1 * var(--space-3)) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: linear-gradient(160deg, var(--bg-raised) 0%, #1c1714 100%);
+  border: 1px solid rgba(232, 117, 42, 0.18);
+  border-radius: var(--radius-lg);
+  overflow-anchor: none;
+}
+
+.hero-results .hero-defaults,
+.hero-results .hero-simulation {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.hero-results .hero-defaults {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
 /* Nested regions inherit safe-area scroll padding for anchored content. */
 .safe-sub {
   scroll-margin-top: calc(var(--safe-top) + var(--space-3));
@@ -835,7 +855,7 @@ body::before {
     border-width 0.28s ease;
 }
 
-.top-stack.defaults-retracted .hero-retractable {
+.hero-results.results-retracted .hero-retractable {
   max-height: 0;
   opacity: 0;
   margin-top: 0;
@@ -948,7 +968,7 @@ body::before {
   color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  touch-action: manipulation;
+  touch-action: pan-y;
   user-select: none;
 }
 
