@@ -20,12 +20,13 @@ const sampleSetup: DecodedSetup = {
   STOCK: 128,
   BOUNCE: 64,
   SIMPLE: 65,
+  CONSIST: 200,
   HEIGHT: 80,
   SPEED: 55,
 };
 
 describe("formatSetupDetailHtml", () => {
-  it("includes summary, tags, trajectory, and engine fields", () => {
+  it("includes summary, steps, reliability, and script at the bottom", () => {
     const html = formatSetupDetailHtml(sampleSetup, { rank: 3, score: 842, maxScore: 900 });
 
     expect(html).toContain("#3");
@@ -37,11 +38,13 @@ describe("formatSetupDetailHtml", () => {
     expect(html).toContain("Height");
     expect(html).toContain("Setup ID");
     expect(html).toContain("123456789");
-    expect(html).toContain("Binds");
-    expect(html).toContain("Instructions");
+    expect(html).toContain("Execution steps");
+    expect(html).toContain("Config script");
+    expect(html).toContain("Consistency reliability");
     expect(html).toContain("alias +walk");
     expect(html).toContain("alias +strike");
     expect(html).toContain("Movement:");
-    expect(html).toContain("Copy binds");
+    expect(html).toContain("Copy script");
+    expect(html.indexOf("Execution steps")).toBeLessThan(html.indexOf("Config script"));
   });
 });

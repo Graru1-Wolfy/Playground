@@ -1682,6 +1682,59 @@ body::before {
   color: var(--text-secondary);
 }
 
+.launcher-default {
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+}
+
+.setup-card-default {
+  border-color: rgba(56, 189, 248, 0.18);
+  background-image: linear-gradient(135deg, rgba(56, 189, 248, 0.04), rgba(0, 0, 0, 0));
+}
+
+.setup-card-default:hover,
+.setup-card-default:focus-visible {
+  border-color: rgba(56, 189, 248, 0.42);
+}
+
+.setup-default-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.setup-default-steps {
+  display: block;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  margin-bottom: 0.2rem;
+}
+
+.setup-default-landings {
+  display: inline-flex;
+  gap: 0.2rem;
+  align-items: center;
+}
+
+.setup-default-kind {
+  color: var(--text-muted);
+  font-size: 0.64rem;
+}
+
+.setup-reliability-score {
+  color: #7dd3fc;
+}
+
+.score-bar-reliability .score-bar-fill,
+.score-bar-fill.score-bar-reliability {
+  background: linear-gradient(90deg, rgba(56, 189, 248, 0.55), rgba(125, 211, 252, 0.95));
+}
+
+.setup-reliability-bar {
+  max-width: 4.5rem;
+}
+
 .setup-rockets {
   color: var(--text-muted);
   font-size: 0.7rem;
@@ -2044,6 +2097,28 @@ body.setup-modal-open {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.18);
+}
+
+.setup-detail-section-script {
+  margin-top: var(--space-2);
+}
+
+.setup-detail-context {
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+.setup-detail-reliability-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.setup-detail-reliability-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .setup-detail-section-head {

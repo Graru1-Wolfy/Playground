@@ -3,7 +3,7 @@ import {
   LandType,
   type BounceInput,
 } from "@playground/engine-fast";
-import { DEFAULT_START_GUIDES, formatGuideBindBlock } from "@playground/schema";
+import { DEFAULT_START_GUIDES, formatGuideBindBlock, type DefaultStartGuide } from "@playground/schema";
 import { escapeHtml } from "./ui.js";
 
 const DEFAULT_TYPES: { label: string; bounce: BounceInput }[] = [
@@ -24,9 +24,32 @@ export interface DefaultCheckRow {
   jumpbug: number;
 }
 
+export interface DefaultReliability {
+  hits: number;
+  total: number;
+  percent: number;
+}
+
 export interface BounceCheckOptions {
   teleheight?: number;
   ceilingGap?: number | null;
+}
+
+export function defaultSetupId(label: string): string {
+  return `default:${label}`;
+}
+
+export function isDefaultSetupId(id: string): boolean {
+  return id.startsWith("default:");
+}
+
+export function computeDefaultReliability(row: DefaultCheckRow): DefaultReliability {
+  const hits = [row.uncrouched, row.crouched, row.jumpbug].filter((code) => code > 0).length;
+  return {
+    hits,
+    total: 3,
+    percent: Math.round((hits / 3) * 100),
+  };
 }
 
 export function runDefaultChecks(height: number, options: BounceCheckOptions = {}): DefaultCheckRow[] {
@@ -53,55 +76,132 @@ function bounceBadgeCompact(code: number, label: string): string {
   return `<span class="bounce-badge bounce-other" title="${title} — ${label}">${code}</span>`;
 }
 
-function renderStartCell(label: string): string {
-  const guide = GUIDE_BY_LABEL.get(label);
-  if (!guide) {
-    return `<span class="default-label">${escapeHtml(label)}</span>`;
-  }
-  const hint = escapeHtml(guide.instructions[0] ?? "");
-  return `<span class="default-label">${escapeHtml(label)}</span><span class="default-guide hint">${hint}</span>`;
+function landingOutcomeLabel(code: number): string {
+  if (code === 0) return "No bounce";
+  if (code === 1) return "Bounce";
+  if (code === 2) return "Double bounce";
+  return `Code ${code}`;
 }
 
-export function formatDefaultGrid(rows: DefaultCheckRow[]): string {
-  const head = `<thead><tr>
-    <th scope="col">Start</th>
-    <th scope="col"><span class="default-col-full">Uncrouched</span><span class="default-col-short">Unc</span></th>
-    <th scope="col"><span class="default-col-full">Crouched</span><span class="default-col-short">Cro</span></th>
-    <th scope="col"><span class="default-col-full">Jumpbug</span><span class="default-col-short">JB</span></th>
-  </tr></thead>`;
-  const body = rows
-    .map((row) => {
-      const hasBounce =
-        row.uncrouched > 0 || row.crouched > 0 || row.jumpbug > 0;
-      return `<tr class="${hasBounce ? "default-row-active" : ""}">
-        <th scope="row">${renderStartCell(row.label)}</th>
-        <td>${bounceBadgeCompact(row.uncrouched, "Uncrouched")}</td>
-        <td>${bounceBadgeCompact(row.crouched, "Crouched")}</td>
-        <td>${bounceBadgeCompact(row.jumpbug, "Jumpbug")}</td>
-      </tr>`;
-    })
-    .join("");
-
-  const guideBlocks = DEFAULT_START_GUIDES.map((guide) => {
-    const bindText = formatGuideBindBlock(guide);
-    const instructionList = guide.instructions.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
-    return `
-      <article class="default-guide-card">
-        <h3>${escapeHtml(guide.label)}</h3>
-        <pre class="setup-bind-block mono">${escapeHtml(bindText)}</pre>
-        <ol class="setup-instruction-list setup-instruction-list-compact">${instructionList}</ol>
-      </article>`;
-  }).join("");
+export function formatDefaultSetupCard(row: DefaultCheckRow, rank: number): string {
+  const reliability = computeDefaultReliability(row);
+  const guide = GUIDE_BY_LABEL.get(row.label);
+  const id = defaultSetupId(row.label);
+  const stepPreview = escapeHtml(guide?.instructions[0] ?? "Analytical DEFAULT start");
 
   return `
-    <table class="default-table"><caption class="sr-only">DEFAULT bounce results by start type and landing</caption>${head}<tbody>${body}</tbody></table>
-    <details class="default-binds-panel">
-      <summary>Start binds &amp; instructions</summary>
-      <div class="default-guide-grid">${guideBlocks}</div>
-    </details>`;
+    <article
+      class="setup-card setup-card-interactive setup-card-default"
+      data-setup-id="${escapeHtml(id)}"
+      role="button"
+      tabindex="0"
+      aria-label="DEFAULT ${escapeHtml(row.label)}, ${reliability.percent}% landing reliability"
+    >
+      <span class="setup-rank" data-rank="${rank}" aria-label="Rank ${rank}">#${rank}</span>
+      <span class="launcher-pill launcher-default">DEFAULT</span>
+      <span class="setup-rockets setup-default-label">${escapeHtml(row.label)}</span>
+      <div class="setup-meta-wrap">
+        <span class="setup-default-steps hint">${stepPreview}</span>
+        <span class="setup-default-landings" aria-label="Landing outcomes">
+          ${bounceBadgeCompact(row.uncrouched, "Uncrouched")}
+          ${bounceBadgeCompact(row.crouched, "Crouched")}
+          ${bounceBadgeCompact(row.jumpbug, "Jumpbug")}
+        </span>
+      </div>
+      <div class="setup-score-wrap">
+        <span class="setup-score mono setup-reliability-score">${reliability.percent}%</span>
+        <div class="score-bar setup-reliability-bar" role="presentation">
+          <div class="score-bar-fill score-bar-reliability" style="width: ${reliability.percent}%"></div>
+        </div>
+      </div>
+      <span class="setup-id mono setup-default-kind">Analytical</span>
+      <span class="setup-card-chevron" aria-hidden="true">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+    </article>`;
+}
+
+export interface DefaultDetailContext {
+  rank: number;
+  height: number;
+  teleheight: number;
+  ceilingGap: number | null;
+}
+
+export function formatDefaultDetailHtml(row: DefaultCheckRow, context: DefaultDetailContext): string {
+  const guide = GUIDE_BY_LABEL.get(row.label);
+  const reliability = computeDefaultReliability(row);
+  const bindText = guide ? formatGuideBindBlock(guide) : "";
+  const steps = guide?.instructions ?? [`Execute ${row.label} at height ${context.height}.`];
+
+  const landingRows = [
+    { label: "Uncrouched", code: row.uncrouched },
+    { label: "Crouched", code: row.crouched },
+    { label: "Jumpbug", code: row.jumpbug },
+  ];
+
+  const contextParts = [`Height ${context.height} ft`];
+  if (context.teleheight !== 1) contextParts.push(`tele ${context.teleheight}`);
+  if (context.ceilingGap !== null) contextParts.push(`ceiling ${context.ceilingGap} ft`);
+
+  const stepMarkup = steps.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
+  const landingMarkup = landingRows
+    .map(
+      (landing) => `
+      <div class="setup-detail-row">
+        <span class="setup-detail-label">${escapeHtml(landing.label)}</span>
+        <span class="setup-detail-value">${bounceBadgeCompact(landing.code, landing.label)} <span class="hint">${escapeHtml(landingOutcomeLabel(landing.code))}</span></span>
+      </div>`,
+    )
+    .join("");
+
+  return `
+    <div class="setup-detail-summary">
+      <div class="setup-detail-headline">
+        <span class="setup-detail-rank">#${context.rank}</span>
+        <span class="launcher-pill launcher-default">DEFAULT</span>
+        <span class="setup-detail-rockets">${escapeHtml(row.label)}</span>
+      </div>
+      <p class="hint setup-detail-context">${escapeHtml(contextParts.join(" · "))}</p>
+      <div class="setup-detail-reliability-block">
+        <span class="setup-detail-label">Landing reliability</span>
+        <div class="setup-detail-reliability-head">
+          <span class="setup-detail-score mono setup-reliability-score">${reliability.percent}%</span>
+          <span class="setup-detail-score-meta">${reliability.hits}/${reliability.total} landing types bounce</span>
+        </div>
+        <div class="score-bar setup-detail-score-bar" role="presentation">
+          <div class="score-bar-fill score-bar-reliability" style="width: ${reliability.percent}%"></div>
+        </div>
+      </div>
+    </div>
+    <section class="setup-detail-section setup-detail-section-prominent">
+      <h3>Execution steps</h3>
+      <ol class="setup-instruction-list">${stepMarkup}</ol>
+    </section>
+    <section class="setup-detail-section">
+      <h3>Landing outcomes</h3>
+      <div class="setup-detail-rows">${landingMarkup}</div>
+    </section>
+    <section class="setup-detail-section setup-detail-section-script setup-detail-section-prominent">
+      <div class="setup-detail-section-head">
+        <h3>Config script</h3>
+        <button type="button" class="btn btn-ghost btn-sm setup-copy-binds" data-copy-text="${escapeHtml(bindText)}">Copy script</button>
+      </div>
+      <pre class="setup-bind-block mono">${escapeHtml(bindText)}</pre>
+      <p class="hint setup-bind-hint">Example: <span class="mono">bind shift +walk</span> · <span class="mono">bind mouse1 +strike</span></p>
+    </section>`;
+}
+
+/** @deprecated Instant DEFAULT is merged into simulation setup list */
+export function formatDefaultGrid(_rows: DefaultCheckRow[]): string {
+  return "";
 }
 
 /** @deprecated Use formatDefaultGrid */
 export function formatDefaultTable(rows: DefaultCheckRow[]): string {
   return formatDefaultGrid(rows);
+}
+
+export function getDefaultGuide(label: string): DefaultStartGuide | undefined {
+  return GUIDE_BY_LABEL.get(label);
 }

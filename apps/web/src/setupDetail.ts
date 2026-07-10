@@ -6,6 +6,8 @@ import {
   getSetupTags,
   preferencesConfig,
 } from "@playground/schema";
+import type { DefaultCheckRow, DefaultDetailContext } from "./defaultCheck.js";
+import { defaultSetupId, formatDefaultDetailHtml, isDefaultSetupId } from "./defaultCheck.js";
 import { launcherClass, launcherName } from "./formatSetup.js";
 import { copyToClipboard, el, escapeHtml } from "./ui.js";
 
@@ -14,6 +16,10 @@ export interface SetupDetailContext {
   score: number;
   maxScore: number;
 }
+
+export type SetupLookupEntry =
+  | { kind: "sim"; setup: DecodedSetup; context: SetupDetailContext }
+  | { kind: "default"; row: DefaultCheckRow; context: DefaultDetailContext };
 
 interface DetailRow {
   label: string;
@@ -24,6 +30,12 @@ interface DetailSection {
   title: string;
   rows: DetailRow[];
   tags: { label: string; tone: string }[];
+}
+
+function setupReliabilityPercent(setup: DecodedSetup): number | null {
+  const consist = setup.CONSIST;
+  if (consist === undefined || consist < 0) return null;
+  return Math.round((consist / 255) * 100);
 }
 
 function renderTags(tags: { label: string; tone: string }[]): string {
@@ -108,6 +120,20 @@ function engineSection(setup: DecodedSetup): DetailSection {
   };
 }
 
+function renderReliabilityBlock(percent: number, meta: string): string {
+  return `
+    <div class="setup-detail-reliability-block">
+      <span class="setup-detail-label">Consistency reliability</span>
+      <div class="setup-detail-reliability-head">
+        <span class="setup-detail-score mono setup-reliability-score">${percent}%</span>
+        <span class="setup-detail-score-meta">${escapeHtml(meta)}</span>
+      </div>
+      <div class="score-bar setup-detail-score-bar" role="presentation">
+        <div class="score-bar-fill score-bar-reliability" style="width: ${percent}%"></div>
+      </div>
+    </div>`;
+}
+
 export function formatSetupDetailHtml(setup: DecodedSetup, context: SetupDetailContext): string {
   const launcher = launcherName(setup.launcher, setup.num_rockets);
   const pillClass = launcherClass(setup.launcher, setup.num_rockets);
@@ -127,6 +153,7 @@ export function formatSetupDetailHtml(setup: DecodedSetup, context: SetupDetailC
   const sections = [...preferenceSections(setup), engineSection(setup)];
   const binds = generateSetupBinds(setup);
   const instructions = generateSetupInstructions(setup);
+  const reliability = setupReliabilityPercent(setup);
 
   const bindBlock = formatBindBlock(binds);
   const instructionMarkup = instructions
@@ -144,6 +171,11 @@ export function formatSetupDetailHtml(setup: DecodedSetup, context: SetupDetailC
     })
     .join("");
 
+  const reliabilityMarkup =
+    reliability !== null
+      ? renderReliabilityBlock(reliability, `CONSIST ${setup.CONSIST ?? 0}/255`)
+      : "";
+
   return `
     <div class="setup-detail-summary">
       <div class="setup-detail-headline">
@@ -158,37 +190,31 @@ export function formatSetupDetailHtml(setup: DecodedSetup, context: SetupDetailC
           <div class="score-bar-fill" style="width: ${scorePct}%"></div>
         </div>
       </div>
+      ${reliabilityMarkup}
       <div class="setup-detail-speeds">
         <span class="setup-detail-label">Speeds</span>
         <span class="setup-meta mono setup-speeds">${speedMarkup}</span>
       </div>
     </div>
     <section class="setup-detail-section setup-detail-section-prominent">
+      <h3>Execution steps</h3>
+      <ol class="setup-instruction-list">${instructionMarkup}</ol>
+    </section>
+    ${sectionMarkup}
+    <section class="setup-detail-section setup-detail-section-script setup-detail-section-prominent">
       <div class="setup-detail-section-head">
-        <h3>Binds</h3>
-        <button type="button" class="btn btn-ghost btn-sm setup-copy-binds" data-copy-text="${escapeHtml(bindBlock)}">Copy binds</button>
+        <h3>Config script</h3>
+        <button type="button" class="btn btn-ghost btn-sm setup-copy-binds" data-copy-text="${escapeHtml(bindBlock)}">Copy script</button>
       </div>
       <pre class="setup-bind-block mono">${escapeHtml(bindBlock)}</pre>
       <p class="hint setup-bind-hint">Example: <span class="mono">bind shift +walk</span> · <span class="mono">bind mouse1 +strike</span></p>
-    </section>
-    <section class="setup-detail-section setup-detail-section-prominent">
-      <h3>Instructions</h3>
-      <ol class="setup-instruction-list">${instructionMarkup}</ol>
-    </section>
-    ${sectionMarkup}`;
+    </section>`;
 }
 
 let openSetupId: string | null = null;
 
-export function openSetupDetail(setup: DecodedSetup, context: SetupDetailContext): void {
-  const modal = el<HTMLElement>("setup-modal");
-  const body = el<HTMLDivElement>("setup-modal-body");
-  const title = el<HTMLHeadingElement>("setup-modal-title");
-
-  openSetupId = setup.ID.toString();
-  title.textContent = `Setup #${context.rank}`;
-  body.innerHTML = formatSetupDetailHtml(setup, context);
-  for (const btn of body.querySelectorAll<HTMLButtonElement>(".setup-copy-binds")) {
+function bindCopyScriptButtons(container: HTMLElement): void {
+  for (const btn of container.querySelectorAll<HTMLButtonElement>(".setup-copy-binds")) {
     btn.addEventListener("click", async (event) => {
       event.stopPropagation();
       const text = btn.dataset.copyText ?? "";
@@ -200,6 +226,27 @@ export function openSetupDetail(setup: DecodedSetup, context: SetupDetailContext
       }, 1500);
     });
   }
+}
+
+export function openSetupDetail(entry: SetupLookupEntry): void {
+  const modal = el<HTMLElement>("setup-modal");
+  const body = el<HTMLDivElement>("setup-modal-body");
+  const title = el<HTMLHeadingElement>("setup-modal-title");
+  const copyBtn = el<HTMLButtonElement>("setup-modal-copy");
+
+  if (entry.kind === "default") {
+    openSetupId = defaultSetupId(entry.row.label);
+    title.textContent = `${entry.row.label} (DEFAULT)`;
+    body.innerHTML = formatDefaultDetailHtml(entry.row, entry.context);
+    copyBtn.classList.add("hidden");
+  } else {
+    openSetupId = entry.setup.ID.toString();
+    title.textContent = `Setup #${entry.context.rank}`;
+    body.innerHTML = formatSetupDetailHtml(entry.setup, entry.context);
+    copyBtn.classList.remove("hidden");
+  }
+
+  bindCopyScriptButtons(body);
 
   modal.classList.add("open");
   modal.setAttribute("aria-hidden", "false");
@@ -220,7 +267,7 @@ export function bindSetupDetailModal(): void {
   el<HTMLButtonElement>("setup-modal-close").addEventListener("click", closeSetupDetail);
   el<HTMLDivElement>("setup-modal-backdrop").addEventListener("click", closeSetupDetail);
   el<HTMLButtonElement>("setup-modal-copy").addEventListener("click", async () => {
-    if (!openSetupId) return;
+    if (!openSetupId || isDefaultSetupId(openSetupId)) return;
     const btn = el<HTMLButtonElement>("setup-modal-copy");
     const ok = await copyToClipboard(openSetupId);
     const original = btn.textContent;
@@ -239,7 +286,7 @@ export function bindSetupDetailModal(): void {
 
 export function bindSetupCards(
   container: HTMLElement,
-  lookup: Map<string, { setup: DecodedSetup; context: SetupDetailContext }>,
+  lookup: Map<string, SetupLookupEntry>,
 ): void {
   for (const card of container.querySelectorAll<HTMLElement>(".setup-card")) {
     const id = card.dataset.setupId;
@@ -247,7 +294,7 @@ export function bindSetupCards(
 
     const open = (): void => {
       const entry = lookup.get(id);
-      if (entry) openSetupDetail(entry.setup, entry.context);
+      if (entry) openSetupDetail(entry);
     };
 
     card.addEventListener("click", (event) => {

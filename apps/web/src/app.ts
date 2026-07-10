@@ -1,5 +1,11 @@
 import { bindBounceEnvControls, readBounceContextFromDom } from "./bounceEnvUi.js";
-import { formatDefaultGrid, runDefaultChecks } from "./defaultCheck.js";
+import {
+  formatDefaultSetupCard,
+  runDefaultChecks,
+  type DefaultCheckRow,
+  type DefaultDetailContext,
+  defaultSetupId,
+} from "./defaultCheck.js";
 import { formatSetupCard, setupMatchesFilter } from "./formatSetup.js";
 import { guardComputeInput } from "./inputGuard.js";
 import { loadSetupsWithSource } from "./lookup.js";
@@ -15,7 +21,7 @@ import {
   type PreferenceDefinition,
 } from "./preferences.js";
 import { bindSetupCards, bindSetupDetailModal } from "./setupDetail.js";
-import type { SetupDetailContext } from "./setupDetail.js";
+import type { SetupLookupEntry } from "./setupDetail.js";
 import { renderSurfaceDiagram } from "./surfaceDiagram.js";
 import { formatSlopeWallGrid, runSlopeWallChecks } from "./slopeWallCheck.js";
 import { slopeWallSummary } from "./slopeWall.js";
@@ -26,11 +32,17 @@ import {
   TRAJECTORY_WEIGHT_STEP,
 } from "./sliderSnap.js";
 import { bindStepper, createStepperElement } from "./stepper.js";
-import { bindAnalyticalCollapse } from "./scrollChrome.js";
 
 import type { DecodedSetup } from "@playground/schema";
 
 let currentSetups: DecodedSetup[] = [];
+let currentDefaultRows: DefaultCheckRow[] = [];
+let defaultDetailContext: DefaultDetailContext = {
+  rank: 0,
+  height: 64,
+  teleheight: 1,
+  ceilingGap: null,
+};
 let setupDataSource: "generated" | "sample" | "none" = "none";
 let maxDisplayed = 20;
 let filterQuery = "";
@@ -215,10 +227,21 @@ async function rerankAndDisplay(): Promise<void> {
 
   const limit = maxDisplayed;
   const slice = scored.slice(0, limit);
+  const defaultCount = currentDefaultRows.length;
+  const showDefaults = !filterQuery.trim();
+
+  if (showDefaults) {
+    currentDefaultRows.forEach((row, index) => {
+      const li = document.createElement("li");
+      li.innerHTML = formatDefaultSetupCard(row, index + 1);
+      list.appendChild(li);
+    });
+  }
+
   slice.forEach((item, index) => {
     const li = document.createElement("li");
     li.innerHTML = formatSetupCard(item.setup, {
-      rank: index + 1,
+      rank: defaultCount + index + 1,
       score: item.score,
       maxScore,
     });
@@ -226,13 +249,15 @@ async function rerankAndDisplay(): Promise<void> {
   });
 
   bindCopyButtons(list);
-  bindSetupCards(list, buildSetupLookup(slice));
+  bindSetupCards(list, buildSetupLookup(slice, showDefaults ? currentDefaultRows : []));
 
   const status = el<HTMLParagraphElement>("setup-status");
   const total = currentSetups.length;
   const filtered = scored.length;
+  const shownSim = Math.min(limit, filtered);
+  const shownDefaults = showDefaults ? defaultCount : 0;
 
-  if (total === 0) {
+  if (total === 0 && shownDefaults === 0) {
     status.textContent = "No simulation data for this height";
     showElement(el<HTMLDivElement>("setup-empty"), true);
     showElement(el<HTMLDivElement>("setup-loading"), false);
@@ -243,20 +268,35 @@ async function rerankAndDisplay(): Promise<void> {
     const filterNote = filterQuery.trim() ? ` · ${filtered} match` : "";
     const sourceNote =
       setupDataSource === "sample" ? " · sample data" : setupDataSource === "generated" ? "" : "";
-    status.textContent = `${Math.min(limit, filtered)}/${filtered}${filterNote} · ${total} setups${sourceNote}`;
+    const defaultNote = shownDefaults > 0 ? `${shownDefaults} DEFAULT · ` : "";
+    status.textContent = `${defaultNote}${shownSim}/${filtered}${filterNote} · ${total} simulation setups${sourceNote}`;
   }
 }
 
 function buildSetupLookup(
   slice: { setup: DecodedSetup; score: number }[],
-): Map<string, { setup: DecodedSetup; context: SetupDetailContext }> {
+  defaultRows: DefaultCheckRow[],
+): Map<string, SetupLookupEntry> {
   const maxScore = slice.length > 0 ? slice[0]!.score : 1;
-  const lookup = new Map<string, { setup: DecodedSetup; context: SetupDetailContext }>();
+  const lookup = new Map<string, SetupLookupEntry>();
+
+  defaultRows.forEach((row, index) => {
+    lookup.set(defaultSetupId(row.label), {
+      kind: "default",
+      row,
+      context: {
+        ...defaultDetailContext,
+        rank: index + 1,
+      },
+    });
+  });
+
   slice.forEach((item, index) => {
     lookup.set(item.setup.ID.toString(), {
+      kind: "sim",
       setup: item.setup,
       context: {
-        rank: index + 1,
+        rank: defaultRows.length + index + 1,
         score: item.score,
         maxScore,
       },
@@ -300,7 +340,7 @@ function renderSlopeWallChecks(height: number, ctx = readBounceContextFromDom())
   diagram.innerHTML = renderSurfaceDiagram(input);
 
   if (slopeDeg <= 0 && !hasWall) {
-    note.textContent = "Flat ground — use Instant DEFAULT";
+    note.textContent = "Flat ground — open DEFAULT starts in the setup list";
     results.innerHTML = `<p class="hint slope-wall-empty">Set ground slope or enable wall for angled bounce intervals.</p>`;
     return;
   }
@@ -344,16 +384,16 @@ async function runCompute(): Promise<void> {
       ? `Terminal velocity remap: ${raw} → ${height}${envNote}`
       : `Lookup height: ${height} · bucket ${Math.floor(height / 100) * 100}–${Math.floor(height / 100) * 100 + 99}${envNote}`;
 
-  const defaultContext = el<HTMLParagraphElement>("default-context");
-  const contextParts = [`Height ${height} ft`];
-  if (ctx.teleheight !== 1) contextParts.push(`tele ${ctx.teleheight}`);
-  if (ctx.ceilingGap !== null) contextParts.push(`ceiling ${ctx.ceilingGap} ft`);
-  defaultContext.textContent = contextParts.join(" · ");
-
-  el<HTMLDivElement>("default-results").innerHTML = formatDefaultGrid(runDefaultChecks(height, {
+  currentDefaultRows = runDefaultChecks(height, {
     teleheight: ctx.teleheight,
     ceilingGap: ctx.ceilingGap,
-  }));
+  });
+  defaultDetailContext = {
+    rank: 0,
+    height,
+    teleheight: ctx.teleheight,
+    ceilingGap: ctx.ceilingGap,
+  };
 
   renderSlopeWallChecks(height, ctx);
 
@@ -498,8 +538,6 @@ export function initApp(): void {
       closePrefs();
     }
   });
-
-  bindAnalyticalCollapse(el<HTMLElement>("hero-analytical"));
 
   void runCompute();
 }
