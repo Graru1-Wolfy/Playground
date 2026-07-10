@@ -16,6 +16,10 @@ export function launcherName(code: number, numRockets: number): string {
   return LAUNCHERS[code] ?? `Launcher ${code}`;
 }
 
+export function launcherClass(code: number, numRockets: number): string {
+  return LAUNCHER_COLORS[launcherName(code, numRockets)] ?? "launcher-any";
+}
+
 function renderTags(tags: { label: string; tone: string }[]): string {
   if (!tags.length) return "";
   return tags.map((t) => `<span class="tag ${t.tone}">${escapeHtml(t.label)}</span>`).join("");
@@ -52,7 +56,13 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
   ].filter(Boolean);
 
   return `
-    <article class="setup-card" data-setup-id="${escapeHtml(idStr)}">
+    <article
+      class="setup-card setup-card-interactive"
+      data-setup-id="${escapeHtml(idStr)}"
+      role="button"
+      tabindex="0"
+      aria-label="Setup rank ${options.rank}, ${escapeHtml(launcher)}, score ${Math.round(options.score)}"
+    >
       <span class="setup-rank" aria-label="Rank ${options.rank}">#${options.rank}</span>
       <span class="launcher-pill ${launcherClass}">${escapeHtml(launcher)}</span>
       <span class="setup-rockets">${rockets}r</span>

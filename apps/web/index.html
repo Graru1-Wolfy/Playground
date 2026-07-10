@@ -324,6 +324,24 @@
         </div>
       </aside>
 
+      <div id="setup-modal" class="setup-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="setup-modal-title">
+        <div class="setup-modal-backdrop" id="setup-modal-backdrop" tabindex="-1"></div>
+        <div class="setup-modal-panel">
+          <header class="setup-modal-header">
+            <h2 id="setup-modal-title">Setup</h2>
+            <button type="button" class="btn btn-icon btn-compact" id="setup-modal-close" aria-label="Close setup details">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </button>
+          </header>
+          <div id="setup-modal-body" class="setup-modal-body"></div>
+          <footer class="setup-modal-footer">
+            <button type="button" class="btn btn-ghost btn-compact" id="setup-modal-copy">Copy setup ID</button>
+          </footer>
+        </div>
+      </div>
+
       <footer class="site-footer">
         <p>Heights 0–99 · remap &gt;8000 · <code>engine-sim</code></p>
       </footer>

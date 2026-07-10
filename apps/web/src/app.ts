@@ -14,6 +14,8 @@ import {
   weightFromToggle,
   type PreferenceDefinition,
 } from "./preferences.js";
+import { bindSetupCards, bindSetupDetailModal } from "./setupDetail.js";
+import type { SetupDetailContext } from "./setupDetail.js";
 import { renderSurfaceDiagram } from "./surfaceDiagram.js";
 import { formatSlopeWallGrid, runSlopeWallChecks } from "./slopeWallCheck.js";
 import { slopeWallSummary } from "./slopeWall.js";
@@ -224,6 +226,7 @@ async function rerankAndDisplay(): Promise<void> {
   });
 
   bindCopyButtons(list);
+  bindSetupCards(list, buildSetupLookup(slice));
 
   const status = el<HTMLParagraphElement>("setup-status");
   const total = currentSetups.length;
@@ -242,6 +245,24 @@ async function rerankAndDisplay(): Promise<void> {
       setupDataSource === "sample" ? " · sample data" : setupDataSource === "generated" ? "" : "";
     status.textContent = `${Math.min(limit, filtered)}/${filtered}${filterNote} · ${total} setups${sourceNote}`;
   }
+}
+
+function buildSetupLookup(
+  slice: { setup: DecodedSetup; score: number }[],
+): Map<string, { setup: DecodedSetup; context: SetupDetailContext }> {
+  const maxScore = slice.length > 0 ? slice[0]!.score : 1;
+  const lookup = new Map<string, { setup: DecodedSetup; context: SetupDetailContext }>();
+  slice.forEach((item, index) => {
+    lookup.set(item.setup.ID.toString(), {
+      setup: item.setup,
+      context: {
+        rank: index + 1,
+        score: item.score,
+        maxScore,
+      },
+    });
+  });
+  return lookup;
 }
 
 function bindCopyButtons(container: HTMLElement): void {
@@ -465,12 +486,17 @@ export function initApp(): void {
     void rerankAndDisplay();
   });
 
+  bindSetupDetailModal();
+
   el<HTMLButtonElement>("prefs-toggle").addEventListener("click", openPrefs);
   el<HTMLButtonElement>("prefs-close").addEventListener("click", closePrefs);
   el<HTMLDivElement>("prefs-backdrop").addEventListener("click", closePrefs);
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closePrefs();
+    if (e.key === "Escape") {
+      if (document.body.classList.contains("setup-modal-open")) return;
+      closePrefs();
+    }
   });
 
   bindAnalyticalCollapse(el<HTMLElement>("hero-analytical"));
