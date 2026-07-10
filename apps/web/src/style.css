@@ -875,6 +875,7 @@ body::before {
   flex-shrink: 0;
 }
 
+#hero-analytical.analytical-collapsed .collapse-chevron,
 .hero-analytical.analytical-collapsed .collapse-chevron {
   transform: rotate(-90deg);
 }
@@ -888,12 +889,14 @@ body::before {
     opacity 0.22s ease;
 }
 
+#hero-analytical.analytical-collapsed .hero-defaults-body,
 .hero-analytical.analytical-collapsed .hero-defaults-body {
   max-height: 0;
   opacity: 0;
   pointer-events: none;
 }
 
+#hero-analytical.analytical-collapsed .hero-defaults-head,
 .hero-analytical.analytical-collapsed .hero-defaults-head {
   margin-bottom: 0;
 }
