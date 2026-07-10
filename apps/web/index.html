@@ -60,16 +60,22 @@
             <p id="height-note" class="hint hero-hint"></p>
           </div>
 
-          <div class="hero-controls">
-            <input
-              id="height-slider"
-              type="range"
-              min="0"
-              max="99"
-              step="1"
-              value="64"
-              aria-label="Height slider"
-            />
+          <div class="hero-controls safe-sub">
+            <div class="slider-lane slider-lane-grow">
+              <input
+                id="height-slider"
+                type="range"
+                min="0"
+                max="99"
+                step="1"
+                value="64"
+                aria-label="Height slider"
+              />
+              <div class="slider-scale" aria-hidden="true">
+                <span>0</span>
+                <span>99</span>
+              </div>
+            </div>
             <div class="input-wrap" data-state="idle">
               <input id="height-input" type="number" min="0" step="1" value="64" inputmode="numeric" aria-label="Height in feet" aria-describedby="height-validation" />
               <span class="input-suffix">ft</span>
@@ -83,15 +89,15 @@
             </button>
             <p id="height-validation" class="input-validation hint" role="alert" aria-live="polite"></p>
             <div class="height-presets" role="group" aria-label="Quick height presets">
-              <button type="button" class="chip" data-height="32">32</button>
-              <button type="button" class="chip" data-height="48">48</button>
-              <button type="button" class="chip chip-active" data-height="64">64</button>
-              <button type="button" class="chip" data-height="80">80</button>
               <button type="button" class="chip" data-height="96">96</button>
+              <button type="button" class="chip" data-height="80">80</button>
+              <button type="button" class="chip chip-active" data-height="64">64</button>
+              <button type="button" class="chip" data-height="48">48</button>
+              <button type="button" class="chip" data-height="32">32</button>
             </div>
           </div>
 
-          <div class="env-dropdowns">
+          <div class="env-dropdowns safe-sub">
             <details class="env-dropdown" id="tele-dropdown">
               <summary>
                 <span class="summary-label">
@@ -103,17 +109,23 @@
                 </span>
                 <span class="env-summary-value mono" id="tele-summary">1</span>
               </summary>
-              <div class="env-dropdown-body">
+              <div class="env-dropdown-body safe-sub">
                 <div class="env-slider-row">
-                  <input
-                    id="teleport-slider"
-                    type="range"
-                    min="0"
-                    max="2"
-                    step="0.03125"
-                    value="1"
-                    aria-label="Teleport height"
-                  />
+                  <div class="slider-lane slider-lane-grow">
+                    <input
+                      id="teleport-slider"
+                      type="range"
+                      min="0"
+                      max="2"
+                      step="0.03125"
+                      value="1"
+                      aria-label="Teleport height"
+                    />
+                    <div class="slider-scale" aria-hidden="true">
+                      <span>0</span>
+                      <span>2</span>
+                    </div>
+                  </div>
                   <output id="teleport-display" class="mono env-value" for="teleport-slider">1</output>
                 </div>
                 <div class="env-presets" role="group" aria-label="Teleport height presets">
@@ -136,7 +148,7 @@
                 </span>
                 <span class="env-summary-value mono" id="ceiling-summary">off</span>
               </summary>
-              <div class="env-dropdown-body">
+              <div class="env-dropdown-body safe-sub">
                 <label class="switch-toggle" for="ceiling-enabled">
                   <input id="ceiling-enabled" type="checkbox" role="switch" aria-label="Use ceiling gap for Ceilingsmash" />
                   <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
@@ -149,16 +161,22 @@
                   </span>
                 </label>
                 <div class="env-slider-row">
-                  <input
-                    id="ceiling-slider"
-                    type="range"
-                    min="63"
-                    max="200"
-                    step="1"
-                    value="82"
-                    disabled
-                    aria-label="Ceiling gap"
-                  />
+                  <div class="slider-lane slider-lane-grow">
+                    <input
+                      id="ceiling-slider"
+                      type="range"
+                      min="63"
+                      max="200"
+                      step="1"
+                      value="82"
+                      disabled
+                      aria-label="Ceiling gap"
+                    />
+                    <div class="slider-scale" aria-hidden="true">
+                      <span>63</span>
+                      <span>200</span>
+                    </div>
+                  </div>
                   <output id="ceiling-display" class="mono env-value" for="ceiling-slider">82</output>
                 </div>
                 <div class="env-presets" role="group" aria-label="Ceiling gap presets">
@@ -171,7 +189,7 @@
             </details>
           </div>
 
-          <div class="hero-defaults" aria-labelledby="defaults-heading">
+          <div class="hero-defaults safe-sub" aria-labelledby="defaults-heading">
             <div class="hero-defaults-head">
               <h2 id="defaults-heading">Instant DEFAULT</h2>
               <span class="badge badge-analytical">Analytical</span>
@@ -195,7 +213,13 @@
             <label class="slope-field">
               <span>Ground slope</span>
               <div class="slope-input-row">
-                <input id="slope-slider" type="range" min="0" max="45" step="1" value="0" aria-label="Ground slope in degrees" />
+                <div class="slider-lane slider-lane-grow">
+                  <input id="slope-slider" type="range" min="0" max="45" step="1" value="0" aria-label="Ground slope in degrees" />
+                  <div class="slider-scale" aria-hidden="true">
+                    <span>0°</span>
+                    <span>45°</span>
+                  </div>
+                </div>
                 <output id="slope-display" class="mono" for="slope-slider">0°</output>
               </div>
             </label>

@@ -31,13 +31,23 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
   const launcher = launcherName(setup.launcher, setup.num_rockets);
   const launcherClass = LAUNCHER_COLORS[launcher] ?? "launcher-any";
   const rockets = setup.num_rockets;
-  const speeds = setup.speeds.filter((s) => Number.isFinite(s)).map((s) => `${s.toFixed(0)}`);
+  const speeds = setup.speeds.filter((s) => Number.isFinite(s)).sort((a, b) => b - a);
+  const speedMarkup =
+    speeds.length > 0
+      ? `<span class="setup-meta mono setup-speeds" title="Rocket speeds max → min (u/s)">${speeds
+          .map((s, index) =>
+            index === 0
+              ? `<span>${s.toFixed(0)}</span>`
+              : `<span class="speed-fall" aria-hidden="true">↓</span><span>${s.toFixed(0)}</span>`,
+          )
+          .join("")}<span class="setup-speed-unit"> u/s</span></span>`
+      : "";
   const tags = getSetupTags(setup);
   const scorePct = options.maxScore > 0 ? Math.round((options.score / options.maxScore) * 100) : 0;
   const idStr = setup.ID.toString();
 
   const metaParts = [
-    speeds.length ? `<span class="setup-meta mono">${speeds.join("/")} u/s</span>` : "",
+    speedMarkup,
     tags.length ? `<span class="setup-tags">${renderTags(tags)}</span>` : "",
   ].filter(Boolean);
 

@@ -1,11 +1,17 @@
 import {
+  CEILING_GAP_MAX,
+  CEILING_GAP_MIN,
   clampCeiling,
   clampTele,
   formatTeleheight,
   loadBounceContext,
   saveBounceContext,
+  TELEHEIGHT_MAX,
+  TELEHEIGHT_MIN,
+  TELEHEIGHT_STEP,
   type BounceContext,
 } from "./bounceEnv.js";
+import { bindRigidSlider } from "./sliderSnap.js";
 import { el } from "./ui.js";
 
 export function readBounceContextFromDom(): BounceContext {
@@ -19,7 +25,7 @@ export function readBounceContextFromDom(): BounceContext {
 
 export function syncBounceContextToDom(ctx = loadBounceContext()): void {
   const teleSlider = el<HTMLInputElement>("teleport-slider");
-  teleSlider.value = String(ctx.teleheight);
+  teleSlider.value = formatTeleheight(ctx.teleheight);
   syncTeleportDisplay(ctx.teleheight);
 
   const ceilingOn = el<HTMLInputElement>("ceiling-enabled");
@@ -66,17 +72,21 @@ export function persistBounceContext(ctx: BounceContext): void {
 export function bindBounceEnvControls(onChange: () => void): void {
   syncBounceContextToDom();
 
-  el<HTMLInputElement>("teleport-slider").addEventListener("input", () => {
-    const teleheight = clampTele(Number(el<HTMLInputElement>("teleport-slider").value));
-    syncTeleportDisplay(teleheight);
-    persistBounceContext(readBounceContextFromDom());
-    onChange();
+  bindRigidSlider(el<HTMLInputElement>("teleport-slider"), {
+    min: TELEHEIGHT_MIN,
+    max: TELEHEIGHT_MAX,
+    step: TELEHEIGHT_STEP,
+    onSnap: (teleheight) => {
+      syncTeleportDisplay(teleheight);
+      persistBounceContext(readBounceContextFromDom());
+      onChange();
+    },
   });
 
   for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-tele]")) {
     btn.addEventListener("click", () => {
       const teleheight = clampTele(Number(btn.dataset.tele ?? "1"));
-      el<HTMLInputElement>("teleport-slider").value = String(teleheight);
+      el<HTMLInputElement>("teleport-slider").value = formatTeleheight(teleheight);
       syncTeleportDisplay(teleheight);
       persistBounceContext(readBounceContextFromDom());
       onChange();
@@ -91,12 +101,16 @@ export function bindBounceEnvControls(onChange: () => void): void {
     onChange();
   });
 
-  el<HTMLInputElement>("ceiling-slider").addEventListener("input", () => {
-    const gap = clampCeiling(Number(el<HTMLInputElement>("ceiling-slider").value));
-    syncCeilingDisplay(gap, true);
-    el<HTMLInputElement>("ceiling-enabled").checked = true;
-    persistBounceContext(readBounceContextFromDom());
-    onChange();
+  bindRigidSlider(el<HTMLInputElement>("ceiling-slider"), {
+    min: CEILING_GAP_MIN,
+    max: CEILING_GAP_MAX,
+    step: 1,
+    onSnap: (gap) => {
+      syncCeilingDisplay(gap, true);
+      el<HTMLInputElement>("ceiling-enabled").checked = true;
+      persistBounceContext(readBounceContextFromDom());
+      onChange();
+    },
   });
 
   for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-ceiling]")) {

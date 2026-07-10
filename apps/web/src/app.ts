@@ -18,6 +18,12 @@ import { renderSurfaceDiagram } from "./surfaceDiagram.js";
 import { formatSlopeWallGrid, runSlopeWallChecks } from "./slopeWallCheck.js";
 import { slopeWallSummary } from "./slopeWall.js";
 import { copyToClipboard, debounce, el, setLiveStatus, showElement } from "./ui.js";
+import {
+  bindRigidSlider,
+  TRAJECTORY_WEIGHT_MAX,
+  TRAJECTORY_WEIGHT_MIN,
+  TRAJECTORY_WEIGHT_STEP,
+} from "./sliderSnap.js";
 
 import type { DecodedSetup } from "@playground/schema";
 
@@ -86,28 +92,46 @@ function renderPreferenceControl(
   inputWrap.className = "pref-input-wrap";
 
   if (isSliderPreference(pref)) {
+    const lane = document.createElement("div");
+    lane.className = "slider-lane pref-slider-lane";
+
     const input = document.createElement("input");
     input.id = `pref-${pref.id}`;
     input.type = "range";
-    input.min = "-1000";
-    input.max = "255";
-    input.step = "1";
-    input.value = String(weight);
+    input.min = String(TRAJECTORY_WEIGHT_MIN);
+    input.max = String(TRAJECTORY_WEIGHT_MAX);
+    input.step = String(TRAJECTORY_WEIGHT_STEP);
+    input.value = String(Math.min(TRAJECTORY_WEIGHT_MAX, Math.max(TRAJECTORY_WEIGHT_MIN, weight)));
     input.className = "pref-slider";
     input.setAttribute("aria-label", `${pref.label} weight`);
+
+    const scale = document.createElement("div");
+    scale.className = "slider-scale";
+    scale.setAttribute("aria-hidden", "true");
+    const minLabel = document.createElement("span");
+    minLabel.textContent = pref.id === "SPEED" ? "min speed" : "min";
+    const maxLabel = document.createElement("span");
+    maxLabel.textContent = pref.id === "SPEED" ? "max speed" : "max";
+    scale.append(minLabel, maxLabel);
 
     const value = document.createElement("output");
     value.className = "pref-value mono";
     value.htmlFor = input.id;
     value.textContent = input.value;
 
-    input.addEventListener("input", () => {
-      value.textContent = input.value;
-      saveWeight(pref.id, Number(input.value));
-      onChange();
+    bindRigidSlider(input, {
+      min: TRAJECTORY_WEIGHT_MIN,
+      max: TRAJECTORY_WEIGHT_MAX,
+      step: TRAJECTORY_WEIGHT_STEP,
+      onSnap: (snapped) => {
+        value.textContent = String(snapped);
+        saveWeight(pref.id, snapped);
+        onChange();
+      },
     });
 
-    inputWrap.append(input, value);
+    lane.append(input, scale);
+    inputWrap.append(lane, value);
     return inputWrap;
   }
 
@@ -375,9 +399,24 @@ export function initApp(): void {
     }
   });
 
-  heightSlider.addEventListener("input", () => {
-    heightInput.value = heightSlider.value;
-    debouncedPreview();
+  bindRigidSlider(heightSlider, {
+    min: 0,
+    max: 99,
+    step: 1,
+    onSnap: (height) => {
+      heightInput.value = String(height);
+      debouncedPreview();
+    },
+  });
+
+  bindRigidSlider(el<HTMLInputElement>("slope-slider"), {
+    min: 0,
+    max: 45,
+    step: 1,
+    onSnap: (deg) => {
+      el<HTMLOutputElement>("slope-display").textContent = `${deg}°`;
+      renderSlopeWallChecks(slopeWallHeight());
+    },
   });
 
   for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
@@ -387,10 +426,6 @@ export function initApp(): void {
       void runCompute();
     });
   }
-
-  el<HTMLInputElement>("slope-slider").addEventListener("input", () => {
-    renderSlopeWallChecks(slopeWallHeight());
-  });
 
   el<HTMLInputElement>("wall-toggle").addEventListener("change", () => {
     renderSlopeWallChecks(slopeWallHeight());
