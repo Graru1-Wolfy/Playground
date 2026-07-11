@@ -128,6 +128,7 @@ async function rerankAndDisplay(): Promise<void> {
   });
 
   bindCopyButtons(list);
+  bindSetupCardToggles(list);
 
   const status = el<HTMLParagraphElement>("setup-status");
   const total = currentSetups.length;
@@ -150,7 +151,8 @@ async function rerankAndDisplay(): Promise<void> {
 
 function bindCopyButtons(container: HTMLElement): void {
   for (const btn of container.querySelectorAll<HTMLButtonElement>(".copy-id-btn")) {
-    btn.addEventListener("click", async () => {
+    btn.addEventListener("click", async (event) => {
+      event.stopPropagation();
       const id = btn.dataset.copy ?? "";
       const ok = await copyToClipboard(id);
       const original = btn.textContent;
@@ -160,6 +162,32 @@ function bindCopyButtons(container: HTMLElement): void {
         btn.textContent = original;
         btn.classList.remove("copy-success");
       }, 1500);
+    });
+  }
+}
+
+function bindSetupCardToggles(container: HTMLElement): void {
+  const interactiveSelector = "button, a, input, select, textarea, summary";
+
+  for (const card of container.querySelectorAll<HTMLElement>(".setup-card")) {
+    const details = card.querySelector<HTMLDetailsElement>(".setup-details");
+    if (!details) continue;
+
+    const toggle = () => {
+      details.open = !details.open;
+    };
+
+    card.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest(interactiveSelector)) return;
+      toggle();
+    });
+
+    card.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      if ((event.target as HTMLElement).closest(interactiveSelector)) return;
+      event.preventDefault();
+      toggle();
     });
   }
 }

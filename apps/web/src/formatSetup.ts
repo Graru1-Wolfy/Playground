@@ -81,7 +81,7 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
   ].filter(Boolean);
 
   return `
-    <article class="setup-card" data-setup-id="${escapeHtml(idStr)}">
+    <article class="setup-card" data-setup-id="${escapeHtml(idStr)}" tabindex="0" aria-label="Toggle setup ${escapeHtml(idStr)} details">
       <div class="setup-card-row">
         <span class="setup-rank" aria-label="Rank ${options.rank}">#${options.rank}</span>
         <span class="launcher-pill ${launcherClass}">${escapeHtml(launcher)}</span>

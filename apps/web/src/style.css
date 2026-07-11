@@ -1119,6 +1119,7 @@ body::before {
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  cursor: pointer;
 }
 
 .setup-card-row {
@@ -1130,6 +1131,16 @@ body::before {
   background:
     linear-gradient(90deg, rgba(96, 165, 250, 0.06), transparent 48%),
     var(--bg-hover);
+}
+
+.setup-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.setup-card .btn,
+.setup-card summary {
+  cursor: pointer;
 }
 
 .setup-rank {
