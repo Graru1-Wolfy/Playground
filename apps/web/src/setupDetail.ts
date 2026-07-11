@@ -8,9 +8,9 @@ import {
   resolveSetupPatterns,
 } from "@playground/schema";
 import type { DefaultCheckRow, DefaultDetailContext } from "./defaultCheck.js";
-import { defaultSetupId, formatDefaultDetailHtml, isDefaultSetupId } from "./defaultCheck.js";
+import { formatDefaultDetailHtml } from "./defaultCheck.js";
 import { launcherClass, launcherName } from "./formatSetup.js";
-import { copyToClipboard, el, escapeHtml } from "./ui.js";
+import { copyToClipboard, escapeHtml } from "./ui.js";
 
 export interface SetupDetailContext {
   rank: number;
@@ -241,8 +241,6 @@ export function formatSetupDetailHtml(setup: DecodedSetup, context: SetupDetailC
     ${renderScriptSection(binds)}`;
 }
 
-let openSetupId: string | null = null;
-
 function bindCopyScriptButtons(container: HTMLElement): void {
   for (const btn of container.querySelectorAll<HTMLButtonElement>(".setup-copy-binds")) {
     btn.addEventListener("click", async (event) => {
@@ -256,62 +254,6 @@ function bindCopyScriptButtons(container: HTMLElement): void {
       }, 1500);
     });
   }
-}
-
-export function openSetupDetail(entry: SetupLookupEntry): void {
-  const modal = el<HTMLElement>("setup-modal");
-  const body = el<HTMLDivElement>("setup-modal-body");
-  const title = el<HTMLHeadingElement>("setup-modal-title");
-  const copyBtn = el<HTMLButtonElement>("setup-modal-copy");
-
-  if (entry.kind === "default") {
-    openSetupId = defaultSetupId(entry.row.label);
-    title.textContent = `${entry.row.label} (DEFAULT)`;
-    body.innerHTML = formatDefaultDetailHtml(entry.row, entry.context);
-    copyBtn.classList.add("hidden");
-  } else {
-    openSetupId = entry.setup.ID.toString();
-    title.textContent = `Setup #${entry.context.rank}`;
-    body.innerHTML = formatSetupDetailHtml(entry.setup, entry.context);
-    copyBtn.classList.remove("hidden");
-  }
-
-  bindCopyScriptButtons(body);
-
-  modal.classList.add("open");
-  modal.setAttribute("aria-hidden", "false");
-  document.body.classList.add("setup-modal-open");
-
-  el<HTMLButtonElement>("setup-modal-close").focus();
-}
-
-export function closeSetupDetail(): void {
-  const modal = el<HTMLElement>("setup-modal");
-  modal.classList.remove("open");
-  modal.setAttribute("aria-hidden", "true");
-  document.body.classList.remove("setup-modal-open");
-  openSetupId = null;
-}
-
-export function bindSetupDetailModal(): void {
-  el<HTMLButtonElement>("setup-modal-close").addEventListener("click", closeSetupDetail);
-  el<HTMLDivElement>("setup-modal-backdrop").addEventListener("click", closeSetupDetail);
-  el<HTMLButtonElement>("setup-modal-copy").addEventListener("click", async () => {
-    if (!openSetupId || isDefaultSetupId(openSetupId)) return;
-    const btn = el<HTMLButtonElement>("setup-modal-copy");
-    const ok = await copyToClipboard(openSetupId);
-    const original = btn.textContent;
-    btn.textContent = ok ? "Copied!" : "Failed";
-    setTimeout(() => {
-      btn.textContent = original;
-    }, 1500);
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && openSetupId !== null) {
-      closeSetupDetail();
-    }
-  });
 }
 
 export function bindSetupCards(

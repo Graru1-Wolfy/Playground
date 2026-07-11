@@ -25,7 +25,7 @@ import {
   weightFromToggle,
   type PreferenceDefinition,
 } from "./preferences.js";
-import { bindSetupCards, bindSetupDetailModal } from "./setupDetail.js";
+import { bindSetupCards } from "./setupDetail.js";
 import type { SetupLookupEntry } from "./setupDetail.js";
 import { renderSurfaceDiagram } from "./surfaceDiagram.js";
 import { formatSlopeWallGrid, runSlopeWallChecks } from "./slopeWallCheck.js";
@@ -591,15 +591,12 @@ export function initApp(): void {
     void rerankAndDisplay();
   });
 
-  bindSetupDetailModal();
-
   el<HTMLButtonElement>("prefs-toggle").addEventListener("click", openPrefs);
   el<HTMLButtonElement>("prefs-close").addEventListener("click", closePrefs);
   el<HTMLDivElement>("prefs-backdrop").addEventListener("click", closePrefs);
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
-      if (document.body.classList.contains("setup-modal-open")) return;
       closePrefs();
     }
   });
