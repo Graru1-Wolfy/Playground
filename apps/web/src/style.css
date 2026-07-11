@@ -350,6 +350,12 @@ body::before {
   min-width: 0;
 }
 
+.panel-title-stack {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
 .panel h2 {
   margin: 0;
   font-family: var(--font-display);
@@ -363,6 +369,13 @@ body::before {
   color: var(--text-muted);
   font-size: 0.78rem;
   margin: 0;
+}
+
+.panel-subtitle {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  line-height: 1.25;
 }
 
 .setup-status::before {
@@ -1093,6 +1106,15 @@ body::before {
   gap: var(--space-2);
   margin-left: auto;
   flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--border-subtle);
 }
 
 .toolbar-field {
@@ -1116,6 +1138,11 @@ body::before {
 .toolbar-field input[type="search"]:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.toolbar-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .toolbar-field select {
@@ -1184,6 +1211,13 @@ body::before {
   background:
     linear-gradient(90deg, rgba(96, 165, 250, 0.06), transparent 48%),
     var(--bg-hover);
+}
+
+.setup-card[aria-expanded="true"] {
+  border-color: rgba(232, 117, 42, 0.38);
+  box-shadow:
+    0 12px 26px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(232, 117, 42, 0.08) inset;
 }
 
 .setup-card:focus-visible {
@@ -1595,9 +1629,14 @@ body::before {
 
 .empty-state {
   text-align: center;
-  padding: var(--space-3);
+  padding: var(--space-4);
   color: var(--text-secondary);
   font-size: 0.8rem;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(96, 165, 250, 0.08), transparent 16rem),
+    rgba(7, 10, 15, 0.24);
 }
 
 .empty-state p {
@@ -1874,6 +1913,17 @@ body::before {
   .setup-toolbar {
     margin-left: 0;
     width: 100%;
+  }
+
+  .toolbar-group {
+    width: 100%;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .toolbar-group .btn,
+  .toolbar-action {
+    flex: 1;
   }
 
   .toolbar-field input[type="search"] {

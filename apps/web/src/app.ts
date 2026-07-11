@@ -136,6 +136,15 @@ async function rerankAndDisplay(): Promise<void> {
 
   if (total === 0) {
     status.textContent = "No precomputed data for this height";
+    el<HTMLParagraphElement>("setup-empty-message").innerHTML =
+      `No precomputed setups for this height <span class="hint">(MVP: 0–99)</span>`;
+    showElement(el<HTMLDivElement>("setup-empty"), true);
+    showElement(el<HTMLDivElement>("setup-loading"), false);
+    showElement(el<HTMLDivElement>("setup-list-header"), false);
+  } else if (filtered === 0) {
+    status.textContent = `0/${total} setups match`;
+    el<HTMLParagraphElement>("setup-empty-message").textContent =
+      `No setups match "${filterQuery.trim()}". Try another launcher, tag, speed, or setup ID.`;
     showElement(el<HTMLDivElement>("setup-empty"), true);
     showElement(el<HTMLDivElement>("setup-loading"), false);
     showElement(el<HTMLDivElement>("setup-list-header"), false);
@@ -173,9 +182,15 @@ function bindSetupCardToggles(container: HTMLElement): void {
     const details = card.querySelector<HTMLDetailsElement>(".setup-details");
     if (!details) continue;
 
+    const syncExpanded = () => {
+      card.setAttribute("aria-expanded", String(details.open));
+    };
     const toggle = () => {
       details.open = !details.open;
+      syncExpanded();
     };
+    syncExpanded();
+    details.addEventListener("toggle", syncExpanded);
 
     card.addEventListener("click", (event) => {
       const target = event.target as HTMLElement;
@@ -338,7 +353,29 @@ export function initApp(): void {
 
   el<HTMLInputElement>("setup-filter").addEventListener("input", (e) => {
     filterQuery = (e.target as HTMLInputElement).value;
+    el<HTMLButtonElement>("clear-filter").disabled = filterQuery.trim().length === 0;
     void rerankAndDisplay();
+  });
+
+  el<HTMLButtonElement>("clear-filter").addEventListener("click", () => {
+    const input = el<HTMLInputElement>("setup-filter");
+    input.value = "";
+    filterQuery = "";
+    el<HTMLButtonElement>("clear-filter").disabled = true;
+    input.focus();
+    void rerankAndDisplay();
+  });
+
+  el<HTMLButtonElement>("expand-setups").addEventListener("click", () => {
+    for (const details of document.querySelectorAll<HTMLDetailsElement>(".setup-details")) {
+      details.open = true;
+    }
+  });
+
+  el<HTMLButtonElement>("collapse-setups").addEventListener("click", () => {
+    for (const details of document.querySelectorAll<HTMLDetailsElement>(".setup-details")) {
+      details.open = false;
+    }
   });
 
   el<HTMLButtonElement>("reset-prefs").addEventListener("click", () => {

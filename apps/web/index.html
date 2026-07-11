@@ -157,8 +157,11 @@
         </section>
 
         <section class="panel panel-defaults" aria-labelledby="defaults-heading">
-          <div class="panel-head panel-head-tight">
-            <h2 id="defaults-heading">Instant DEFAULT</h2>
+          <div class="panel-head panel-head-tight panel-head-split">
+            <div class="panel-head-left panel-title-stack">
+              <h2 id="defaults-heading">Instant DEFAULT</h2>
+              <p class="panel-subtitle">Fixed, angled, and special starts calculated instantly for the current height.</p>
+            </div>
             <span class="badge badge-analytical">Analytical</span>
           </div>
           <div id="default-results" class="default-grid" role="region" aria-label="DEFAULT bounce results"></div>
@@ -167,7 +170,10 @@
         <section class="panel panel-slope-wall" aria-labelledby="slope-wall-heading">
           <div class="panel-head panel-head-tight panel-head-split">
             <div class="panel-head-left">
-              <h2 id="slope-wall-heading">Slopes &amp; walls</h2>
+              <div class="panel-title-stack">
+                <h2 id="slope-wall-heading">Slopes &amp; walls</h2>
+                <p class="panel-subtitle">Preview how map geometry changes effective bounce height and angle windows.</p>
+              </div>
               <p id="slope-wall-note" class="hint setup-status"></p>
             </div>
             <span class="badge badge-map">Map geometry</span>
@@ -194,7 +200,10 @@
         <section class="panel panel-setups" aria-labelledby="setups-heading">
           <div class="panel-head panel-head-tight panel-head-split">
             <div class="panel-head-left">
-              <h2 id="setups-heading">Ranked simulation setups</h2>
+              <div class="panel-title-stack">
+                <h2 id="setups-heading">Ranked simulation setups</h2>
+                <p class="panel-subtitle">Click any card to inspect steps, rocket crouch states, and setup metadata.</p>
+              </div>
               <p id="setup-status" class="hint setup-status"></p>
             </div>
             <div class="setup-toolbar">
@@ -202,6 +211,7 @@
                 <span class="sr-only">Filter setups</span>
                 <input id="setup-filter" type="search" placeholder="Filter…" />
               </label>
+              <button id="clear-filter" type="button" class="btn btn-ghost btn-compact toolbar-action" disabled>Clear</button>
               <label class="toolbar-field toolbar-compact">
                 Show
                 <select id="page-size">
@@ -211,6 +221,10 @@
                   <option value="999999">All</option>
                 </select>
               </label>
+              <div class="toolbar-group" aria-label="Setup detail display">
+                <button id="expand-setups" type="button" class="btn btn-ghost btn-compact toolbar-action">Expand all</button>
+                <button id="collapse-setups" type="button" class="btn btn-ghost btn-compact toolbar-action">Collapse all</button>
+              </div>
             </div>
           </div>
 
@@ -220,14 +234,14 @@
           </div>
 
           <div id="setup-empty" class="empty-state hidden" role="status">
-            <p>No precomputed setups for this height <span class="hint">(MVP: 0–99)</span></p>
+            <p id="setup-empty-message">No precomputed setups for this height <span class="hint">(MVP: 0–99)</span></p>
           </div>
 
           <div id="setup-list-header" class="setup-list-header hidden" aria-hidden="true">
             <span>#</span>
             <span>Launcher</span>
             <span>Rkt</span>
-            <span>Speeds · tags</span>
+            <span>Steps · speeds · tags</span>
             <span>Score</span>
             <span>ID</span>
             <span aria-hidden="true"></span>
