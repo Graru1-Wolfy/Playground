@@ -31,6 +31,35 @@ function renderTags(tags: { label: string; tone: string }[]): string {
   return tags.map((t) => `<span class="tag ${t.tone}">${escapeHtml(t.label)}</span>`).join("");
 }
 
+function renderFlagPills(setup: DecodedSetup): string {
+  const flags = [
+    ["Moving", setup.start_moving],
+    ["Action", setup.start_action],
+    ["Fired crouch", setup.rocket_fired_crouched_flag],
+    ["Hit crouch", setup.rocket_hit_crouched_flag],
+  ];
+
+  return flags
+    .map(([label, value]) => {
+      const enabled = Number(value) > 0;
+      return `<span class="detail-pill ${enabled ? "detail-pill-on" : ""}">${escapeHtml(String(label))}: ${enabled ? "yes" : "no"}</span>`;
+    })
+    .join("");
+}
+
+function renderDelayStats(setup: DecodedSetup): string {
+  const rows = [
+    ["Auto bounce", setup.tick_delay_auto_bounce],
+    ["Synced auto", setup.tick_delay_auto_synced_bounce],
+    ["Standing auto", setup.tick_delay_auto_standing_bounce],
+    ["Standing synced", setup.tick_delay_auto_synced_standing_bounce],
+  ];
+
+  return rows
+    .map(([label, value]) => `<span><strong>${escapeHtml(String(value))}</strong>${escapeHtml(String(label))}</span>`)
+    .join("");
+}
+
 export interface SetupCardOptions {
   rank: number;
   score: number;
@@ -53,16 +82,52 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
 
   return `
     <article class="setup-card" data-setup-id="${escapeHtml(idStr)}">
-      <span class="setup-rank" aria-label="Rank ${options.rank}">#${options.rank}</span>
-      <span class="launcher-pill ${launcherClass}">${escapeHtml(launcher)}</span>
-      <span class="setup-rockets">${rockets}r</span>
-      <div class="setup-meta-wrap">${metaParts.join("")}</div>
-      <div class="setup-score-wrap">
-        <span class="setup-score mono">${Math.round(options.score)}</span>
-        <div class="score-bar" role="presentation"><div class="score-bar-fill" style="width: ${scorePct}%"></div></div>
+      <div class="setup-card-row">
+        <span class="setup-rank" aria-label="Rank ${options.rank}">#${options.rank}</span>
+        <span class="launcher-pill ${launcherClass}">${escapeHtml(launcher)}</span>
+        <span class="setup-rockets">${rockets}r</span>
+        <div class="setup-meta-wrap">${metaParts.join("")}</div>
+        <div class="setup-score-wrap">
+          <span class="setup-score mono">${Math.round(options.score)}</span>
+          <div class="score-bar" role="presentation"><div class="score-bar-fill" style="width: ${scorePct}%"></div></div>
+        </div>
+        <span class="setup-id mono" title="${escapeHtml(idStr)}">${escapeHtml(idStr.slice(0, 8))}…</span>
+        <button type="button" class="btn btn-ghost btn-sm copy-id-btn" data-copy="${escapeHtml(idStr)}" aria-label="Copy setup ID">⧉</button>
       </div>
-      <span class="setup-id mono" title="${escapeHtml(idStr)}">${escapeHtml(idStr.slice(0, 8))}…</span>
-      <button type="button" class="btn btn-ghost btn-sm copy-id-btn" data-copy="${escapeHtml(idStr)}" aria-label="Copy setup ID">⧉</button>
+      <details class="setup-details">
+        <summary>View setup details</summary>
+        <div class="setup-detail-panel">
+          <div class="setup-detail-hero">
+            <div>
+              <span class="detail-label">Setup ID</span>
+              <strong class="mono">${escapeHtml(idStr)}</strong>
+            </div>
+            <button type="button" class="btn btn-ghost btn-compact copy-id-btn" data-copy="${escapeHtml(idStr)}">Copy setup ID</button>
+          </div>
+          <div class="setup-detail-grid">
+            <div class="detail-card">
+              <span class="detail-label">Launcher</span>
+              <strong>${escapeHtml(launcher)} · ${rockets} rocket${rockets === 1 ? "" : "s"}</strong>
+            </div>
+            <div class="detail-card">
+              <span class="detail-label">Speeds</span>
+              <strong class="mono">${escapeHtml(speeds.length ? `${speeds.join(" / ")} u/s` : "none")}</strong>
+            </div>
+            <div class="detail-card detail-card-wide">
+              <span class="detail-label">Bounce tags</span>
+              <div class="setup-tags setup-tags-detail">${renderTags(allTags) || '<span class="hint">No flags</span>'}</div>
+            </div>
+            <div class="detail-card detail-card-wide">
+              <span class="detail-label">State flags</span>
+              <div class="detail-pill-row">${renderFlagPills(setup)}</div>
+            </div>
+            <div class="detail-card detail-card-wide">
+              <span class="detail-label">Tick delays</span>
+              <div class="detail-stat-row">${renderDelayStats(setup)}</div>
+            </div>
+          </div>
+        </div>
+      </details>
     </article>`;
 }
 

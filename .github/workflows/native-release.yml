@@ -2,7 +2,8 @@ name: Native App Release
 
 on:
   push:
-    branches: [main]
+    branches:
+      - "**"
     paths:
       - "apps/web/**"
       - "packages/engine-fast/**"
@@ -25,6 +26,8 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
+      prerelease: ${{ steps.version.outputs.prerelease }}
+      make_latest: ${{ steps.version.outputs.make_latest }}
     steps:
       - uses: actions/checkout@v5
 
@@ -37,9 +40,20 @@ jobs:
         shell: bash
         run: |
           version="$(node -p "require('./apps/web/package.json').version")"
-          tag="native-v${version}.${GITHUB_RUN_NUMBER}"
+          ref_slug="$(printf '%s' "${GITHUB_REF_NAME}" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/^-+|-+$//g')"
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            tag="native-v${version}.${GITHUB_RUN_NUMBER}"
+            prerelease="false"
+            make_latest="true"
+          else
+            tag="native-${ref_slug}-v${version}.${GITHUB_RUN_NUMBER}"
+            prerelease="true"
+            make_latest="false"
+          fi
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
           echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "prerelease=${prerelease}" >> "${GITHUB_OUTPUT}"
+          echo "make_latest=${make_latest}" >> "${GITHUB_OUTPUT}"
 
   windows:
     needs: metadata
@@ -135,5 +149,6 @@ jobs:
           tag_name: ${{ needs.metadata.outputs.tag }}
           name: TF2 Bounce Checker ${{ needs.metadata.outputs.tag }}
           generate_release_notes: true
-          make_latest: true
+          prerelease: ${{ needs.metadata.outputs.prerelease }}
+          make_latest: ${{ needs.metadata.outputs.make_latest }}
           files: artifacts/*

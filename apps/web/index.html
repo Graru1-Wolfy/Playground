@@ -30,13 +30,22 @@
               <path d="M11 20h10" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
             </svg>
           </div>
-          <h1>TF2 Live Bounce Checker</h1>
+          <div class="brand-copy">
+            <h1>TF2 Live Bounce Checker</h1>
+            <p>Fast bounce analysis, ranked setups, native downloads</p>
+          </div>
         </div>
         <div class="header-actions">
           <span class="live-pill" id="live-status" aria-live="polite">
             <span class="live-dot" aria-hidden="true"></span>
             Live
           </span>
+          <a class="btn btn-download btn-compact" href="https://github.com/graru1-wolfy/playground/releases/latest" target="_blank" rel="noreferrer">
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M10 3v9m0 0 4-4m-4 4-4-4M4 15.5h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Downloads
+          </a>
           <button type="button" class="btn btn-ghost btn-compact" id="prefs-toggle" aria-expanded="false" aria-controls="prefs-drawer">
             <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
@@ -181,7 +190,7 @@
         <section class="panel panel-setups" aria-labelledby="setups-heading">
           <div class="panel-head panel-head-tight panel-head-split">
             <div class="panel-head-left">
-              <h2 id="setups-heading">Precomputed setups</h2>
+              <h2 id="setups-heading">Ranked simulation setups</h2>
               <p id="setup-status" class="hint setup-status"></p>
             </div>
             <div class="setup-toolbar">
@@ -243,7 +252,10 @@
       </aside>
 
       <footer class="site-footer">
-        <p>Heights 0–99 · remap &gt;8000 · <code>engine-sim</code></p>
+        <p>
+          Heights 0–99 · remap &gt;8000 · <code>engine-sim</code> ·
+          <a href="https://github.com/graru1-wolfy/playground/releases/latest" target="_blank" rel="noreferrer">latest .exe and .apk downloads</a>
+        </p>
       </footer>
     </div>
     <script type="module" src="/src/main.ts"></script>
