@@ -114,13 +114,40 @@ export function runDefaultChecks(height: number, options: BounceCheckOptions = {
   };
 }
 
-const START_ICONS: Record<string, string> = {
-  Walk: "🚶",
-  "Crouch Walk": "🦆",
-  Jump: "⬆",
-  "Crouch Jump": "⬆",
-  Ctap: "⚡",
-  Ceilingsmash: "⬇",
+const START_GRAPHICS: Record<string, string> = {
+  Walk: `<svg class="start-graphic start-graphic-walk" viewBox="0 0 28 28" aria-hidden="true">
+    <path class="start-rocket" d="M6 17l10-10 5 5-10 10-6 1 1-6z" />
+    <path class="start-rocket-line" d="M15 8l5 5M5 23l5-5" />
+    <path class="start-flame" d="M4 20c-1 1-2 2-2 4 2 0 4-1 5-2" />
+  </svg>`,
+  "Crouch Walk": `<svg class="start-graphic start-graphic-crouch" viewBox="0 0 28 28" aria-hidden="true">
+    <path class="start-rocket" d="M7 18l9-9 5 5-9 9-6 1 1-6z" />
+    <path class="start-rocket-line" d="M15 10l5 5M5 24h9" />
+    <path class="start-flame" d="M4 21c-1 1-2 2-2 4 2 0 4-1 5-2" />
+  </svg>`,
+  Jump: `<svg class="start-graphic start-graphic-jump" viewBox="0 0 28 28" aria-hidden="true">
+    <path class="start-arc" d="M5 21C8 11 14 6 23 5" />
+    <path class="start-rocket" d="M12 16l8-10 5 4-9 10-5 1 1-5z" />
+    <path class="start-flame" d="M9 19c-2 1-3 2-4 5 3 0 5-1 7-3" />
+  </svg>`,
+  "Crouch Jump": `<svg class="start-graphic start-graphic-crouch-jump" viewBox="0 0 28 28" aria-hidden="true">
+    <path class="start-arc" d="M4 22c3-8 8-13 16-16" />
+    <path class="start-rocket" d="M11 17l8-9 5 4-9 10-5 1 1-6z" />
+    <path class="start-rocket-line" d="M4 24h8" />
+    <path class="start-flame" d="M8 20c-2 1-3 2-4 4 3 0 5-1 7-3" />
+  </svg>`,
+  Ctap: `<svg class="start-graphic start-graphic-ctap" viewBox="0 0 28 28" aria-hidden="true">
+    <path class="start-arc" d="M5 22c3-9 8-14 17-17" />
+    <path class="start-rocket" d="M11 17l8-9 5 4-9 10-5 1 1-6z" />
+    <path class="start-flame" d="M8 20c-2 1-4 2-5 5 3 0 6-1 8-3" />
+    <path class="start-spark" d="M6 6l2 3 3-2-2 4 3 2-4 1-1 4-2-4-4-1 3-2-1-4z" />
+  </svg>`,
+  Ceilingsmash: `<svg class="start-graphic start-graphic-ceiling" viewBox="0 0 28 28" aria-hidden="true">
+    <path class="start-ceiling" d="M4 5h20" />
+    <path class="start-rocket" d="M18 7l-8 9-5-4 9-10 5-1-1 6z" />
+    <path class="start-flame" d="M20 4c2-1 4-1 6-1-1 2-3 4-5 5" />
+    <path class="start-impact" d="M8 18l-2 3M12 18l1 4M16 17l3 3" />
+  </svg>`,
 };
 
 function bounceBadgeCompact(code: number): string {
@@ -136,9 +163,9 @@ function formatBounceTable(rows: DefaultCheckRow[], caption: string): string {
     .map((row) => {
       const hasBounce =
         row.uncrouched > 0 || row.crouched > 0 || row.jumpbug > 0;
-      const icon = START_ICONS[row.label] ?? "";
+      const graphic = START_GRAPHICS[row.label] ?? "";
       return `<tr class="${hasBounce ? "default-row-active" : ""}">
-        <th scope="row"><span class="default-label">${icon} ${row.label}</span></th>
+        <th scope="row"><span class="default-label">${graphic}<span>${row.label}</span></span></th>
         <td>${bounceBadgeCompact(row.uncrouched)}</td>
         <td>${bounceBadgeCompact(row.crouched)}</td>
         <td>${bounceBadgeCompact(row.jumpbug)}</td>
