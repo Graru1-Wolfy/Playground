@@ -11,13 +11,17 @@ import {
   TELEHEIGHT_STEP,
   type BounceContext,
 } from "./bounceEnv.js";
+import { bindRigidSlider } from "./sliderSnap.js";
 import { el } from "./ui.js";
 import { bindStepper } from "./stepper.js";
 
+function ceilingEnabled(): boolean {
+  return el<HTMLInputElement>("ceiling-slider").disabled === false;
+}
+
 export function readBounceContextFromDom(): BounceContext {
   const teleheight = clampTele(Number(el<HTMLInputElement>("teleport-slider").value));
-  const ceilingOn = el<HTMLInputElement>("ceiling-enabled").checked;
-  const ceilingGap = ceilingOn
+  const ceilingGap = ceilingEnabled()
     ? clampCeiling(Number(el<HTMLInputElement>("ceiling-slider").value))
     : null;
   return { teleheight, ceilingGap };
@@ -28,21 +32,17 @@ export function syncBounceContextToDom(ctx = loadBounceContext()): void {
   teleSlider.value = formatTeleheight(ctx.teleheight);
   syncTeleportDisplay(ctx.teleheight);
 
-  const ceilingOn = el<HTMLInputElement>("ceiling-enabled");
   const ceilingSlider = el<HTMLInputElement>("ceiling-slider");
-  ceilingOn.checked = ctx.ceilingGap !== null;
+  const enabled = ctx.ceilingGap !== null;
   const gap = ctx.ceilingGap ?? 82;
+  ceilingSlider.disabled = !enabled;
   ceilingSlider.value = String(gap);
-  ceilingSlider.disabled = ctx.ceilingGap === null;
-  syncCeilingDisplay(gap, ctx.ceilingGap !== null);
+  syncCeilingDisplay(gap, enabled);
 
   for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-tele]")) {
     btn.classList.toggle("chip-active", Number(btn.dataset.tele) === ctx.teleheight);
   }
-  for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-ceiling]")) {
-    btn.disabled = ctx.ceilingGap === null;
-    btn.classList.toggle("chip-active", ctx.ceilingGap !== null && Number(btn.dataset.ceiling) === ctx.ceilingGap);
-  }
+  syncCeilingChips(gap, enabled);
 }
 
 export function syncTeleportDisplay(value: number): void {
@@ -54,17 +54,32 @@ export function syncTeleportDisplay(value: number): void {
   }
 }
 
-export function syncCeilingDisplay(value: number, enabled: boolean): void {
-  el<HTMLOutputElement>("ceiling-display").textContent = String(value);
-  el<HTMLSpanElement>("ceiling-summary").textContent = enabled ? String(value) : "off";
-  const disabled = !enabled;
-  el<HTMLInputElement>("ceiling-slider").disabled = disabled;
-  el<HTMLButtonElement>("ceiling-dec").disabled = disabled;
-  el<HTMLButtonElement>("ceiling-inc").disabled = disabled;
+function syncCeilingChips(value: number, enabled: boolean): void {
   for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-ceiling]")) {
-    btn.disabled = disabled;
-    btn.classList.toggle("chip-active", !disabled && Number(btn.dataset.ceiling) === value);
+    const off = btn.dataset.ceiling === "off";
+    btn.disabled = !enabled && !off;
+    if (off) {
+      btn.classList.toggle("chip-active", !enabled);
+    } else {
+      btn.disabled = !enabled;
+      btn.classList.toggle("chip-active", enabled && Number(btn.dataset.ceiling) === value);
+    }
   }
+}
+
+export function syncCeilingDisplay(value: number, enabled: boolean): void {
+  el<HTMLOutputElement>("ceiling-display").textContent = enabled ? String(value) : "off";
+  el<HTMLInputElement>("ceiling-slider").disabled = !enabled;
+  syncCeilingChips(value, enabled);
+}
+
+function setCeilingEnabled(enabled: boolean, gap = 82): void {
+  const slider = el<HTMLInputElement>("ceiling-slider");
+  slider.disabled = !enabled;
+  if (enabled) {
+    slider.value = String(clampCeiling(gap));
+  }
+  syncCeilingDisplay(enabled ? clampCeiling(Number(slider.value)) : gap, enabled);
 }
 
 export function persistBounceContext(ctx: BounceContext): void {
@@ -102,28 +117,18 @@ export function bindBounceEnvControls(onChange: () => void): void {
     });
   }
 
-  el<HTMLInputElement>("ceiling-enabled").addEventListener("change", () => {
-    const enabled = el<HTMLInputElement>("ceiling-enabled").checked;
-    const gap = clampCeiling(Number(el<HTMLInputElement>("ceiling-slider").value));
-    syncCeilingDisplay(gap, enabled);
-    persistBounceContext(readBounceContextFromDom());
-    onChange();
-  });
-
-  bindStepper({
-    input: el<HTMLInputElement>("ceiling-slider"),
-    decBtn: el<HTMLButtonElement>("ceiling-dec"),
-    incBtn: el<HTMLButtonElement>("ceiling-inc"),
+  bindRigidSlider(el<HTMLInputElement>("ceiling-slider"), {
     min: CEILING_GAP_MIN,
     max: CEILING_GAP_MAX,
     step: 1,
-    isDisabled: () => !el<HTMLInputElement>("ceiling-enabled").checked,
     onInput: (gap) => {
-      el<HTMLOutputElement>("ceiling-display").textContent = String(gap);
+      if (ceilingEnabled()) {
+        el<HTMLOutputElement>("ceiling-display").textContent = String(gap);
+      }
     },
-    onChange: (gap) => {
-      syncCeilingDisplay(gap, true);
-      el<HTMLInputElement>("ceiling-enabled").checked = true;
+    onSnap: (gap) => {
+      if (!ceilingEnabled()) return;
+      setCeilingEnabled(true, gap);
       persistBounceContext(readBounceContextFromDom());
       onChange();
     },
@@ -131,11 +136,15 @@ export function bindBounceEnvControls(onChange: () => void): void {
 
   for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-ceiling]")) {
     btn.addEventListener("click", () => {
+      if (btn.dataset.ceiling === "off") {
+        setCeilingEnabled(false);
+        persistBounceContext(readBounceContextFromDom());
+        onChange();
+        return;
+      }
       if (btn.disabled) return;
       const gap = clampCeiling(Number(btn.dataset.ceiling ?? "82"));
-      el<HTMLInputElement>("ceiling-slider").value = String(gap);
-      el<HTMLInputElement>("ceiling-enabled").checked = true;
-      syncCeilingDisplay(gap, true);
+      setCeilingEnabled(true, gap);
       persistBounceContext(readBounceContextFromDom());
       onChange();
     });

@@ -1,3 +1,6 @@
+export { runDefaultChecks } from "./defaultCheck.js";
+export type { BounceCheckOptions, DefaultCheckRow } from "./defaultCheck.js";
+export { heightBucket, normalizeHeight } from "./height.js";
 export { RECORD_SIZE, FLAG_NAMES, decodeSetup, decodeSetupFile, decodeSetupBytes } from "./decode.js";
 export type { DecodedSetup, SetupFlag } from "./decode.js";
 export { serializeSetup } from "./serialize.js";

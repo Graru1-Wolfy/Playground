@@ -20,7 +20,8 @@
     "package:api": "bash scripts/package-api-release.sh",
     "android:icons": "node scripts/generate-app-icon.mjs",
     "screenshots:web": "node scripts/capture-web-screenshots.mjs",
-    "test": "npm run test -w @playground/engine-fast && npm run test -w @playground/schema && npm run test -w @playground/api"
+    "test": "npm run test -w @playground/engine-fast && npm run test -w @playground/schema && npm run test -w @playground/api && npm run test -w @playground/web",
+    "codegen:binds": "python3 scripts/codegen-binds.py"
   },
   "devDependencies": {
     "puppeteer": "^25.3.0"

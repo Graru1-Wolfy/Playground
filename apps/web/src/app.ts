@@ -1,11 +1,11 @@
 import { bindBounceEnvControls, readBounceContextFromDom } from "./bounceEnvUi.js";
 import {
   formatDefaultSetupCard,
-  runDefaultChecks,
   type DefaultCheckRow,
   type DefaultDetailContext,
   defaultSetupId,
 } from "./defaultCheck.js";
+import { runDefaultChecks } from "@playground/schema";
 import { formatSetupCard } from "./formatSetup.js";
 import {
   renderSetupFilterGroups,
@@ -34,6 +34,7 @@ import {
   TRAJECTORY_WEIGHT_MAX,
   TRAJECTORY_WEIGHT_MIN,
   TRAJECTORY_WEIGHT_STEP,
+  bindRigidSlider,
 } from "./sliderSnap.js";
 import { bindStepper, createStepperElement } from "./stepper.js";
 
@@ -86,9 +87,11 @@ function syncHeightControls(height: number): void {
   const input = el<HTMLInputElement>("height-input");
   const slider = el<HTMLInputElement>("height-slider");
   const display = el<HTMLSpanElement>("height-display");
+  const floorDisplay = el<HTMLOutputElement>("floor-slider-display");
 
   input.value = String(height);
   display.textContent = String(height);
+  floorDisplay.textContent = String(height);
 
   const sliderMax = Number(slider.max);
   slider.value = String(Math.min(height, sliderMax));
@@ -478,6 +481,22 @@ export function initApp(): void {
       e.preventDefault();
       void runCompute();
     }
+  });
+
+  bindRigidSlider(heightSlider, {
+    min: 0,
+    max: 9999,
+    step: 1,
+    onInput: (height) => {
+      heightInput.value = String(height);
+      el<HTMLOutputElement>("floor-slider-display").textContent = String(height);
+      el<HTMLSpanElement>("height-display").textContent = String(height);
+      updateComputeGuard();
+    },
+    onSnap: (height) => {
+      syncHeightControls(height);
+      debouncedPreview();
+    },
   });
 
   bindStepper({

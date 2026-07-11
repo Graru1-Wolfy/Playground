@@ -1,4 +1,5 @@
 import type { DecodedSetup } from "./decode.js";
+import { ACTION_BINDS, MOVEMENT_BINDS, ORIGINAL_EXCLUDED_MOVEMENT } from "./binds.data.js";
 
 export interface BindPair {
   plus: string;
@@ -17,91 +18,6 @@ export interface SetupBinds {
   action: BindPair;
   lines: string[];
 }
-
-const MOVEMENT_BINDS: BindPair[] = [
-  { plus: 'alias +walk "";', minus: 'alias -walk "";' },
-  { plus: 'alias +walk "+forward";', minus: 'alias -walk "-forward -1";' },
-  { plus: 'alias +walk "+back";', minus: 'alias -walk "-back -1";' },
-  { plus: 'alias +walk "+moveleft";', minus: 'alias -walk "-moveleft -1";' },
-  { plus: 'alias +walk "+moveright";', minus: 'alias -walk "-moveright -1";' },
-  { plus: 'alias +walk "+forward; +moveleft";', minus: 'alias -walk "-forward -1; -moveleft -1";' },
-  { plus: 'alias +walk "+forward; +moveright";', minus: 'alias -walk "-forward -1; -moveright -1";' },
-  { plus: 'alias +walk "+back; +moveleft";', minus: 'alias -walk "-back -1; -moveleft -1";' },
-  { plus: 'alias +walk "+back; +moveright";', minus: 'alias -walk "-back -1; -moveright -1";' },
-  { plus: 'alias +walk "+moveup; +forward";', minus: 'alias -walk "-moveup -1; -forward -1";' },
-  { plus: 'alias +walk "+moveup; +back";', minus: 'alias -walk "-moveup -1; -back -1";' },
-  { plus: 'alias +walk "+moveup; +moveleft";', minus: 'alias -walk "-moveup -1; -moveleft -1";' },
-  { plus: 'alias +walk "+moveup; +moveright";', minus: 'alias -walk "-moveup -1; -moveright -1";' },
-  {
-    plus: 'alias +walk "+moveup; +forward; +moveleft";',
-    minus: 'alias -walk "-moveup -1; -forward -1; -moveleft -1";',
-  },
-  {
-    plus: 'alias +walk "+moveup; +forward; +moveright";',
-    minus: 'alias -walk "-moveup -1; -forward -1; -moveright -1";',
-  },
-  {
-    plus: 'alias +walk "+moveup; +back; +moveleft";',
-    minus: 'alias -walk "-moveup -1; -back -1; -moveleft -1";',
-  },
-  {
-    plus: 'alias +walk "+moveup; +back; +moveright";',
-    minus: 'alias -walk "-moveup -1; -back -1; -moveright -1";',
-  },
-  {
-    plus: 'alias +walk "+forward; +moveleft; +strafe; +left";',
-    minus: 'alias -walk "-forward -1; -moveleft -1; -strafe -1; -left -1";',
-  },
-  {
-    plus: 'alias +walk "+forward; +moveright; +strafe; +right";',
-    minus: 'alias -walk "-forward -1; -moveright -1; -strafe -1; -right -1";',
-  },
-  {
-    plus: 'alias +walk "+back; +moveleft; +strafe; +left";',
-    minus: 'alias -walk "-back -1; -moveleft -1; -strafe -1; -left -1";',
-  },
-  {
-    plus: 'alias +walk "+back; +moveright; +strafe; +right";',
-    minus: 'alias -walk "-back -1; -moveright -1; -strafe -1; -right -1";',
-  },
-  {
-    plus: 'alias +walk "+moveup; +forward; +moveleft; +strafe; +left";',
-    minus: 'alias -walk "-moveup -1; -forward -1; -moveleft -1; -strafe -1; -left -1";',
-  },
-  {
-    plus: 'alias +walk "+moveup; +forward; +moveright; +strafe; +right";',
-    minus: 'alias -walk "-moveup -1; -forward -1; -moveright -1; -strafe -1; -right -1";',
-  },
-  {
-    plus: 'alias +walk "+moveup; +back; +moveleft; +strafe; +left";',
-    minus: 'alias -walk "-moveup -1; -back -1; -moveleft -1; -strafe -1; -left -1";',
-  },
-  {
-    plus: 'alias +walk "+moveup; +back; +moveright; +strafe; +right";',
-    minus: 'alias -walk "-moveup -1; -back -1; -moveright -1; -strafe -1; -right -1";',
-  },
-  {
-    plus: 'alias +walk "+moveup; +moveleft; +strafe; +left";',
-    minus: 'alias -walk "-moveup -1; -moveleft -1; -strafe -1; -left -1";',
-  },
-  {
-    plus: 'alias +walk "+moveup; +moveright; +strafe; +right";',
-    minus: 'alias -walk "-moveup -1; -moveright -1; -strafe -1; -right -1";',
-  },
-];
-
-const ACTION_BINDS: BindPair[] = [
-  { plus: 'alias +strike "+attack";', minus: 'alias -strike "-attack -1";' },
-  { plus: 'alias +strike "+attack";', minus: 'alias -strike "-attack -1";' },
-  { plus: 'alias +strike "+attack; +jump; -jump -1";', minus: 'alias -strike "-attack -1";' },
-  { plus: 'alias +strike "+attack; +jump; -jump -1; +duck";', minus: 'alias -strike "-attack -1; -duck -1";' },
-  { plus: 'alias +strike "+attack; +jump; -jump -1; +duck; -duck -1";', minus: 'alias -strike "-attack -1";' },
-  { plus: 'alias +strike "slot1; +attack; +jump; -jump -1";', minus: 'alias -strike "-attack -1";' },
-  { plus: 'alias +strike "slot1; +attack; +jump; -jump -1; +duck";', minus: 'alias -strike "-attack -1; -duck -1";' },
-  { plus: 'alias +strike "slot1; +attack; +jump; -jump -1; +duck; -duck -1";', minus: 'alias -strike "-attack -1";' },
-  { plus: 'alias +strike "+attack; +jump; -jump -1; +duck; -duck -1";', minus: 'alias -strike "-attack -1";' },
-  { plus: 'alias +strike "+attack; +jump; -jump -1; +duck; -duck -1";', minus: 'alias -strike "-attack -1";' },
-];
 
 const MOVEMENT_LABELS = [
   "No movement",
@@ -188,9 +104,6 @@ const ACTION_DESCRIPTIONS = [
   "CTAP jump duck shoot, rocket prefire 1 tick early.",
   "CTAP jump duck shoot, rocket prefire 2 ticks early.",
 ];
-
-/** Movement patterns excluded for Original to remove symmetries (engine-sim). */
-const ORIGINAL_EXCLUDED_MOVEMENT = new Set([4, 6, 8, 12, 14, 16, 18, 20, 23, 24, 26]);
 
 export const MOVEMENT_PATTERN_COUNT = MOVEMENT_BINDS.length;
 export const ACTION_PATTERN_COUNT = ACTION_BINDS.length;

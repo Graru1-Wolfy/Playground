@@ -1,38 +1,22 @@
 import {
-  checkBounce,
-  LandType,
-  type BounceInput,
-} from "@playground/engine-fast";
-import { DEFAULT_START_GUIDES, formatGuideBindBlock, type DefaultStartGuide } from "@playground/schema";
+  runDefaultChecks,
+  type BounceCheckOptions,
+  type DefaultCheckRow,
+  DEFAULT_START_GUIDES,
+  formatGuideBindBlock,
+  type DefaultStartGuide,
+} from "@playground/schema";
 import { escapeHtml } from "./ui.js";
 
-const DEFAULT_TYPES: { label: string; bounce: BounceInput }[] = [
-  { label: "Walk", bounce: { vel: -6, text: "Walk" } },
-  { label: "Crouch Walk", bounce: { vel: -6, crouched: true, text: "Crouch Walk" } },
-  { label: "Jump", bounce: { vel: 283, text: "Jump" } },
-  { label: "Crouch Jump", bounce: { vel: 289, text: "Crouch Jump" } },
-  { label: "Ctap", bounce: { vel: 289, crouched: true, text: "Ctap" } },
-  { label: "Ceilingsmash", bounce: { vel: -6, ceiling: true, text: "Ceilingsmash" } },
-];
+export type { BounceCheckOptions, DefaultCheckRow };
+export { runDefaultChecks } from "@playground/schema";
 
 const GUIDE_BY_LABEL = new Map(DEFAULT_START_GUIDES.map((guide) => [guide.label, guide]));
-
-export interface DefaultCheckRow {
-  label: string;
-  uncrouched: number;
-  crouched: number;
-  jumpbug: number;
-}
 
 export interface DefaultReliability {
   hits: number;
   total: number;
   percent: number;
-}
-
-export interface BounceCheckOptions {
-  teleheight?: number;
-  ceilingGap?: number | null;
 }
 
 export function defaultSetupId(label: string): string {
@@ -50,22 +34,6 @@ export function computeDefaultReliability(row: DefaultCheckRow): DefaultReliabil
     total: 3,
     percent: Math.round((hits / 3) * 100),
   };
-}
-
-export function runDefaultChecks(height: number, options: BounceCheckOptions = {}): DefaultCheckRow[] {
-  const teleheight = options.teleheight ?? 1;
-  const ceilingGap = options.ceilingGap ?? null;
-
-  return DEFAULT_TYPES.map(({ label, bounce }) => {
-    const checkHeight =
-      bounce.ceiling && ceilingGap !== null ? ceilingGap : height;
-    return {
-      label,
-      uncrouched: checkBounce(checkHeight, bounce, LandType.UNCROUCHED, teleheight),
-      crouched: checkBounce(checkHeight, bounce, LandType.CROUCHED, teleheight),
-      jumpbug: checkBounce(checkHeight, bounce, LandType.JUMPBUG, teleheight),
-    };
-  });
 }
 
 function bounceBadgeCompact(code: number, label: string): string {
@@ -190,16 +158,6 @@ export function formatDefaultDetailHtml(row: DefaultCheckRow, context: DefaultDe
       <pre class="setup-bind-block mono">${escapeHtml(bindText)}</pre>
       <p class="hint setup-bind-hint">Example: <span class="mono">bind shift +walk</span> · <span class="mono">bind mouse1 +strike</span></p>
     </section>`;
-}
-
-/** @deprecated Instant DEFAULT is merged into simulation setup list */
-export function formatDefaultGrid(_rows: DefaultCheckRow[]): string {
-  return "";
-}
-
-/** @deprecated Use formatDefaultGrid */
-export function formatDefaultTable(rows: DefaultCheckRow[]): string {
-  return formatDefaultGrid(rows);
 }
 
 export function getDefaultGuide(label: string): DefaultStartGuide | undefined {

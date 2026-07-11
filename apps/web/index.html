@@ -54,7 +54,7 @@
           <div class="height-panel safe-sub">
             <div class="height-panel-head">
               <div class="height-panel-title">
-                <h2 id="height-heading">Target height</h2>
+                <h2 id="height-heading">Floor height</h2>
                 <p id="height-note" class="hint height-note"></p>
               </div>
               <div class="stepper stepper-hero" id="height-stepper" aria-live="polite">
@@ -72,8 +72,27 @@
                     <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
                   </svg>
                 </button>
-                <input type="hidden" id="height-slider" min="0" max="99" step="1" value="64" tabindex="-1" aria-hidden="true" />
               </div>
+            </div>
+
+            <div class="env-slider-row env-slider-row-floor safe-sub">
+              <label class="env-slider-label" for="height-slider">Floor</label>
+              <div class="slider-lane slider-lane-grow">
+                <input
+                  type="range"
+                  id="height-slider"
+                  min="0"
+                  max="99"
+                  step="1"
+                  value="64"
+                  aria-labelledby="height-heading"
+                />
+                <div class="slider-scale" aria-hidden="true">
+                  <span>0</span>
+                  <span>99</span>
+                </div>
+              </div>
+              <output id="floor-slider-display" class="env-value mono" for="height-slider">64</output>
             </div>
 
             <div class="height-presets" role="group" aria-label="Quick height presets">
@@ -100,7 +119,39 @@
             <p id="height-validation" class="input-validation hint" role="alert" aria-live="polite"></p>
           </div>
 
-          <div class="env-dropdowns safe-sub">
+          <div class="surface-heights-grid safe-sub">
+            <div class="env-slider-block" id="ceiling-block">
+              <div class="env-slider-head">
+                <span class="env-slider-label" id="ceiling-heading">Ceiling gap</span>
+                <output id="ceiling-display" class="env-value mono" for="ceiling-slider">off</output>
+              </div>
+              <div class="env-slider-row">
+                <div class="slider-lane slider-lane-grow">
+                  <input
+                    type="range"
+                    id="ceiling-slider"
+                    min="63"
+                    max="200"
+                    step="1"
+                    value="82"
+                    aria-labelledby="ceiling-heading"
+                    disabled
+                  />
+                  <div class="slider-scale" aria-hidden="true">
+                    <span>63</span>
+                    <span>200</span>
+                  </div>
+                </div>
+              </div>
+              <div class="env-presets" role="group" aria-label="Ceiling gap presets">
+                <button type="button" class="chip chip-sm chip-active" data-ceiling="off">Off</button>
+                <button type="button" class="chip chip-sm" data-ceiling="63" disabled>63</button>
+                <button type="button" class="chip chip-sm" data-ceiling="82" disabled>82</button>
+                <button type="button" class="chip chip-sm" data-ceiling="96" disabled>96</button>
+              </div>
+              <p class="hint env-hint">Distance from floor to ceiling · min 63 ft for Ceilingsmash</p>
+            </div>
+
             <details class="env-dropdown" id="tele-dropdown">
               <summary>
                 <span class="summary-label">
@@ -136,55 +187,6 @@
                   <button type="button" class="chip chip-sm" data-tele="2">2</button>
                 </div>
                 <p class="hint env-hint">Max trigger height above floor · affects jumpbug window</p>
-              </div>
-            </details>
-
-            <details class="env-dropdown" id="ceiling-dropdown">
-              <summary>
-                <span class="summary-label">
-                  <svg class="icon summary-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M3 5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                    <path d="M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 2" />
-                  </svg>
-                  Ceiling gap
-                </span>
-                <span class="env-summary-value mono" id="ceiling-summary">off</span>
-              </summary>
-              <div class="env-dropdown-body safe-sub">
-                <label class="switch-toggle" for="ceiling-enabled">
-                  <input id="ceiling-enabled" type="checkbox" role="switch" aria-label="Use ceiling gap for Ceilingsmash" />
-                  <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
-                  <span class="switch-label">
-                    <svg class="icon switch-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                      <path d="M3 5h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
-                      <path d="M3 8h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-dasharray="2 2" />
-                    </svg>
-                    <span>Use ceiling gap for Ceilingsmash</span>
-                  </span>
-                </label>
-                <div class="env-stepper-row">
-                  <div class="stepper stepper-env" id="ceiling-stepper">
-                    <button type="button" class="stepper-btn stepper-dec" id="ceiling-dec" aria-label="Decrease ceiling gap" disabled>
-                      <svg class="icon stepper-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                        <path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </button>
-                    <output id="ceiling-display" class="stepper-value mono env-value" for="ceiling-slider">82</output>
-                    <button type="button" class="stepper-btn stepper-inc" id="ceiling-inc" aria-label="Increase ceiling gap" disabled>
-                      <svg class="icon stepper-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                        <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-                      </svg>
-                    </button>
-                    <input type="hidden" id="ceiling-slider" min="63" max="200" step="1" value="82" tabindex="-1" aria-hidden="true" />
-                  </div>
-                  <span class="stepper-range-hint mono" aria-hidden="true">63–200</span>
-                </div>
-                <div class="env-presets" role="group" aria-label="Ceiling gap presets">
-                  <button type="button" class="chip chip-sm" data-ceiling="63" disabled>63</button>
-                  <button type="button" class="chip chip-sm" data-ceiling="82" disabled>82</button>
-                  <button type="button" class="chip chip-sm" data-ceiling="96" disabled>96</button>
-                </div>
-                <p class="hint env-hint">Distance from floor to ceiling · min 63 ft</p>
               </div>
             </details>
           </div>

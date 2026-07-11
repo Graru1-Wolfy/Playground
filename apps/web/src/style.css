@@ -1272,6 +1272,51 @@ body::before {
   font-size: 0.68rem;
 }
 
+/* ─── Surface height sliders (floor + ceiling) ─────────────────── */
+.surface-heights-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.env-slider-block {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.65rem 0.6rem;
+}
+
+.env-slider-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 0.35rem;
+}
+
+.env-slider-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.env-slider-row-floor {
+  margin-top: var(--space-2);
+  padding: 0.45rem 0.55rem;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.env-slider-row-floor .env-slider-label {
+  min-width: 2.5rem;
+}
+
+.env-value-unit {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
 /* ─── Env dropdown sliders ──────────────────────────────────────── */
 .env-dropdowns {
   display: flex;
