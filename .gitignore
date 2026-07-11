@@ -12,6 +12,7 @@ __pycache__/
 node_modules/
 dist/
 apps/web/dist/
+apps/web/release/
 
 # Generated bounce data (manifest.json is committed)
 data/generated/**/*

@@ -27,6 +27,20 @@ npm run dev:web
 
 Open the URL printed by Vite (usually `http://localhost:5173/Playground/`).
 
+## Native app packages
+
+The web app can also be packaged as native release artifacts.
+
+```bash
+# Windows installer (.exe; runs on Windows CI/runners)
+npm run dist:win
+
+# Android installable APK
+npm run android:apk
+```
+
+Both commands build the Vite app with `VITE_BASE_PATH=./` so bundled files load correctly from Electron and Capacitor.
+
 ## Android (phone / tablet)
 
 The app is a **Progressive Web App** — run it in Chrome on Android, or install it to your home screen.
