@@ -77,7 +77,11 @@ npm run build:windows
 
 Output: `apps/web/release/bounce-check-v<version>.exe`
 
-Download from [GitHub Releases](https://github.com/Graru1-Wolfy/Playground/releases/latest) alongside the Android APK.
+**Releases always include both APK and EXE.** Download from [GitHub Releases](https://github.com/Graru1-Wolfy/Playground/releases/latest) or publish locally:
+
+```bash
+npm run release:bounce-check
+```
 
 ### Same Wi‑Fi (local dev)
 

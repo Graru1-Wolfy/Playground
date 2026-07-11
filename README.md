@@ -98,7 +98,16 @@ Run this after editing movement/action pattern cases in `generate_setups.py`.
 | `npm run build:windows` | Portable Windows `.exe` (Electron) |
 | `npm run package:api` | API release tarball |
 
-CI workflows under `.github/workflows/` run tests on push/PR and publish Pages, API, and Android releases.
+CI workflows under `.github/workflows/` run tests on push/PR and publish Pages plus **combined APK + EXE** releases on `bounce-check-v*` tags.
+
+### Release (APK + EXE)
+
+```bash
+# Bump version in apps/web/android/app/build.gradle, commit, then:
+npm run release:bounce-check
+```
+
+This always builds **both** the Android APK and Windows portable EXE and uploads them to the same GitHub release.
 
 ## License
 

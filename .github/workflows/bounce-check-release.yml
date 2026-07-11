@@ -1,0 +1,106 @@
+name: Bounce Check Release
+
+on:
+  push:
+    tags:
+      - "bounce-check-v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install Android SDK
+        run: bash scripts/setup-android-sdk.sh
+
+      - name: Build signed release APK
+        run: bash scripts/build-android-apk.sh release
+        env:
+          ANDROID_HOME: /opt/android-sdk
+
+      - name: Resolve versioned APK path
+        id: apk
+        run: |
+          VERSION="$(grep 'versionName "' apps/web/android/app/build.gradle | head -1 | sed 's/.*versionName "\([^"]*\)".*/\1/')"
+          APK="bounce-check-v${VERSION}.apk"
+          cp apps/web/android/app/build/outputs/apk/release/app-release.apk "${APK}"
+          echo "path=${APK}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bounce-check-apk
+          path: ${{ steps.apk.outputs.path }}
+
+  build-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build portable EXE
+        shell: bash
+        run: bash scripts/build-windows-exe.sh
+
+      - name: Resolve versioned EXE path
+        id: exe
+        shell: bash
+        run: |
+          VERSION="$(grep 'versionName "' apps/web/android/app/build.gradle | head -1 | sed 's/.*versionName "\([^"]*\)".*/\1/')"
+          echo "path=apps/web/release/bounce-check-v${VERSION}.exe" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: bounce-check-exe
+          path: ${{ steps.exe.outputs.path }}
+
+  publish:
+    needs: [build-apk, build-exe]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: bounce-check-apk
+          path: release-assets
+
+      - name: Download EXE
+        uses: actions/download-artifact@v4
+        with:
+          name: bounce-check-exe
+          path: release-assets
+
+      - name: Publish GitHub Release (APK + EXE)
+        if: startsWith(github.ref, 'refs/tags/bounce-check-v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true

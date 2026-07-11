@@ -18,6 +18,7 @@
     "preview:web": "npm run preview:host -w @playground/web",
     "build:android": "bash scripts/build-android-apk.sh",
     "build:windows": "bash scripts/build-windows-exe.sh",
+    "release:bounce-check": "bash scripts/release-bounce-check.sh",
     "package:api": "bash scripts/package-api-release.sh",
     "android:icons": "node scripts/generate-app-icon.mjs",
     "screenshots:web": "node scripts/capture-web-screenshots.mjs",
