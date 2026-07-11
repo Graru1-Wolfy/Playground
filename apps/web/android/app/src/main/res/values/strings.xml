@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TF2 Bounce Checker</string>
+    <string name="title_activity_main">TF2 Bounce Checker</string>
+    <string name="package_name">com.playground.tf2bouncechecker</string>
+    <string name="custom_url_scheme">com.playground.tf2bouncechecker</string>
+</resources>

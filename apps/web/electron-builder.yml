@@ -1,0 +1,18 @@
+appId: com.playground.tf2bouncechecker
+productName: TF2 Bounce Checker
+directories:
+  output: release/electron
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: TF2-Bounce-Checker-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
