@@ -1,4 +1,5 @@
 import { bindBounceEnvControls, readBounceContextFromDom } from "./bounceEnvUi.js";
+import { syncEnvCompactSummary } from "./envSummary.js";
 import {
   formatDefaultSetupCard,
   type DefaultCheckRow,
@@ -85,7 +86,7 @@ function previewHeightFromControls(): void {
 
 function syncHeightControls(height: number): void {
   const input = el<HTMLInputElement>("height-input");
-  const slider = el<HTMLInputElement>("height-slider");
+  const slider = el<HTMLInputElement>("height-slider-visible");
   const display = el<HTMLSpanElement>("height-display");
   const floorDisplay = el<HTMLOutputElement>("floor-slider-display");
 
@@ -99,6 +100,8 @@ function syncHeightControls(height: number): void {
   for (const chip of document.querySelectorAll<HTMLButtonElement>(".height-preset[data-height]")) {
     chip.classList.toggle("chip-active", Number(chip.dataset.height) === height);
   }
+
+  syncEnvCompactSummary(height, readBounceContextFromDom());
 }
 
 function renderPreferenceControl(
@@ -466,7 +469,7 @@ export function initApp(): void {
   renderPreferences();
 
   const heightInput = el<HTMLInputElement>("height-input");
-  const heightSlider = el<HTMLInputElement>("height-slider");
+  const heightSlider = el<HTMLInputElement>("height-slider-visible");
 
   updateComputeGuard();
 
@@ -553,6 +556,12 @@ export function initApp(): void {
       renderSlopeWallChecks(slopeWallHeight());
     }
   });
+
+  for (const btn of document.querySelectorAll<HTMLButtonElement>("#height-env-panel summary button")) {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+  }
 
   el<HTMLSelectElement>("page-size").addEventListener("change", (e) => {
     maxDisplayed = Number((e.target as HTMLSelectElement).value);

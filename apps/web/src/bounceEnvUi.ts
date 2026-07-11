@@ -14,6 +14,7 @@ import {
 import { bindRigidSlider } from "./sliderSnap.js";
 import { el } from "./ui.js";
 import { bindStepper } from "./stepper.js";
+import { syncEnvCompactSummary } from "./envSummary.js";
 
 function ceilingEnabled(): boolean {
   return el<HTMLInputElement>("ceiling-slider").disabled === false;
@@ -43,15 +44,16 @@ export function syncBounceContextToDom(ctx = loadBounceContext()): void {
     btn.classList.toggle("chip-active", Number(btn.dataset.tele) === ctx.teleheight);
   }
   syncCeilingChips(gap, enabled);
+  refreshEnvSummary();
 }
 
 export function syncTeleportDisplay(value: number): void {
   const text = formatTeleheight(value);
   el<HTMLOutputElement>("teleport-display").textContent = text;
-  el<HTMLSpanElement>("tele-summary").textContent = text;
   for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-tele]")) {
     btn.classList.toggle("chip-active", Number(btn.dataset.tele) === value);
   }
+  refreshEnvSummary();
 }
 
 function syncCeilingChips(value: number, enabled: boolean): void {
@@ -71,6 +73,12 @@ export function syncCeilingDisplay(value: number, enabled: boolean): void {
   el<HTMLOutputElement>("ceiling-display").textContent = enabled ? String(value) : "off";
   el<HTMLInputElement>("ceiling-slider").disabled = !enabled;
   syncCeilingChips(value, enabled);
+  refreshEnvSummary();
+}
+
+function refreshEnvSummary(): void {
+  const height = Number(el<HTMLSpanElement>("height-display").textContent) || 64;
+  syncEnvCompactSummary(height, readBounceContextFromDom());
 }
 
 function setCeilingEnabled(enabled: boolean, gap = 82): void {

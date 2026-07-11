@@ -58,35 +58,32 @@ export function formatDefaultSetupCard(row: DefaultCheckRow, rank: number): stri
   const stepPreview = escapeHtml(guide?.instructions[0] ?? "Analytical DEFAULT start");
 
   return `
-    <article
-      class="setup-card setup-card-interactive setup-card-default"
-      data-setup-id="${escapeHtml(id)}"
-      role="button"
-      tabindex="0"
-      aria-label="DEFAULT ${escapeHtml(row.label)}, ${reliability.percent}% landing reliability"
-    >
-      <span class="setup-rank" data-rank="${rank}" aria-label="Rank ${rank}">#${rank}</span>
-      <span class="launcher-pill launcher-default">DEFAULT</span>
-      <span class="setup-rockets setup-default-label">${escapeHtml(row.label)}</span>
-      <div class="setup-meta-wrap">
-        <span class="setup-default-steps hint">${stepPreview}</span>
-        <span class="setup-default-landings" aria-label="Landing outcomes">
-          ${bounceBadgeCompact(row.uncrouched, "Uncrouched")}
-          ${bounceBadgeCompact(row.crouched, "Crouched")}
-          ${bounceBadgeCompact(row.jumpbug, "Jumpbug")}
-        </span>
-      </div>
-      <div class="setup-score-wrap">
-        <span class="setup-score mono setup-reliability-score">${reliability.percent}%</span>
-        <div class="score-bar setup-reliability-bar" role="presentation">
-          <div class="score-bar-fill score-bar-reliability" style="width: ${reliability.percent}%"></div>
+    <details class="setup-card setup-card-collapsible setup-card-default" data-setup-id="${escapeHtml(id)}">
+      <summary class="setup-card-summary">
+        <span class="setup-rank" data-rank="${rank}" aria-label="Rank ${rank}">#${rank}</span>
+        <span class="launcher-pill launcher-default">DEFAULT</span>
+        <span class="setup-rockets setup-default-label">${escapeHtml(row.label)}</span>
+        <div class="setup-meta-wrap">
+          <span class="setup-default-steps hint">${stepPreview}</span>
+          <span class="setup-default-landings" aria-label="Landing outcomes">
+            ${bounceBadgeCompact(row.uncrouched, "Uncrouched")}
+            ${bounceBadgeCompact(row.crouched, "Crouched")}
+            ${bounceBadgeCompact(row.jumpbug, "Jumpbug")}
+          </span>
         </div>
-      </div>
-      <span class="setup-id mono setup-default-kind">Analytical</span>
-      <span class="setup-card-chevron" aria-hidden="true">
-        <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </span>
-    </article>`;
+        <div class="setup-score-wrap">
+          <span class="setup-score mono setup-reliability-score">${reliability.percent}%</span>
+          <div class="score-bar setup-reliability-bar" role="presentation">
+            <div class="score-bar-fill score-bar-reliability" style="width: ${reliability.percent}%"></div>
+          </div>
+        </div>
+        <span class="setup-id mono setup-default-kind">Analytical</span>
+        <span class="setup-card-chevron" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </summary>
+      <div class="setup-card-expand setup-detail-dense" data-setup-expand></div>
+    </details>`;
 }
 
 export interface DefaultDetailContext {

@@ -987,6 +987,123 @@ body::before {
   gap: var(--space-2);
 }
 
+/* ─── Collapsible panels ─────────────────────────────────────────── */
+.collapsible-panel {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.collapsible-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.45rem 0.55rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.collapsible-summary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsible-chevron {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.collapsible-chevron svg {
+  width: 100%;
+  height: 100%;
+}
+
+.collapsible-panel[open] .collapsible-chevron {
+  transform: rotate(90deg);
+}
+
+.collapsible-body {
+  padding: 0 0.55rem 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.height-env-summary {
+  align-items: flex-start;
+}
+
+.height-env-summary .height-panel-head {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.env-compact-summary {
+  margin: 0.12rem 0 0;
+  font-size: 0.64rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.env-dense-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding-top: 0.4rem;
+}
+
+.env-dense-row {
+  display: grid;
+  grid-template-columns: 3.4rem 1fr auto;
+  gap: 0.3rem 0.45rem;
+  align-items: center;
+}
+
+.env-dense-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.env-dense-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.22rem;
+  padding-left: 3.85rem;
+}
+
+.env-dense-presets-inline {
+  padding-left: 0;
+  justify-content: flex-end;
+}
+
+.stepper-dense .stepper-btn {
+  width: 1.85rem;
+  height: 1.85rem;
+}
+
+.stepper-dense .stepper-value {
+  min-width: 2.25rem;
+  font-size: 0.82rem;
+}
+
+.height-action-row-dense {
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.height-note {
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
 .height-panel-head {
   display: flex;
   align-items: flex-start;
@@ -1006,12 +1123,6 @@ body::before {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-}
-
-.height-note {
-  margin: 0.2rem 0 0;
-  font-size: 0.68rem;
-  line-height: 1.35;
 }
 
 .height-readout-value {
@@ -1654,12 +1765,139 @@ body::before {
 }
 
 .setup-list-header,
-.setup-card {
+.setup-card-summary {
   display: grid;
   grid-template-columns: 2rem 4.5rem 1.5rem 1fr 3.75rem 4rem 1.25rem 1.5rem;
   align-items: center;
   gap: 0.4rem 0.55rem;
   font-size: 0.75rem;
+}
+
+.setup-card-collapsible {
+  background: var(--bg-elevated);
+  background-image: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.setup-card-collapsible[open] {
+  border-color: rgba(232, 117, 42, 0.28);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+
+.setup-card-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.45rem 0.55rem;
+  margin: 0;
+}
+
+.setup-card-summary::-webkit-details-marker {
+  display: none;
+}
+
+.setup-card-collapsible[open] .setup-card-chevron {
+  transform: rotate(90deg);
+}
+
+.setup-card-expand {
+  padding: 0.35rem 0.55rem 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.setup-detail-dense {
+  font-size: 0.68rem;
+}
+
+.setup-detail-dense .setup-detail-summary {
+  margin-bottom: 0.35rem;
+}
+
+.setup-detail-dense .setup-detail-headline {
+  gap: 0.35rem;
+}
+
+.setup-detail-dense .setup-detail-section {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.setup-detail-dense .setup-detail-section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.setup-detail-dense h3 {
+  margin: 0 0 0.2rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.setup-detail-dense .setup-detail-rows {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.12rem 0.45rem;
+}
+
+.setup-detail-dense .setup-detail-row {
+  padding: 0.12rem 0;
+}
+
+.setup-detail-dense .setup-detail-label {
+  font-size: 0.6rem;
+}
+
+.setup-detail-dense .setup-detail-value {
+  font-size: 0.65rem;
+}
+
+.setup-detail-dense .setup-instruction-list {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 0.64rem;
+  line-height: 1.35;
+}
+
+.setup-detail-dense .setup-instruction-list li + li {
+  margin-top: 0.12rem;
+}
+
+.setup-detail-dense .setup-bind-block {
+  font-size: 0.6rem;
+  line-height: 1.35;
+  max-height: 5.5rem;
+  overflow: auto;
+  margin: 0.2rem 0 0;
+  padding: 0.35rem;
+}
+
+.setup-detail-dense .setup-pattern-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.setup-detail-dense .setup-pattern-card {
+  padding: 0.3rem 0.35rem;
+}
+
+.setup-detail-dense .setup-pattern-label {
+  font-size: 0.72rem;
+}
+
+.setup-detail-dense .setup-pattern-detail {
+  font-size: 0.6rem;
+  line-height: 1.3;
+  margin: 0.1rem 0 0;
 }
 
 .setup-list-header {
@@ -1682,37 +1920,19 @@ body::before {
   text-align: center;
 }
 
-.setup-card {
-  background: var(--bg-elevated);
-  background-image: var(--surface-card);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.45rem 0.55rem;
-  transition:
-    border-color var(--transition-fast),
-    background-color var(--transition-fast),
-    transform var(--transition-fast),
-    box-shadow var(--transition-fast);
-}
-
-.setup-card:hover,
-.setup-card:focus-visible {
+.setup-card-collapsible:hover,
+.setup-card-collapsible:focus-within {
   border-color: rgba(232, 117, 42, 0.35);
+}
+
+.setup-card-summary:hover,
+.setup-card-summary:focus-visible {
   background-color: var(--bg-hover);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
 }
 
-.setup-card-interactive:active {
-  transform: scale(0.995);
-}
-
-.setup-card-interactive {
-  cursor: pointer;
-}
-
-.setup-card-interactive:focus-visible {
+.setup-card-summary:focus-visible {
   outline: 2px solid var(--accent-bright);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 .setup-rank {
@@ -2579,7 +2799,7 @@ body.setup-modal-open {
     display: none;
   }
 
-  .setup-card {
+  .setup-card-summary {
     grid-template-columns: 2rem minmax(0, 1fr) auto auto;
     grid-template-areas:
       "rank launcher score chevron"

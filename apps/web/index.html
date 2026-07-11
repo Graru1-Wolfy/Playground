@@ -51,121 +51,71 @@
         </header>
 
         <section class="panel panel-hero" aria-labelledby="height-heading">
-          <div class="height-panel safe-sub">
-            <div class="height-panel-head">
-              <div class="height-panel-title">
-                <h2 id="height-heading">Floor height</h2>
-                <p id="height-note" class="hint height-note"></p>
-              </div>
-              <div class="stepper stepper-hero" id="height-stepper" aria-live="polite">
-                <button type="button" class="stepper-btn stepper-dec" id="height-dec" aria-label="Decrease height">
-                  <svg class="icon stepper-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </button>
-                <div class="stepper-body">
-                  <span class="stepper-value height-readout-value" id="height-display">64</span>
-                  <span class="stepper-unit">ft</span>
+          <details class="collapsible-panel height-env-panel" id="height-env-panel">
+            <summary class="collapsible-summary height-env-summary">
+              <div class="height-panel-head">
+                <div class="height-panel-title">
+                  <h2 id="height-heading">Floor height</h2>
+                  <p id="env-compact-summary" class="env-compact-summary mono">64 ft · ceil off · tele 1</p>
                 </div>
-                <button type="button" class="stepper-btn stepper-inc" id="height-inc" aria-label="Increase height">
-                  <svg class="icon stepper-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <div class="env-slider-row env-slider-row-floor safe-sub">
-              <label class="env-slider-label" for="height-slider">Floor</label>
-              <div class="slider-lane slider-lane-grow">
-                <input
-                  type="range"
-                  id="height-slider"
-                  min="0"
-                  max="99"
-                  step="1"
-                  value="64"
-                  aria-labelledby="height-heading"
-                />
-                <div class="slider-scale" aria-hidden="true">
-                  <span>0</span>
-                  <span>99</span>
-                </div>
-              </div>
-              <output id="floor-slider-display" class="env-value mono" for="height-slider">64</output>
-            </div>
-
-            <div class="height-presets" role="group" aria-label="Quick height presets">
-              <button type="button" class="chip height-preset" data-height="96">96</button>
-              <button type="button" class="chip height-preset" data-height="80">80</button>
-              <button type="button" class="chip height-preset chip-active" data-height="64">64</button>
-              <button type="button" class="chip height-preset" data-height="48">48</button>
-              <button type="button" class="chip height-preset" data-height="32">32</button>
-            </div>
-
-            <div class="height-action-row">
-              <div class="input-wrap" data-state="idle">
-                <input id="height-input" type="number" min="0" step="1" value="64" inputmode="numeric" aria-label="Height in feet" aria-describedby="height-validation" />
-                <span class="input-suffix">ft</span>
-              </div>
-              <button id="compute-btn" type="button" class="btn btn-primary btn-compact btn-compute" disabled aria-describedby="height-validation">
-                <svg class="icon btn-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                  <path d="M4 4h8v8H4V4z" stroke="currentColor" stroke-width="1.5" fill="none" />
-                  <path d="M7 7l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-                Compute
-              </button>
-            </div>
-            <p id="height-validation" class="input-validation hint" role="alert" aria-live="polite"></p>
-          </div>
-
-          <div class="surface-heights-grid safe-sub">
-            <div class="env-slider-block" id="ceiling-block">
-              <div class="env-slider-head">
-                <span class="env-slider-label" id="ceiling-heading">Ceiling gap</span>
-                <output id="ceiling-display" class="env-value mono" for="ceiling-slider">off</output>
-              </div>
-              <div class="env-slider-row">
-                <div class="slider-lane slider-lane-grow">
-                  <input
-                    type="range"
-                    id="ceiling-slider"
-                    min="63"
-                    max="200"
-                    step="1"
-                    value="82"
-                    aria-labelledby="ceiling-heading"
-                    disabled
-                  />
-                  <div class="slider-scale" aria-hidden="true">
-                    <span>63</span>
-                    <span>200</span>
+                <div class="stepper stepper-hero" id="height-stepper" aria-live="polite">
+                  <button type="button" class="stepper-btn stepper-dec" id="height-dec" aria-label="Decrease height">
+                    <svg class="icon stepper-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
+                  <div class="stepper-body">
+                    <span class="stepper-value height-readout-value" id="height-display">64</span>
+                    <span class="stepper-unit">ft</span>
                   </div>
+                  <button type="button" class="stepper-btn stepper-inc" id="height-inc" aria-label="Increase height">
+                    <svg class="icon stepper-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
                 </div>
               </div>
-              <div class="env-presets" role="group" aria-label="Ceiling gap presets">
-                <button type="button" class="chip chip-sm chip-active" data-ceiling="off">Off</button>
-                <button type="button" class="chip chip-sm" data-ceiling="63" disabled>63</button>
-                <button type="button" class="chip chip-sm" data-ceiling="82" disabled>82</button>
-                <button type="button" class="chip chip-sm" data-ceiling="96" disabled>96</button>
-              </div>
-              <p class="hint env-hint">Distance from floor to ceiling · min 63 ft for Ceilingsmash</p>
-            </div>
+              <span class="collapsible-chevron" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+            </summary>
 
-            <details class="env-dropdown" id="tele-dropdown">
-              <summary>
-                <span class="summary-label">
-                  <svg class="icon summary-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.5" fill="none" />
-                    <path d="M8 5v6M5.5 7.5L8 5l2.5 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  Teleport height
-                </span>
-                <span class="env-summary-value mono" id="tele-summary">1</span>
-              </summary>
-              <div class="env-dropdown-body safe-sub">
-                <div class="env-stepper-row">
-                  <div class="stepper stepper-env" id="tele-stepper">
+            <div class="collapsible-body height-env-body">
+              <div class="env-dense-grid">
+                <div class="env-dense-row">
+                  <label class="env-dense-label" for="height-slider-visible">Floor</label>
+                  <div class="slider-lane slider-lane-grow">
+                    <input type="range" id="height-slider-visible" min="0" max="99" step="1" value="64" aria-label="Floor height slider" />
+                    <div class="slider-scale" aria-hidden="true"><span>0</span><span>99</span></div>
+                  </div>
+                  <output id="floor-slider-display" class="env-value mono" for="height-slider-visible">64</output>
+                </div>
+                <div class="env-dense-presets" role="group" aria-label="Quick height presets">
+                  <button type="button" class="chip chip-sm height-preset" data-height="96">96</button>
+                  <button type="button" class="chip chip-sm height-preset" data-height="80">80</button>
+                  <button type="button" class="chip chip-sm height-preset chip-active" data-height="64">64</button>
+                  <button type="button" class="chip chip-sm height-preset" data-height="48">48</button>
+                  <button type="button" class="chip chip-sm height-preset" data-height="32">32</button>
+                </div>
+
+                <div class="env-dense-row">
+                  <span class="env-dense-label" id="ceiling-heading">Ceiling</span>
+                  <div class="slider-lane slider-lane-grow">
+                    <input type="range" id="ceiling-slider" min="63" max="200" step="1" value="82" aria-labelledby="ceiling-heading" disabled />
+                    <div class="slider-scale" aria-hidden="true"><span>63</span><span>200</span></div>
+                  </div>
+                  <output id="ceiling-display" class="env-value mono" for="ceiling-slider">off</output>
+                </div>
+                <div class="env-dense-presets" role="group" aria-label="Ceiling gap presets">
+                  <button type="button" class="chip chip-sm chip-active" data-ceiling="off">Off</button>
+                  <button type="button" class="chip chip-sm" data-ceiling="63" disabled>63</button>
+                  <button type="button" class="chip chip-sm" data-ceiling="82" disabled>82</button>
+                  <button type="button" class="chip chip-sm" data-ceiling="96" disabled>96</button>
+                </div>
+
+                <div class="env-dense-row">
+                  <span class="env-dense-label" id="tele-heading">Teleport</span>
+                  <div class="stepper stepper-env stepper-dense" id="tele-stepper">
                     <button type="button" class="stepper-btn stepper-dec" id="tele-dec" aria-label="Decrease teleport height">
                       <svg class="icon stepper-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
                         <path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
@@ -179,17 +129,32 @@
                     </button>
                     <input type="hidden" id="teleport-slider" min="0" max="2" step="0.03125" value="1" tabindex="-1" aria-hidden="true" />
                   </div>
-                  <span class="stepper-range-hint mono" aria-hidden="true">0–2</span>
+                  <div class="env-dense-presets env-dense-presets-inline" role="group" aria-label="Teleport height presets">
+                    <button type="button" class="chip chip-sm" data-tele="0">0</button>
+                    <button type="button" class="chip chip-sm chip-active" data-tele="1">1</button>
+                    <button type="button" class="chip chip-sm" data-tele="2">2</button>
+                  </div>
                 </div>
-                <div class="env-presets" role="group" aria-label="Teleport height presets">
-                  <button type="button" class="chip chip-sm" data-tele="0">0</button>
-                  <button type="button" class="chip chip-sm chip-active" data-tele="1">1</button>
-                  <button type="button" class="chip chip-sm" data-tele="2">2</button>
-                </div>
-                <p class="hint env-hint">Max trigger height above floor · affects jumpbug window</p>
               </div>
-            </details>
-          </div>
+
+              <div class="height-action-row height-action-row-dense">
+                <div class="input-wrap" data-state="idle">
+                  <input id="height-input" type="number" min="0" step="1" value="64" inputmode="numeric" aria-label="Height in feet" aria-describedby="height-validation" />
+                  <span class="input-suffix">ft</span>
+                </div>
+                <button id="compute-btn" type="button" class="btn btn-primary btn-compact btn-compute" disabled aria-describedby="height-validation">
+                  <svg class="icon btn-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M4 4h8v8H4V4z" stroke="currentColor" stroke-width="1.5" fill="none" />
+                    <path d="M7 7l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  Compute
+                </button>
+              </div>
+            </div>
+          </details>
+
+          <p id="height-note" class="hint height-note"></p>
+          <p id="height-validation" class="input-validation hint" role="alert" aria-live="polite"></p>
         </section>
       </div>
 

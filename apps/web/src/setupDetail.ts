@@ -318,25 +318,48 @@ export function bindSetupCards(
   container: HTMLElement,
   lookup: Map<string, SetupLookupEntry>,
 ): void {
-  for (const card of container.querySelectorAll<HTMLElement>(".setup-card")) {
-    const id = card.dataset.setupId;
-    if (!id) continue;
+  container.addEventListener(
+    "toggle",
+    (event) => {
+      const card = event.target as HTMLDetailsElement;
+      if (!card.classList.contains("setup-card-collapsible") || !card.open) return;
 
-    const open = (): void => {
+      for (const other of container.querySelectorAll<HTMLDetailsElement>(".setup-card-collapsible[open]")) {
+        if (other !== card) other.open = false;
+      }
+
+      const id = card.dataset.setupId;
+      if (!id) return;
+
+      const expand = card.querySelector<HTMLElement>("[data-setup-expand]");
+      if (!expand || expand.dataset.loaded === "1") return;
+
       const entry = lookup.get(id);
-      if (entry) openSetupDetail(entry);
-    };
+      if (!entry) return;
 
-    card.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement;
-      if (target.closest(".copy-id-btn")) return;
-      open();
-    });
+      expand.innerHTML =
+        entry.kind === "default"
+          ? formatDefaultDetailHtml(entry.row, entry.context)
+          : formatSetupDetailHtml(entry.setup, entry.context);
+      expand.dataset.loaded = "1";
+      bindCopyScriptButtons(expand);
+    },
+    true,
+  );
 
-    card.addEventListener("keydown", (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      open();
-    });
+  for (const card of container.querySelectorAll<HTMLElement>(".setup-card-collapsible")) {
+    for (const btn of card.querySelectorAll<HTMLButtonElement>(".copy-id-btn")) {
+      btn.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const id = btn.dataset.copy ?? "";
+        const ok = await copyToClipboard(id);
+        const original = btn.textContent;
+        btn.textContent = ok ? "✓" : "✗";
+        setTimeout(() => {
+          btn.textContent = original;
+        }, 1200);
+      });
+    }
   }
 }
