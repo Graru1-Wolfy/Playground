@@ -46,15 +46,7 @@ npm run build:android
 bash scripts/build-android-apk.sh debug
 ```
 
-**Download:** [Latest GitHub Release APK](https://github.com/Graru1-Wolfy/Playground/releases/latest)  
-Direct: [bounce-check-v1.0.7.apk](https://github.com/Graru1-Wolfy/Playground/releases/download/bounce-check-v1.0.7/bounce-check-v1.0.7.apk)
-
-### API server download
-
-**Download:** [bounce-api-v0.6.0.tar.gz](https://github.com/Graru1-Wolfy/Playground/releases/download/bounce-api-v0.6.0/bounce-api-v0.6.0.tar.gz)  
-Run locally: `npm run dev:api` or see `apps/api/README.md`
-
-Output: `apps/web/android/app/build/outputs/apk/release/app-release.apk`
+**Download:** [Latest GitHub Release](https://github.com/Graru1-Wolfy/Playground/releases/latest)
 
 Install on a USB-connected device:
 
@@ -72,7 +64,20 @@ Or download the APK from GitHub Releases and open it on your phone (enable “In
 | Alias | `bouncecheck-dev` |
 | Password | `bouncecheck-dev` |
 
-App id: `com.playground.bouncecheck` · launcher name: **Bounce Check** · version **1.0.7**
+App id: `com.playground.bouncecheck` · launcher name: **Bounce Check**
+
+## Windows (desktop)
+
+Portable **`.exe`** (no installer) via Electron — bundles the web UI and sample setups offline:
+
+```bash
+# From repo root (requires Node 22+; builds on Windows or CI)
+npm run build:windows
+```
+
+Output: `apps/web/release/bounce-check-v<version>.exe`
+
+Download from [GitHub Releases](https://github.com/Graru1-Wolfy/Playground/releases/latest) alongside the Android APK.
 
 ### Same Wi‑Fi (local dev)
 
@@ -92,6 +97,11 @@ After deploy: `https://graru1-wolfy.github.io/Playground/`
 Open in Chrome → install from the menu. Offline caching works via the service worker after the first load.
 
 If the URL returns 404, confirm **Settings → Pages → Build and deployment → Source: GitHub Actions**, then check the **Deploy GitHub Pages** workflow on `main`.
+
+## API server download
+
+**Download:** [bounce-api-v0.6.0.tar.gz](https://github.com/Graru1-Wolfy/Playground/releases/download/bounce-api-v0.6.0/bounce-api-v0.6.0.tar.gz)  
+Run locally: `npm run dev:api` or see `apps/api/README.md`
 
 ## Production build
 

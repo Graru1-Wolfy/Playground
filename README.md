@@ -2,7 +2,7 @@
 
 Monorepo for **TF2 Live Bounce Checker** — instant analytical DEFAULT checks plus ranked precomputed simulation setups for Soldier rocket jumps.
 
-- **Web app:** [GitHub Pages](https://graru1-wolfy.github.io/Playground/) · [Android APK releases](https://github.com/Graru1-Wolfy/Playground/releases)
+- **Web app:** [GitHub Pages](https://graru1-wolfy.github.io/Playground/) · [Android APK](https://github.com/Graru1-Wolfy/Playground/releases) · [Windows `.exe`](https://github.com/Graru1-Wolfy/Playground/releases)
 - **Roadmap:** [ROADMAP.md](./ROADMAP.md)
 - **Web docs:** [apps/web/README.md](./apps/web/README.md)
 - **API docs:** [apps/api/README.md](./apps/api/README.md)
@@ -95,6 +95,7 @@ Run this after editing movement/action pattern cases in `generate_setups.py`.
 |--------|--------|
 | `npm run build:web` | Static site in `apps/web/dist/` |
 | `npm run build:android` | Signed release APK |
+| `npm run build:windows` | Portable Windows `.exe` (Electron) |
 | `npm run package:api` | API release tarball |
 
 CI workflows under `.github/workflows/` run tests on push/PR and publish Pages, API, and Android releases.

@@ -1,0 +1,19 @@
+appId: com.playground.bouncecheck
+productName: Bounce Check
+copyright: Copyright © Playground contributors
+electronVersion: 35.7.5
+directories:
+  output: release
+  buildResources: resources
+files:
+  - dist/**/*
+  - electron/**/*
+  - package.json
+win:
+  target:
+    - portable
+  icon: resources/icon.png
+  artifactName: bounce-check-v${version}.${ext}
+  signAndEditExecutable: false
+portable:
+  artifactName: bounce-check-v${version}.${ext}
