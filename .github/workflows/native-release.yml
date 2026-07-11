@@ -1,5 +1,6 @@
 name: Native App Release
 
+# Publishes native download assets for every qualifying code push.
 on:
   push:
     branches:
