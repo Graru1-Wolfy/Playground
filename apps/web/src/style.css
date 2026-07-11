@@ -832,25 +832,24 @@ body::before {
   font-size: 0.68rem;
 }
 
-/* ─── Env dropdown sliders ──────────────────────────────────────── */
+/* ─── Visible target-card sliders ───────────────────────────────── */
 .env-dropdowns {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
   margin-top: var(--space-3);
   position: relative;
   z-index: 1;
 }
 
-.env-dropdown {
-  flex: 1 1 200px;
+.env-control-card {
   background: rgba(7, 10, 15, 0.58);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 
-.env-dropdown summary {
+.env-control-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -859,24 +858,6 @@ body::before {
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text-secondary);
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-
-.env-dropdown summary::-webkit-details-marker {
-  display: none;
-}
-
-.env-dropdown summary::before {
-  content: "▸";
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  transition: transform var(--transition-fast);
-}
-
-.env-dropdown[open] summary::before {
-  transform: rotate(90deg);
 }
 
 .env-summary-value {
@@ -1622,6 +1603,10 @@ body::before {
     margin-left: 0;
     width: 100%;
     justify-content: flex-start;
+  }
+
+  .env-dropdowns {
+    grid-template-columns: 1fr;
   }
 
   .setup-list-header {

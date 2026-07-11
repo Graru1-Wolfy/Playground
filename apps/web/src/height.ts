@@ -1,7 +1,9 @@
 /** Terminal-velocity height normalization (Fancy-BCheck / bcheck). */
+export const MAX_HAMMER_HEIGHT = 65536;
+
 export function normalizeHeight(input: number): number {
-  if (!Number.isFinite(input) || input < 0) {
-    throw new Error("Height must be a non-negative integer");
+  if (!Number.isFinite(input) || input < 0 || input > MAX_HAMMER_HEIGHT) {
+    throw new Error(`Height must be between 0 and ${MAX_HAMMER_HEIGHT} Hammer units`);
   }
   const n = Math.floor(input);
   if (n > 8000) {

@@ -61,7 +61,7 @@
             <h2 id="height-heading">Target height</h2>
             <div class="height-readout" aria-live="polite">
               <span class="height-readout-value" id="height-display">64</span>
-              <span class="height-readout-unit">ft</span>
+              <span class="height-readout-unit">HU</span>
             </div>
             <p id="height-note" class="hint hero-hint"></p>
           </div>
@@ -71,31 +71,33 @@
               id="height-slider"
               type="range"
               min="0"
-              max="99"
+              max="65536"
               step="1"
               value="64"
-              aria-label="Height slider"
+              aria-label="Target height in Hammer units"
             />
             <div class="input-wrap">
-              <input id="height-input" type="number" min="0" step="1" value="64" inputmode="numeric" aria-label="Height in feet" />
-              <span class="input-suffix">ft</span>
+              <input id="height-input" type="number" min="0" max="65536" step="1" value="64" inputmode="numeric" aria-label="Target height in Hammer units" />
+              <span class="input-suffix">HU</span>
             </div>
             <button id="check-btn" type="button" class="btn btn-primary btn-compact">Check</button>
             <div class="height-presets" role="group" aria-label="Quick height presets">
-              <button type="button" class="chip" data-height="32">32</button>
-              <button type="button" class="chip" data-height="48">48</button>
               <button type="button" class="chip chip-active" data-height="64">64</button>
-              <button type="button" class="chip" data-height="80">80</button>
-              <button type="button" class="chip" data-height="96">96</button>
+              <button type="button" class="chip" data-height="512">512</button>
+              <button type="button" class="chip" data-height="1024">1024</button>
+              <button type="button" class="chip" data-height="4096">4096</button>
+              <button type="button" class="chip" data-height="8192">8192</button>
+              <button type="button" class="chip" data-height="32768">32768</button>
+              <button type="button" class="chip" data-height="65536">65536</button>
             </div>
           </div>
 
           <div class="env-dropdowns">
-            <details class="env-dropdown" id="tele-dropdown">
-              <summary>
+            <div class="env-control-card" id="tele-dropdown">
+              <div class="env-control-head">
                 Teleport height
                 <span class="env-summary-value mono" id="tele-summary">1</span>
-              </summary>
+              </div>
               <div class="env-dropdown-body">
                 <div class="env-slider-row">
                   <input
@@ -116,13 +118,13 @@
                 </div>
                 <p class="hint env-hint">Max trigger height above floor · affects jumpbug window</p>
               </div>
-            </details>
+            </div>
 
-            <details class="env-dropdown" id="ceiling-dropdown">
-              <summary>
+            <div class="env-control-card" id="ceiling-dropdown">
+              <div class="env-control-head">
                 Ceiling gap
                 <span class="env-summary-value mono" id="ceiling-summary">off</span>
-              </summary>
+              </div>
               <div class="env-dropdown-body">
                 <label class="env-toggle">
                   <input id="ceiling-enabled" type="checkbox" />
@@ -133,11 +135,11 @@
                     id="ceiling-slider"
                     type="range"
                     min="63"
-                    max="200"
+                    max="65536"
                     step="1"
                     value="82"
                     disabled
-                    aria-label="Ceiling gap"
+                    aria-label="Ceiling gap in Hammer units"
                   />
                   <output id="ceiling-display" class="mono env-value" for="ceiling-slider">82</output>
                 </div>
@@ -146,9 +148,9 @@
                   <button type="button" class="chip chip-sm" data-ceiling="82" disabled>82</button>
                   <button type="button" class="chip chip-sm" data-ceiling="96" disabled>96</button>
                 </div>
-                <p class="hint env-hint">Distance from floor to ceiling · min 63 ft</p>
+                <p class="hint env-hint">Distance from floor to ceiling · 63–65536 HU</p>
               </div>
-            </details>
+            </div>
           </div>
         </section>
 

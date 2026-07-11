@@ -165,7 +165,7 @@ export function renderSurfaceDiagramSvg(model: SurfaceDiagramModel): string {
     surfaces.push(`
       <g class="surface-dim" aria-hidden="true">
         <line class="surface-dim-line" x1="${heightBot[0]}" y1="${heightBot[1]}" x2="${heightTop[0]}" y2="${heightTop[1]}" />
-        <text class="surface-dim-text" x="${heightTop[0] - 10}" y="${(heightTop[1] + heightBot[1]) / 2 + 3}">${model.verticalHeight} ft</text>
+        <text class="surface-dim-text" x="${heightTop[0] - 10}" y="${(heightTop[1] + heightBot[1]) / 2 + 3}">${model.verticalHeight} HU</text>
       </g>`);
   }
 

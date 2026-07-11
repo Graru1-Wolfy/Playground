@@ -1,7 +1,7 @@
 import { bindBounceEnvControls, readBounceContextFromDom } from "./bounceEnvUi.js";
 import { formatDefaultGrid, runDefaultChecks } from "./defaultCheck.js";
 import { formatSetupCard, setupMatchesFilter } from "./formatSetup.js";
-import { normalizeHeight } from "./height.js";
+import { MAX_HAMMER_HEIGHT, normalizeHeight } from "./height.js";
 import { loadSetupsWithSource } from "./lookup.js";
 import {
   loadWeights,
@@ -23,23 +23,23 @@ let maxDisplayed = 20;
 let filterQuery = "";
 let checkGeneration = 0;
 
-function syncHeightControls(height: number): void {
+function syncHeightControls(targetHeight: number): void {
   const input = el<HTMLInputElement>("height-input");
   const slider = el<HTMLInputElement>("height-slider");
   const display = el<HTMLSpanElement>("height-display");
 
-  input.value = String(height);
-  display.textContent = String(height);
+  input.value = String(targetHeight);
+  display.textContent = String(targetHeight);
 
   const sliderMax = Number(slider.max);
-  if (height <= sliderMax) {
-    slider.value = String(height);
+  if (targetHeight <= sliderMax) {
+    slider.value = String(targetHeight);
   } else {
     slider.value = String(sliderMax);
   }
 
   for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
-    chip.classList.toggle("chip-active", Number(chip.dataset.height) === height);
+    chip.classList.toggle("chip-active", Number(chip.dataset.height) === targetHeight);
   }
 }
 
@@ -206,11 +206,12 @@ async function runCheck(): Promise<void> {
   } catch {
     setLiveStatus("error");
     showElement(el<HTMLDivElement>("setup-loading"), false);
-    el<HTMLParagraphElement>("height-note").textContent = "Enter a valid non-negative height.";
+    el<HTMLParagraphElement>("height-note").textContent = `Enter a height from 0 to ${MAX_HAMMER_HEIGHT} HU.`;
     return;
   }
 
-  syncHeightControls(height);
+  const targetHeight = Math.floor(raw);
+  syncHeightControls(targetHeight);
 
   const ctx = readBounceContextFromDom();
 
@@ -220,9 +221,9 @@ async function runCheck(): Promise<void> {
   if (ctx.ceilingGap !== null) envParts.push(`ceil ${ctx.ceilingGap}`);
   const envNote = envParts.length ? ` · ${envParts.join(" · ")}` : "";
   note.textContent =
-    raw !== height
-      ? `Terminal velocity remap: ${raw} → ${height}${envNote}`
-      : `Lookup height: ${height} · bucket ${Math.floor(height / 100) * 100}–${Math.floor(height / 100) * 100 + 99}${envNote}`;
+    targetHeight !== height
+      ? `Target: ${targetHeight} HU · lookup remap: ${height} HU${envNote}`
+      : `Lookup height: ${height} HU · bucket ${Math.floor(height / 100) * 100}–${Math.floor(height / 100) * 100 + 99}${envNote}`;
 
   el<HTMLDivElement>("default-results").innerHTML = formatDefaultGrid(runDefaultChecks(height, {
     teleheight: ctx.teleheight,
@@ -265,6 +266,8 @@ export function initApp(): void {
 
   const heightInput = el<HTMLInputElement>("height-input");
   const heightSlider = el<HTMLInputElement>("height-slider");
+  heightInput.max = String(MAX_HAMMER_HEIGHT);
+  heightSlider.max = String(MAX_HAMMER_HEIGHT);
 
   el<HTMLButtonElement>("check-btn").addEventListener("click", () => void runCheck());
 

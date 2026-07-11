@@ -66,7 +66,7 @@ export function slopeWallSummary(input: SlopeWallInput, effective: number | null
   if (effective === null) {
     return "No valid bounce height for this slope/wall combo";
   }
-  const parts = [`Effective height: ${effective.toFixed(1)} ft`];
+  const parts = [`Effective height: ${effective.toFixed(1)} HU`];
   if (input.slopeDeg > 0.5) parts.push(`slope ${Math.round(input.slopeDeg)}°`);
   if (input.hasWall) parts.push("wall");
   return parts.join(" · ");

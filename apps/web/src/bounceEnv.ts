@@ -1,3 +1,5 @@
+import { MAX_HAMMER_HEIGHT } from "./height.js";
+
 export interface BounceContext {
   teleheight: number;
   /** When set, Ceilingsmash uses this gap instead of floor height. */
@@ -12,7 +14,7 @@ export const TELEHEIGHT_MIN = 0;
 export const TELEHEIGHT_MAX = 2;
 export const TELEHEIGHT_STEP = 0.03125;
 export const CEILING_GAP_MIN = 63;
-export const CEILING_GAP_MAX = 200;
+export const CEILING_GAP_MAX = MAX_HAMMER_HEIGHT;
 
 export function loadBounceContext(): BounceContext {
   const teleRaw = localStorage.getItem(STORAGE_TELE);
