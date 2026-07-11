@@ -934,6 +934,25 @@ body::before {
 }
 
 /* ─── DEFAULT table ─────────────────────────────────────────────── */
+.default-sections {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.default-section {
+  min-width: 0;
+}
+
+.default-section-title {
+  margin: 0 0 var(--space-2);
+  color: var(--text-secondary);
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .default-table {
   width: 100%;
   border-collapse: collapse;
@@ -960,6 +979,16 @@ body::before {
   text-align: left;
   font-weight: 500;
   color: var(--text-secondary);
+}
+
+.default-angle-table {
+  min-width: 720px;
+}
+
+.default-grid,
+.default-section {
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .default-label {
