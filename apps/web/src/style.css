@@ -824,6 +824,45 @@ body::before {
   border-top: 1px solid var(--border-subtle);
 }
 
+.simulation-panel {
+  border: none;
+  background: transparent;
+}
+
+.simulation-summary {
+  align-items: flex-start;
+}
+
+.simulation-summary-head {
+  flex: 1;
+  min-width: 0;
+}
+
+.simulation-summary-head h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.simulation-summary-head .badge {
+  margin-top: 0.2rem;
+}
+
+.simulation-summary-head .env-compact-summary {
+  margin-top: 0.15rem;
+}
+
+.simulation-body {
+  padding-top: 0.45rem;
+}
+
+.simulation-body .simulation-head-bar {
+  margin-bottom: 0.35rem;
+}
+
 .hero-simulation {
   margin-top: 0;
   padding-top: 0;
@@ -1026,6 +1065,10 @@ body::before {
   transform: rotate(90deg);
 }
 
+.collapsible-panel:not([open]) > .collapsible-body {
+  display: none;
+}
+
 .collapsible-body {
   padding: 0 0.55rem 0.5rem;
   border-top: 1px solid var(--border-subtle);
@@ -1033,6 +1076,11 @@ body::before {
 
 .height-env-summary {
   align-items: flex-start;
+}
+
+.height-summary-actions {
+  flex-shrink: 0;
+  align-self: center;
 }
 
 .height-env-summary .height-panel-head {
@@ -1802,6 +1850,10 @@ body::before {
 
 .setup-card-collapsible[open] .setup-card-chevron {
   transform: rotate(90deg);
+}
+
+.setup-card-collapsible:not([open]) > .setup-card-expand {
+  display: none;
 }
 
 .setup-card-expand {

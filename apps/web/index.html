@@ -75,6 +75,15 @@
                   </button>
                 </div>
               </div>
+              <div class="height-summary-actions">
+                <button id="compute-btn" type="button" class="btn btn-primary btn-compact btn-compute" disabled aria-describedby="height-validation">
+                  <svg class="icon btn-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M4 4h8v8H4V4z" stroke="currentColor" stroke-width="1.5" fill="none" />
+                    <path d="M7 7l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                  Compute
+                </button>
+              </div>
               <span class="collapsible-chevron" aria-hidden="true">
                 <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </span>
@@ -137,34 +146,36 @@
                 </div>
               </div>
 
+              </div>
+
               <div class="height-action-row height-action-row-dense">
                 <div class="input-wrap" data-state="idle">
                   <input id="height-input" type="number" min="0" step="1" value="64" inputmode="numeric" aria-label="Height in feet" aria-describedby="height-validation" />
                   <span class="input-suffix">ft</span>
                 </div>
-                <button id="compute-btn" type="button" class="btn btn-primary btn-compact btn-compute" disabled aria-describedby="height-validation">
-                  <svg class="icon btn-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path d="M4 4h8v8H4V4z" stroke="currentColor" stroke-width="1.5" fill="none" />
-                    <path d="M7 7l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                  </svg>
-                  Compute
-                </button>
               </div>
             </div>
           </details>
 
-          <p id="height-note" class="hint height-note"></p>
           <p id="height-validation" class="input-validation hint" role="alert" aria-live="polite"></p>
+          <p id="height-note" class="hint height-note"></p>
         </section>
       </div>
 
       <section id="hero-results" class="hero-results panel panel-hero" aria-label="Simulation results">
-          <div class="hero-simulation safe-sub" aria-labelledby="simulation-heading">
+        <details class="collapsible-panel simulation-panel" id="simulation-panel">
+          <summary class="collapsible-summary simulation-summary">
+            <div class="simulation-summary-head">
+              <h2 id="simulation-heading">Simulation setups</h2>
+              <span class="badge badge-simulation">DEFAULT + Simulation</span>
+              <p id="setup-summary-compact" class="env-compact-summary mono">Tap Compute to load setups</p>
+            </div>
+            <span class="collapsible-chevron" aria-hidden="true">
+              <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </summary>
+          <div class="collapsible-body simulation-body safe-sub">
             <div class="simulation-head-bar">
-              <div class="hero-simulation-head">
-                <h2 id="simulation-heading">Simulation setups</h2>
-                <span class="badge badge-simulation">DEFAULT + Simulation</span>
-              </div>
               <div class="setup-toolbar setup-toolbar-hero">
                 <label class="toolbar-field toolbar-compact">
                   Show
@@ -178,7 +189,7 @@
               </div>
             </div>
             <div id="setup-filters" class="setup-filters" aria-label="Simulation filters"></div>
-            <p id="setup-status" class="hint setup-status"></p>
+            <p id="setup-status" class="hint setup-status sr-only" aria-hidden="true"></p>
 
             <div id="setup-loading" class="loading-state hidden" aria-hidden="true">
               <div class="skeleton-card"></div>
@@ -195,13 +206,14 @@
               <span>Rkt</span>
               <span>Speeds · tags</span>
               <span>Score</span>
-            <span>ID</span>
-            <span aria-hidden="true"></span>
-            <span aria-hidden="true"></span>
-          </div>
+              <span>ID</span>
+              <span aria-hidden="true"></span>
+              <span aria-hidden="true"></span>
+            </div>
 
             <ol id="setup-results" class="setup-list"></ol>
           </div>
+        </details>
       </section>
 
       <main class="main-grid">

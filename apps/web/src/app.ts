@@ -290,6 +290,7 @@ async function rerankAndDisplay(): Promise<void> {
 
   if (total === 0 && shownDefaults === 0) {
     status.textContent = "No simulation data for this height";
+    el<HTMLElement>("setup-summary-compact").textContent = "No setups for this height";
     showElement(el<HTMLDivElement>("setup-empty"), true);
     showElement(el<HTMLDivElement>("setup-loading"), false);
     showElement(el<HTMLDivElement>("setup-list-header"), false);
@@ -300,7 +301,9 @@ async function rerankAndDisplay(): Promise<void> {
     const sourceNote =
       setupDataSource === "sample" ? " · sample data" : setupDataSource === "generated" ? "" : "";
     const defaultNote = shownDefaults > 0 ? `${shownDefaults} DEFAULT · ` : "";
-    status.textContent = `${defaultNote}${shownSim}/${filtered}${filterNote} · ${total} simulation setups${sourceNote}`;
+    const statusText = `${defaultNote}${shownSim}/${filtered}${filterNote} · ${total} simulation setups${sourceNote}`;
+    status.textContent = statusText;
+    el<HTMLElement>("setup-summary-compact").textContent = statusText;
   }
 }
 
@@ -396,6 +399,7 @@ async function runCompute(): Promise<void> {
   setLiveStatus("loading");
   showElement(el<HTMLDivElement>("setup-loading"), true);
   showElement(el<HTMLDivElement>("setup-empty"), false);
+  el<HTMLElement>("setup-summary-compact").textContent = "Loading setups…";
 
   const raw = guard.rawHeight ?? guard.height;
   const height = guard.height;
@@ -473,7 +477,12 @@ export function initApp(): void {
 
   updateComputeGuard();
 
-  el<HTMLButtonElement>("compute-btn").addEventListener("click", () => void runCompute());
+  el<HTMLButtonElement>("compute-btn").addEventListener("click", (event) => {
+    event.stopPropagation();
+    void runCompute().then(() => {
+      el<HTMLDetailsElement>("simulation-panel").open = true;
+    });
+  });
 
   heightInput.addEventListener("input", () => {
     debouncedPreview();
@@ -559,6 +568,12 @@ export function initApp(): void {
 
   for (const btn of document.querySelectorAll<HTMLButtonElement>("#height-env-panel summary button")) {
     btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+  }
+
+  for (const ctrl of document.querySelectorAll<HTMLElement>("#simulation-panel summary select, #simulation-panel summary button")) {
+    ctrl.addEventListener("click", (event) => {
       event.stopPropagation();
     });
   }
