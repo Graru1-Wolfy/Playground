@@ -6,7 +6,11 @@ import {
   type DefaultDetailContext,
   defaultSetupId,
 } from "./defaultCheck.js";
-import { formatSetupCard, setupMatchesFilter } from "./formatSetup.js";
+import { formatSetupCard } from "./formatSetup.js";
+import {
+  renderSetupFilterGroups,
+  setupMatchesActiveFilters,
+} from "./setupFilters.js";
 import { guardComputeInput } from "./inputGuard.js";
 import { loadSetupsWithSource } from "./lookup.js";
 import {
@@ -45,7 +49,7 @@ let defaultDetailContext: DefaultDetailContext = {
 };
 let setupDataSource: "generated" | "sample" | "none" = "none";
 let maxDisplayed = 20;
-let filterQuery = "";
+let activeFilterIds = new Set<string>();
 let checkGeneration = 0;
 let lastComputedHeight: number | null = null;
 
@@ -214,11 +218,32 @@ function renderPreferences(): void {
   }
 }
 
+function renderSetupFilters(): void {
+  const container = el<HTMLDivElement>("setup-filters");
+  container.innerHTML = renderSetupFilterGroups(activeFilterIds);
+
+  for (const chip of container.querySelectorAll<HTMLButtonElement>(".setup-filter-chip")) {
+    chip.addEventListener("click", () => {
+      const id = chip.dataset.filterId;
+      if (!id) return;
+
+      if (activeFilterIds.has(id)) {
+        activeFilterIds.delete(id);
+      } else {
+        activeFilterIds.add(id);
+      }
+
+      renderSetupFilters();
+      void rerankAndDisplay();
+    });
+  }
+}
+
 async function rerankAndDisplay(): Promise<void> {
   const weights = loadWeights();
   const scored = [...currentSetups]
     .map((setup) => ({ setup, score: scoreSetup(setup, weights) }))
-    .filter(({ setup }) => setupMatchesFilter(setup, filterQuery))
+    .filter(({ setup }) => setupMatchesActiveFilters(setup, activeFilterIds))
     .sort((a, b) => b.score - a.score);
 
   const maxScore = scored.length > 0 ? scored[0]!.score : 1;
@@ -228,7 +253,7 @@ async function rerankAndDisplay(): Promise<void> {
   const limit = maxDisplayed;
   const slice = scored.slice(0, limit);
   const defaultCount = currentDefaultRows.length;
-  const showDefaults = !filterQuery.trim();
+  const showDefaults = activeFilterIds.size === 0;
 
   if (showDefaults) {
     currentDefaultRows.forEach((row, index) => {
@@ -265,7 +290,7 @@ async function rerankAndDisplay(): Promise<void> {
   } else {
     showElement(el<HTMLDivElement>("setup-empty"), false);
     showElement(el<HTMLDivElement>("setup-list-header"), true);
-    const filterNote = filterQuery.trim() ? ` · ${filtered} match` : "";
+    const filterNote = activeFilterIds.size > 0 ? ` · ${filtered} match` : "";
     const sourceNote =
       setupDataSource === "sample" ? " · sample data" : setupDataSource === "generated" ? "" : "";
     const defaultNote = shownDefaults > 0 ? `${shownDefaults} DEFAULT · ` : "";
@@ -515,10 +540,7 @@ export function initApp(): void {
     void rerankAndDisplay();
   });
 
-  el<HTMLInputElement>("setup-filter").addEventListener("input", (e) => {
-    filterQuery = (e.target as HTMLInputElement).value;
-    void rerankAndDisplay();
-  });
+  renderSetupFilters();
 
   el<HTMLButtonElement>("reset-prefs").addEventListener("click", () => {
     resetWeights();

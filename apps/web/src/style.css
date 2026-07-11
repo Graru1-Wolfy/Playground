@@ -1529,6 +1529,44 @@ body::before {
   margin-left: auto;
 }
 
+.setup-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: var(--space-2);
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.setup-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.setup-filter-group-label {
+  flex: 0 0 4.25rem;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.setup-filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  flex: 1 1 auto;
+}
+
+.setup-filter-chip {
+  min-height: 1.55rem;
+}
+
 .toolbar-field {
   display: flex;
   align-items: center;

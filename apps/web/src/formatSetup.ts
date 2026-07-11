@@ -87,18 +87,3 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
 export function formatSetupSummary(setup: DecodedSetup, score: number): string {
   return formatSetupCard(setup, { rank: 0, score, maxScore: score || 1 });
 }
-
-export function setupMatchesFilter(setup: DecodedSetup, query: string): boolean {
-  if (!query.trim()) return true;
-  const q = query.trim().toLowerCase();
-  const launcher = launcherName(setup.launcher, setup.num_rockets).toLowerCase();
-  const tagLabels = getSetupTags(setup, 20).map((t) => t.label);
-  const haystack = [
-    launcher,
-    String(setup.num_rockets),
-    setup.ID.toString(),
-    ...tagLabels,
-    ...setup.speeds.map((s) => String(Math.round(s))),
-  ].join(" ");
-  return haystack.toLowerCase().includes(q);
-}
