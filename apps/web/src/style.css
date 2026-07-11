@@ -1247,6 +1247,7 @@ body::before {
   gap: 0.35rem;
   min-width: 0;
   overflow: hidden;
+  flex-wrap: wrap;
 }
 
 .setup-meta {
@@ -1259,6 +1260,46 @@ body::before {
   gap: 0.2rem;
   overflow: hidden;
   flex-wrap: wrap;
+}
+
+.setup-steps {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.22rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.setup-step-label {
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.setup-step-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 7.5rem;
+  padding: 0.08rem 0.34rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: 0.62rem;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setup-step-move {
+  background: rgba(96, 165, 250, 0.1);
+  color: #93c5fd;
+}
+
+.setup-step-action {
+  background: rgba(232, 117, 42, 0.1);
+  color: var(--accent-bright);
 }
 
 .tag {
@@ -1456,6 +1497,76 @@ body::before {
 .detail-stat-row strong {
   color: var(--accent-bright);
   font-family: var(--font-mono);
+}
+
+.rocket-state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.rocket-state-card {
+  display: grid;
+  gap: 0.36rem;
+  padding: 0.6rem;
+  border: 1px solid rgba(117, 137, 166, 0.14);
+  border-radius: var(--radius-sm);
+  background: rgba(7, 10, 15, 0.38);
+}
+
+.rocket-state-card strong {
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 0.82rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.rocket-speed,
+.rocket-state-card > span {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+}
+
+.rocket-state-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+}
+
+.rocket-crouch-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.15rem 0.42rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.rocket-crouch-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.rocket-crouched {
+  background: rgba(167, 139, 250, 0.12);
+  border-color: rgba(167, 139, 250, 0.3);
+  color: #c4b5fd;
+}
+
+.rocket-uncrouched {
+  background: rgba(74, 222, 128, 0.1);
+  border-color: rgba(74, 222, 128, 0.28);
+  color: #86efac;
 }
 
 /* ─── Loading & empty ───────────────────────────────────────────── */

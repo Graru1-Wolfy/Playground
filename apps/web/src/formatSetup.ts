@@ -10,6 +10,49 @@ const LAUNCHER_COLORS: Record<string, string> = {
   Any: "launcher-any",
 };
 
+const MOVE_STEPS: Record<number, string[]> = {
+  0: ["No move"],
+  1: ["Forward"],
+  2: ["Back"],
+  3: ["Left"],
+  4: ["Right"],
+  5: ["Forward", "Left"],
+  6: ["Forward", "Right"],
+  7: ["Back", "Left"],
+  8: ["Back", "Right"],
+  9: ["Moveup", "Forward"],
+  10: ["Moveup", "Back"],
+  11: ["Moveup", "Left"],
+  12: ["Moveup", "Right"],
+  13: ["Moveup", "Forward", "Left"],
+  14: ["Moveup", "Forward", "Right"],
+  15: ["Moveup", "Back", "Left"],
+  16: ["Moveup", "Back", "Right"],
+  17: ["Forward", "Left strafe"],
+  18: ["Forward", "Right strafe"],
+  19: ["Back", "Left strafe"],
+  20: ["Back", "Right strafe"],
+  21: ["Moveup", "Forward", "Left strafe"],
+  22: ["Moveup", "Forward", "Right strafe"],
+  23: ["Moveup", "Back", "Left strafe"],
+  24: ["Moveup", "Back", "Right strafe"],
+  25: ["Moveup", "Left strafe"],
+  26: ["Moveup", "Right strafe"],
+};
+
+const ACTION_STEPS: Record<number, string[]> = {
+  0: ["Fire"],
+  1: ["Start crouched", "Fire"],
+  2: ["Fire", "Jump"],
+  3: ["Fire", "Jump", "Hold duck"],
+  4: ["Fire", "Jump", "Duck tap"],
+  5: ["Shotgun swap", "Fire", "Jump"],
+  6: ["Shotgun swap", "Fire", "Jump", "Hold duck"],
+  7: ["Shotgun swap", "Fire", "Jump", "Duck tap"],
+  8: ["Prefire 1 tick", "Jump", "Duck tap"],
+  9: ["Prefire 2 ticks", "Jump", "Duck tap"],
+};
+
 export function launcherName(code: number, numRockets: number): string {
   if (numRockets === 0) return "Any";
   return LAUNCHERS[code] ?? `Launcher ${code}`;
@@ -29,6 +72,64 @@ function flagSummary(flag: number): { label: string; tone: string }[] {
 function renderTags(tags: { label: string; tone: string }[]): string {
   if (!tags.length) return "";
   return tags.map((t) => `<span class="tag ${t.tone}">${escapeHtml(t.label)}</span>`).join("");
+}
+
+function setupSteps(setup: DecodedSetup): { move: string[]; action: string[] } {
+  return {
+    move: MOVE_STEPS[setup.start_moving] ?? [`Move ${setup.start_moving}`],
+    action: ACTION_STEPS[setup.start_action] ?? [`Action ${setup.start_action}`],
+  };
+}
+
+function renderStepChips(setup: DecodedSetup): string {
+  const steps = setupSteps(setup);
+  return [
+    `<span class="setup-step-label">Move</span>`,
+    ...steps.move.map((step) => `<span class="setup-step-chip setup-step-move">${escapeHtml(step)}</span>`),
+    `<span class="setup-step-label">Action</span>`,
+    ...steps.action.map((step) => `<span class="setup-step-chip setup-step-action">${escapeHtml(step)}</span>`),
+  ].join("");
+}
+
+function isCrouched(flag: number, bit: number): boolean {
+  return ((flag >> bit) & 1) === 1;
+}
+
+function crouchStatePill(crouched: boolean): string {
+  return `<span class="rocket-crouch-pill ${crouched ? "rocket-crouched" : "rocket-uncrouched"}">
+    <span class="rocket-crouch-dot" aria-hidden="true"></span>
+    ${crouched ? "Crouched" : "Uncrouched"}
+  </span>`;
+}
+
+function renderRocketStates(setup: DecodedSetup): string {
+  const rocketCount = Math.max(0, setup.num_rockets);
+  if (rocketCount === 0) {
+    const crouched = isCrouched(setup.rocket_fired_crouched_flag, 0);
+    return `<div class="rocket-state-grid">
+      <div class="rocket-state-card">
+        <strong>Start state</strong>
+        <span>Setup uses no rockets</span>
+        ${crouchStatePill(crouched)}
+      </div>
+    </div>`;
+  }
+
+  const cards = Array.from({ length: rocketCount }, (_, index) => {
+    const bit = index + 1;
+    const firedCrouched = isCrouched(setup.rocket_fired_crouched_flag, bit);
+    const hitCrouched = isCrouched(setup.rocket_hit_crouched_flag, bit);
+    const speed = setup.speeds[bit];
+    const speedText = Number.isFinite(speed) ? `${speed.toFixed(0)} u/s after hit` : "Speed unavailable";
+    return `<div class="rocket-state-card">
+      <strong>Rocket ${index + 1}</strong>
+      <span class="rocket-speed mono">${escapeHtml(speedText)}</span>
+      <div class="rocket-state-row"><span>Fired</span>${crouchStatePill(firedCrouched)}</div>
+      <div class="rocket-state-row"><span>Hit</span>${crouchStatePill(hitCrouched)}</div>
+    </div>`;
+  }).join("");
+
+  return `<div class="rocket-state-grid">${cards}</div>`;
 }
 
 function renderFlagPills(setup: DecodedSetup): string {
@@ -76,6 +177,7 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
   const idStr = setup.ID.toString();
 
   const metaParts = [
+    `<span class="setup-steps">${renderStepChips(setup)}</span>`,
     speeds.length ? `<span class="setup-meta mono">${speeds.join("/")} u/s</span>` : "",
     allTags.length ? `<span class="setup-tags">${renderTags(allTags)}</span>` : "",
   ].filter(Boolean);
@@ -120,6 +222,10 @@ export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions):
             <div class="detail-card detail-card-wide">
               <span class="detail-label">State flags</span>
               <div class="detail-pill-row">${renderFlagPills(setup)}</div>
+            </div>
+            <div class="detail-card detail-card-wide">
+              <span class="detail-label">Rocket crouch states</span>
+              ${renderRocketStates(setup)}
             </div>
             <div class="detail-card detail-card-wide">
               <span class="detail-label">Tick delays</span>
