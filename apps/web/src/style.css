@@ -1718,12 +1718,20 @@ body::before {
   margin: 0;
 }
 
+.empty-command-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
 .empty-state-link,
 .empty-state-code {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: var(--space-2);
   padding: 0.36rem 0.7rem;
   border: 1px solid rgba(96, 165, 250, 0.32);
   border-radius: 999px;
@@ -1738,6 +1746,10 @@ body::before {
   font-size: 0.72rem;
   white-space: normal;
   word-break: break-word;
+}
+
+.empty-state-action {
+  cursor: pointer;
 }
 
 .empty-state-link:hover {

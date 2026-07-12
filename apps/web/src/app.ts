@@ -57,8 +57,12 @@ function previewHeightControls(rawHeight: number): void {
 }
 
 function rankedSetupGenerationCallout(height: number): string {
+  const command = `npm run generate:ranked-setups -- ${height}`;
   return `No ranked simulation setups for ${height} HU. <span class="hint">Generate this height locally, then publish the generated archive.</span>
-    <code class="empty-state-code">npm run generate:ranked-setups -- ${height}</code>`;
+    <span class="empty-command-row">
+      <code class="empty-state-code">${command}</code>
+      <button type="button" class="empty-state-link empty-state-action" data-copy-command="${command}">Copy npm command</button>
+    </span>`;
 }
 
 function loadLiveCompute(): boolean {
@@ -431,6 +435,20 @@ export function initApp(): void {
     el<HTMLButtonElement>("clear-filter").disabled = true;
     input.focus();
     void rerankAndDisplay();
+  });
+
+  el<HTMLDivElement>("setup-empty").addEventListener("click", async (event) => {
+    const button = (event.target as HTMLElement).closest("[data-copy-command]") as HTMLButtonElement | null;
+    if (!button) return;
+    const command = button.dataset.copyCommand ?? "";
+    const original = button.textContent;
+    const ok = await copyToClipboard(command);
+    button.textContent = ok ? "Copied command" : "Copy failed";
+    button.classList.toggle("copy-success", ok);
+    setTimeout(() => {
+      button.textContent = original;
+      button.classList.remove("copy-success");
+    }, 1500);
   });
 
   el<HTMLButtonElement>("expand-setups").addEventListener("click", () => {
