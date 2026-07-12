@@ -13,6 +13,7 @@
     "dist:win": "npm run dist:win -w @playground/web",
     "android:sync": "npm run android:sync -w @playground/web",
     "android:apk": "npm run android:apk -w @playground/web",
+    "generate:ranked-setups": "bash scripts/generate-ranked-setups.sh",
     "dev:web": "npm run dev -w @playground/web",
     "dev:web:android": "npm run dev:host -w @playground/web",
     "android:url": "bash scripts/android-dev-url.sh",
