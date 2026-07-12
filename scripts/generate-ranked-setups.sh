@@ -23,7 +23,7 @@ Environment:
   OUT_DIR=artifacts/generated-setups
   DATA_ROOT=data/generated
   PRECOMPUTE_ROOT=data/precompute
-  PUBLISH_RELEASE=false     Local runner cannot publish; use GitHub workflow
+  PUBLISH_RELEASE=false     Local runner cannot publish release assets
   SKIP_INSTALL=false         Set true to skip editable Python package install
 
 Output:
@@ -49,7 +49,7 @@ if ! [[ "${MAX_HEIGHTS}" =~ ^[0-9]+$ ]] || [[ "${MAX_HEIGHTS}" -lt 1 ]]; then
   exit 1
 fi
 if [[ "${PUBLISH_RELEASE}" == "true" ]]; then
-  echo "Local generation does not publish releases. Use .github/workflows/publish-generated-heights.yml for publishing." >&2
+  echo "Local generation does not publish releases. Upload the generated archive manually if a release asset is needed." >&2
   exit 1
 fi
 

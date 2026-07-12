@@ -24,8 +24,6 @@ let filterQuery = "";
 let checkGeneration = 0;
 let liveCompute = true;
 
-const GENERATE_SETUPS_WORKFLOW_URL =
-  "https://github.com/graru1-wolfy/playground/actions/workflows/publish-generated-heights.yml";
 const LIVE_COMPUTE_STORAGE = "bounce-live-compute";
 
 function syncHeightControls(targetHeight: number): void {
@@ -59,8 +57,8 @@ function previewHeightControls(rawHeight: number): void {
 }
 
 function rankedSetupGenerationCallout(height: number): string {
-  return `No ranked simulation setups for ${height} HU. <span class="hint">Generate this height on demand with the GitHub workflow.</span>
-    <a class="empty-state-link" href="${GENERATE_SETUPS_WORKFLOW_URL}" target="_blank" rel="noreferrer">Generate ranked setups</a>`;
+  return `No ranked simulation setups for ${height} HU. <span class="hint">Generate this height locally, then publish the generated archive.</span>
+    <code class="empty-state-code">npm run generate:ranked-setups -- ${height}</code>`;
 }
 
 function loadLiveCompute(): boolean {
