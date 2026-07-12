@@ -1,6 +1,26 @@
 const { app, BrowserWindow, shell } = require("electron");
 const path = require("node:path");
 
+const installerArgs = new Set([
+  "--squirrel-install",
+  "--squirrel-updated",
+  "--squirrel-uninstall",
+  "--squirrel-obsolete",
+  "--updated",
+]);
+
+if (process.argv.some((arg) => installerArgs.has(arg))) {
+  app.quit();
+  process.exit(0);
+}
+
+const singleInstanceLock = app.requestSingleInstanceLock();
+
+if (!singleInstanceLock) {
+  app.quit();
+  process.exit(0);
+}
+
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -27,6 +47,16 @@ const createWindow = () => {
 
 app.whenReady().then(() => {
   createWindow();
+
+  app.on("second-instance", () => {
+    const [mainWindow] = BrowserWindow.getAllWindows();
+    if (!mainWindow) {
+      createWindow();
+      return;
+    }
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
