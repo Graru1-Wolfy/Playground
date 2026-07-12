@@ -23,6 +23,9 @@ let maxDisplayed = 20;
 let filterQuery = "";
 let checkGeneration = 0;
 
+const GENERATE_SETUPS_WORKFLOW_URL =
+  "https://github.com/graru1-wolfy/playground/actions/workflows/publish-generated-heights.yml";
+
 function syncHeightControls(targetHeight: number): void {
   const input = el<HTMLInputElement>("height-input");
   const slider = el<HTMLInputElement>("height-slider");
@@ -41,6 +44,11 @@ function syncHeightControls(targetHeight: number): void {
   for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
     chip.classList.toggle("chip-active", Number(chip.dataset.height) === targetHeight);
   }
+}
+
+function rankedSetupGenerationCallout(height: number): string {
+  return `No ranked simulation setups for ${height} HU. <span class="hint">Generate this height on demand with the GitHub workflow.</span>
+    <a class="empty-state-link" href="${GENERATE_SETUPS_WORKFLOW_URL}" target="_blank" rel="noreferrer">Generate ranked setups</a>`;
 }
 
 function renderPreferences(): void {
@@ -137,7 +145,7 @@ async function rerankAndDisplay(): Promise<void> {
   if (total === 0) {
     status.textContent = "No precomputed data for this height";
     el<HTMLParagraphElement>("setup-empty-message").innerHTML =
-      `No precomputed setups for this height <span class="hint">(MVP: 0–99)</span>`;
+      rankedSetupGenerationCallout(Number(el<HTMLInputElement>("height-input").value));
     showElement(el<HTMLDivElement>("setup-empty"), true);
     showElement(el<HTMLDivElement>("setup-loading"), false);
     showElement(el<HTMLDivElement>("setup-list-header"), false);

@@ -1,10 +1,10 @@
-name: Publish Generated Heights
+name: Generate Ranked Simulation Setups
 
 on:
   workflow_dispatch:
     inputs:
       height_range:
-        description: "Height or inclusive range to generate, e.g. 64, 0-99, or 100:199"
+        description: "Ranked setup height or inclusive range, e.g. 64, 0-99, or 100:199"
         required: true
         default: "0-99"
       workers:
@@ -16,7 +16,7 @@ on:
         required: true
         default: "100"
       publish_release:
-        description: "Publish generated data tarball to a GitHub Release"
+        description: "Publish ranked setup data tarball to a GitHub Release"
         required: true
         type: boolean
         default: true
@@ -90,12 +90,12 @@ jobs:
 
           range_slug="${start}to${end}"
           release_tag="bounce-data-${range_slug}-run-${GITHUB_RUN_NUMBER}"
-          artifact_name="bounce-data-${range_slug}.tar.gz"
+          artifact_name="ranked-simulation-setups-${range_slug}.tar.gz"
 
           echo "range_slug=${range_slug}" >> "${GITHUB_OUTPUT}"
           echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
           echo "artifact_name=${artifact_name}" >> "${GITHUB_OUTPUT}"
-          echo "Generating ${count} height(s): ${start}-${end}"
+          echo "Generating ranked simulation setup data for ${count} height(s): ${start}-${end}"
 
       - name: Install generators
         run: |
@@ -110,7 +110,7 @@ jobs:
           restore-keys: |
             engine-sim-precompute-
 
-      - name: Generate requested heights
+      - name: Generate ranked simulation setups
         env:
           HEIGHT_RANGE: ${{ inputs.height_range }}
           WORKERS: ${{ inputs.workers }}
@@ -123,7 +123,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: bounce-data-${{ steps.meta.outputs.range_slug }}
+          name: ranked-simulation-setups-${{ steps.meta.outputs.range_slug }}
           path: ${{ steps.meta.outputs.artifact_name }}
           retention-days: 30
 
@@ -132,9 +132,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.meta.outputs.release_tag }}
-          name: Generated Bounce Data ${{ steps.meta.outputs.range_slug }}
+          name: Ranked Simulation Setups ${{ steps.meta.outputs.range_slug }}
           body: |
-            Generated bounce setup data for heights `${{ inputs.height_range }}`.
+            Generated ranked simulation setup data for heights `${{ inputs.height_range }}`.
 
             Extract this archive at the repository root so files land under `data/generated/`.
           prerelease: true

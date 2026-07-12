@@ -1643,6 +1643,25 @@ body::before {
   margin: 0;
 }
 
+.empty-state-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--space-2);
+  padding: 0.36rem 0.7rem;
+  border: 1px solid rgba(96, 165, 250, 0.32);
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.1);
+  color: #93c5fd;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.empty-state-link:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #bfdbfe;
+}
+
 /* ─── Preferences drawer ────────────────────────────────────────── */
 .prefs-drawer {
   position: fixed;
