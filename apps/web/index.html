@@ -65,10 +65,18 @@
               <span class="height-readout-value" id="height-display">64</span>
               <span class="height-readout-unit">HU</span>
             </div>
+            <label class="live-compute-toggle">
+              <input id="live-compute-toggle" type="checkbox" checked />
+              <span>Live compute</span>
+            </label>
             <p id="height-note" class="hint hero-hint"></p>
           </div>
 
           <div class="hero-controls">
+            <div class="snap-controls" aria-label="Height snap controls">
+              <button type="button" class="snap-btn" data-height-nudge="-100">−100</button>
+              <button type="button" class="snap-btn" data-height-nudge="100">+100</button>
+            </div>
             <input
               id="height-slider"
               type="range"
@@ -133,6 +141,10 @@
                   <span>Use ceiling gap for Ceilingsmash</span>
                 </label>
                 <div class="env-slider-row">
+                  <div class="snap-controls snap-controls-sm" aria-label="Ceiling snap controls">
+                    <button type="button" class="snap-btn" data-ceiling-nudge="-100" disabled>−100</button>
+                    <button type="button" class="snap-btn" data-ceiling-nudge="100" disabled>+100</button>
+                  </div>
                   <input
                     id="ceiling-slider"
                     type="range"

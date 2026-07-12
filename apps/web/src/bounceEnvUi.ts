@@ -54,6 +54,9 @@ export function syncCeilingDisplay(value: number, enabled: boolean): void {
   el<HTMLSpanElement>("ceiling-summary").textContent = enabled ? String(value) : "off";
   const disabled = !enabled;
   el<HTMLInputElement>("ceiling-slider").disabled = disabled;
+  for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-ceiling-nudge]")) {
+    btn.disabled = disabled;
+  }
   for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-ceiling]")) {
     btn.disabled = disabled;
     btn.classList.toggle("chip-active", !disabled && Number(btn.dataset.ceiling) === value);
@@ -101,6 +104,21 @@ export function bindBounceEnvControls(onChange: () => void): void {
     persistBounceContext(readBounceContextFromDom());
     onChange();
   });
+
+  for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-ceiling-nudge]")) {
+    btn.addEventListener("click", () => {
+      if (btn.disabled) return;
+      const delta = Number(btn.dataset.ceilingNudge ?? "0");
+      const slider = el<HTMLInputElement>("ceiling-slider");
+      const current = Number(slider.value);
+      const gap = clampCeiling(snapHammerSlider(current + delta));
+      slider.value = String(gap);
+      el<HTMLInputElement>("ceiling-enabled").checked = true;
+      syncCeilingDisplay(gap, true);
+      persistBounceContext(readBounceContextFromDom());
+      onChange();
+    });
+  }
 
   for (const btn of document.querySelectorAll<HTMLButtonElement>(".chip[data-ceiling]")) {
     btn.addEventListener("click", () => {

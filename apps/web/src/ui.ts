@@ -20,13 +20,14 @@ export function escapeHtml(text: string): string {
     .replaceAll('"', "&quot;");
 }
 
-export function setLiveStatus(state: "idle" | "loading" | "ready" | "error"): void {
+export function setLiveStatus(state: "idle" | "loading" | "ready" | "pending" | "error"): void {
   const pill = el<HTMLSpanElement>("live-status");
   pill.dataset.state = state;
   const labels: Record<typeof state, string> = {
     idle: "Idle",
     loading: "Checking…",
     ready: "Live",
+    pending: "Pending",
     error: "Error",
   };
   const label = pill.querySelector(".live-label");

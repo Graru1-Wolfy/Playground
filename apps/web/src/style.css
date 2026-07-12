@@ -227,6 +227,24 @@ body::before {
   animation: pulse-live 0.8s ease-in-out infinite;
 }
 
+.live-pill[data-state="pending"] {
+  border-color: rgba(251, 191, 36, 0.34);
+  color: #fbbf24;
+}
+
+.live-pill[data-state="pending"] .live-dot {
+  background: #fbbf24;
+}
+
+.live-pill[data-state="error"] {
+  border-color: rgba(248, 113, 113, 0.34);
+  color: #fca5a5;
+}
+
+.live-pill[data-state="error"] .live-dot {
+  background: #f87171;
+}
+
 @keyframes pulse-live {
   50% {
     opacity: 0.5;
@@ -720,6 +738,25 @@ body::before {
   margin-left: auto;
 }
 
+.live-compute-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.24rem 0.55rem;
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 999px;
+  background: rgba(74, 222, 128, 0.08);
+  color: #bbf7d0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+}
+
+.live-compute-toggle input {
+  accent-color: var(--bounce-yes);
+}
+
 .height-readout {
   display: flex;
   align-items: baseline;
@@ -746,6 +783,44 @@ body::before {
   flex-wrap: wrap;
   position: relative;
   z-index: 1;
+}
+
+.snap-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.snap-btn {
+  min-height: 2.05rem;
+  padding: 0.34rem 0.55rem;
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.1);
+  color: #bfdbfe;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.snap-btn:hover:not(:disabled) {
+  border-color: rgba(96, 165, 250, 0.48);
+  background: rgba(96, 165, 250, 0.16);
+  color: #dbeafe;
+}
+
+.snap-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.snap-controls-sm .snap-btn {
+  min-height: 1.8rem;
+  padding-inline: 0.45rem;
+  font-size: 0.66rem;
 }
 
 #height-slider {
@@ -1859,6 +1934,39 @@ body::before {
 
   .hero-hint {
     margin-left: 0;
+  }
+
+  .live-compute-toggle {
+    order: 3;
+  }
+
+  .snap-controls {
+    width: 100%;
+  }
+
+  .snap-btn {
+    flex: 1;
+    min-height: 2.55rem;
+  }
+
+  #height-slider,
+  .env-slider-row input[type="range"] {
+    min-height: 2.4rem;
+  }
+
+  #height-slider::-webkit-slider-thumb,
+  .env-slider-row input[type="range"]::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  #height-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  .env-slider-row {
+    flex-wrap: wrap;
   }
 
   .height-presets {

@@ -22,9 +22,11 @@ let setupDataSource: "generated" | "sample" | "none" = "none";
 let maxDisplayed = 20;
 let filterQuery = "";
 let checkGeneration = 0;
+let liveCompute = true;
 
 const GENERATE_SETUPS_WORKFLOW_URL =
   "https://github.com/graru1-wolfy/playground/actions/workflows/publish-generated-heights.yml";
+const LIVE_COMPUTE_STORAGE = "bounce-live-compute";
 
 function syncHeightControls(targetHeight: number): void {
   const input = el<HTMLInputElement>("height-input");
@@ -46,9 +48,27 @@ function syncHeightControls(targetHeight: number): void {
   }
 }
 
+function previewHeightControls(rawHeight: number): void {
+  if (!Number.isFinite(rawHeight)) return;
+  const targetHeight = Math.min(MAX_HAMMER_HEIGHT, Math.max(0, Math.floor(rawHeight)));
+  el<HTMLSpanElement>("height-display").textContent = String(targetHeight);
+  el<HTMLInputElement>("height-slider").value = String(snapHammerSlider(targetHeight));
+  for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
+    chip.classList.toggle("chip-active", Number(chip.dataset.height) === targetHeight);
+  }
+}
+
 function rankedSetupGenerationCallout(height: number): string {
   return `No ranked simulation setups for ${height} HU. <span class="hint">Generate this height on demand with the GitHub workflow.</span>
     <a class="empty-state-link" href="${GENERATE_SETUPS_WORKFLOW_URL}" target="_blank" rel="noreferrer">Generate ranked setups</a>`;
+}
+
+function loadLiveCompute(): boolean {
+  return localStorage.getItem(LIVE_COMPUTE_STORAGE) !== "0";
+}
+
+function saveLiveCompute(enabled: boolean): void {
+  localStorage.setItem(LIVE_COMPUTE_STORAGE, enabled ? "1" : "0");
 }
 
 function renderPreferences(): void {
@@ -312,19 +332,51 @@ function closePrefs(): void {
 
 const debouncedCheck = debounce(() => void runCheck(), 280);
 
+function requestCompute(): void {
+  if (liveCompute) {
+    debouncedCheck();
+  } else {
+    setLiveStatus("pending");
+  }
+}
+
+function setLiveCompute(enabled: boolean): void {
+  liveCompute = enabled;
+  saveLiveCompute(enabled);
+  el<HTMLInputElement>("live-compute-toggle").checked = enabled;
+  if (enabled) {
+    void runCheck();
+  } else {
+    setLiveStatus("pending");
+  }
+}
+
+function setTargetHeightFromControl(value: number, snap: boolean): void {
+  const height = snap ? snapHammerSlider(value) : Math.min(MAX_HAMMER_HEIGHT, Math.max(0, Math.floor(value)));
+  el<HTMLInputElement>("height-input").value = String(height);
+  syncHeightControls(height);
+  requestCompute();
+}
+
 export function initApp(): void {
   renderPreferences();
 
   const heightInput = el<HTMLInputElement>("height-input");
   const heightSlider = el<HTMLInputElement>("height-slider");
+  liveCompute = loadLiveCompute();
+  el<HTMLInputElement>("live-compute-toggle").checked = liveCompute;
   heightInput.max = String(MAX_HAMMER_HEIGHT);
   heightSlider.max = String(MAX_HAMMER_HEIGHT);
   heightSlider.step = String(HAMMER_SLIDER_STEP);
 
   el<HTMLButtonElement>("check-btn").addEventListener("click", () => void runCheck());
+  el<HTMLInputElement>("live-compute-toggle").addEventListener("change", (e) => {
+    setLiveCompute((e.target as HTMLInputElement).checked);
+  });
 
   heightInput.addEventListener("input", () => {
-    debouncedCheck();
+    previewHeightControls(Number(heightInput.value));
+    requestCompute();
   });
 
   heightInput.addEventListener("keydown", (e) => {
@@ -333,15 +385,21 @@ export function initApp(): void {
 
   heightSlider.addEventListener("input", () => {
     const snapped = snapHammerSlider(Number(heightSlider.value));
-    heightSlider.value = String(snapped);
-    heightInput.value = String(snapped);
-    debouncedCheck();
+    setTargetHeightFromControl(snapped, true);
   });
 
   for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
     chip.addEventListener("click", () => {
       heightInput.value = chip.dataset.height ?? "64";
       void runCheck();
+    });
+  }
+
+  for (const btn of document.querySelectorAll<HTMLButtonElement>("[data-height-nudge]")) {
+    btn.addEventListener("click", () => {
+      const delta = Number(btn.dataset.heightNudge ?? "0");
+      const current = Number(heightInput.value);
+      setTargetHeightFromControl(current + delta, true);
     });
   }
 
@@ -354,7 +412,7 @@ export function initApp(): void {
   });
 
   bindBounceEnvControls(() => {
-    debouncedCheck();
+    requestCompute();
   });
 
   el<HTMLSelectElement>("page-size").addEventListener("change", (e) => {
