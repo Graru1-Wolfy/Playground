@@ -1,6 +1,6 @@
 {
   "name": "@playground/web",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "description": "TF2 live bounce checker with native desktop and Android builds.",
   "private": true,
   "type": "module",
