@@ -1,0 +1,142 @@
+name: Publish Generated Heights
+
+on:
+  workflow_dispatch:
+    inputs:
+      height_range:
+        description: "Height or inclusive range to generate, e.g. 64, 0-99, or 100:199"
+        required: true
+        default: "0-99"
+      workers:
+        description: "Parallel engine-sim workers"
+        required: true
+        default: "2"
+      max_heights:
+        description: "Safety limit for generated height count"
+        required: true
+        default: "100"
+      publish_release:
+        description: "Publish generated data tarball to a GitHub Release"
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-generated-heights-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    outputs:
+      range_slug: ${{ steps.meta.outputs.range_slug }}
+      release_tag: ${{ steps.meta.outputs.release_tag }}
+      artifact_name: ${{ steps.meta.outputs.artifact_name }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - id: meta
+        name: Validate inputs
+        shell: bash
+        env:
+          HEIGHT_RANGE: ${{ inputs.height_range }}
+          WORKERS: ${{ inputs.workers }}
+          MAX_HEIGHTS: ${{ inputs.max_heights }}
+        run: |
+          set -euo pipefail
+
+          height_range="${HEIGHT_RANGE}"
+          workers="${WORKERS}"
+          max_heights="${MAX_HEIGHTS}"
+
+          if ! [[ "${height_range}" =~ ^[0-9]+([:-][0-9]+)?$ ]]; then
+            echo "height_range must be a number or inclusive range like 0-99" >&2
+            exit 1
+          fi
+          if ! [[ "${workers}" =~ ^[0-9]+$ ]] || [ "${workers}" -lt 1 ]; then
+            echo "workers must be a positive integer" >&2
+            exit 1
+          fi
+          if ! [[ "${max_heights}" =~ ^[0-9]+$ ]] || [ "${max_heights}" -lt 1 ]; then
+            echo "max_heights must be a positive integer" >&2
+            exit 1
+          fi
+
+          normalized="${height_range/:/-}"
+          if [[ "${normalized}" == *-* ]]; then
+            start="${normalized%-*}"
+            end="${normalized#*-}"
+          else
+            start="${normalized}"
+            end="${normalized}"
+          fi
+          if [ "${end}" -lt "${start}" ]; then
+            echo "height range end must be >= start" >&2
+            exit 1
+          fi
+
+          count=$((end - start + 1))
+          if [ "${count}" -gt "${max_heights}" ]; then
+            echo "requested ${count} heights, above max_heights=${max_heights}" >&2
+            exit 1
+          fi
+
+          range_slug="${start}to${end}"
+          release_tag="bounce-data-${range_slug}-run-${GITHUB_RUN_NUMBER}"
+          artifact_name="bounce-data-${range_slug}.tar.gz"
+
+          echo "range_slug=${range_slug}" >> "${GITHUB_OUTPUT}"
+          echo "release_tag=${release_tag}" >> "${GITHUB_OUTPUT}"
+          echo "artifact_name=${artifact_name}" >> "${GITHUB_OUTPUT}"
+          echo "Generating ${count} height(s): ${start}-${end}"
+
+      - name: Install generators
+        run: |
+          pip install -e packages/tf2sim
+          pip install -e packages/engine-sim
+
+      - name: Restore simulation precompute cache
+        uses: actions/cache@v4
+        with:
+          path: data/precompute
+          key: engine-sim-precompute-${{ steps.meta.outputs.range_slug }}-v1
+          restore-keys: |
+            engine-sim-precompute-
+
+      - name: Generate requested heights
+        env:
+          HEIGHT_RANGE: ${{ inputs.height_range }}
+          WORKERS: ${{ inputs.workers }}
+        run: |
+          engine-sim --range "${HEIGHT_RANGE}" --workers "${WORKERS}"
+
+      - name: Package generated data
+        run: |
+          tar -czf "${{ steps.meta.outputs.artifact_name }}" -C data generated
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bounce-data-${{ steps.meta.outputs.range_slug }}
+          path: ${{ steps.meta.outputs.artifact_name }}
+          retention-days: 30
+
+      - name: Publish generated data release
+        if: ${{ inputs.publish_release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.release_tag }}
+          name: Generated Bounce Data ${{ steps.meta.outputs.range_slug }}
+          body: |
+            Generated bounce setup data for heights `${{ inputs.height_range }}`.
+
+            Extract this archive at the repository root so files land under `data/generated/`.
+          prerelease: true
+          make_latest: false
+          files: ${{ steps.meta.outputs.artifact_name }}
