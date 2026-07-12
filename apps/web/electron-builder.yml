@@ -1,5 +1,7 @@
 appId: com.playground.tf2bouncechecker
 productName: TF2 Bounce Checker
+detectUpdateChannel: false
+publish: []
 directories:
   output: release/electron
 files:
@@ -13,6 +15,12 @@ win:
         - x64
   artifactName: TF2-Bounce-Checker-Setup-${version}.${ext}
 nsis:
+  guid: com.playground.tf2bouncechecker
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
+  allowElevation: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: TF2 Bounce Checker
+  deleteAppDataOnUninstall: false

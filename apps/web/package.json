@@ -1,15 +1,22 @@
 {
   "name": "@playground/web",
   "version": "1.0.24",
+  "description": "TF2 live bounce checker with native desktop and Android builds.",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
+  "author": "Graru1-Wolfy",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Graru1-Wolfy/Playground.git",
+    "directory": "apps/web"
+  },
   "scripts": {
     "dev": "vite",
     "dev:host": "vite --host",
     "build": "tsc && vite build",
     "build:native": "node scripts/build-native-web.mjs",
-    "dist:win": "npm run build:native && electron-builder --win --config electron-builder.yml",
+    "dist:win": "npm run build:native && electron-builder --win --config electron-builder.yml --publish never",
     "android:sync": "npm run build:native && cap sync android",
     "android:apk": "npm run android:sync && cd android && ./gradlew assembleDebug",
     "preview": "vite preview",
