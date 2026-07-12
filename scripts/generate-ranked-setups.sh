@@ -24,6 +24,7 @@ Environment:
   DATA_ROOT=data/generated
   PRECOMPUTE_ROOT=data/precompute
   PUBLISH_RELEASE=false     Local runner cannot publish; use GitHub workflow
+  SKIP_INSTALL=false         Set true to skip editable Python package install
 
 Output:
   <OUT_DIR>/ranked-simulation-setups-<start>to<end>.tar.gz
@@ -76,17 +77,22 @@ RANGE_SLUG="${START}to${END}"
 ARCHIVE_NAME="ranked-simulation-setups-${RANGE_SLUG}.tar.gz"
 ARCHIVE_PATH="${OUT_DIR}/${ARCHIVE_NAME}"
 
-if ! command -v engine-sim >/dev/null 2>&1; then
-  echo "engine-sim is not installed. Run:" >&2
-  echo "  pip install -e packages/tf2sim" >&2
-  echo "  pip install -e packages/engine-sim" >&2
-  exit 1
+ENGINE_SIM_CMD=(python3 -m engine_sim.cli)
+
+if ! python3 -c "import engine_sim.cli" >/dev/null 2>&1; then
+  if [[ "${SKIP_INSTALL:-false}" == "true" ]]; then
+    echo "engine_sim is not importable and SKIP_INSTALL=true" >&2
+    exit 1
+  fi
+  echo "Installing local Python generators..."
+  python3 -m pip install -e packages/tf2sim
+  python3 -m pip install -e packages/engine-sim
 fi
 
 mkdir -p "${OUT_DIR}" "${DATA_ROOT}" "${PRECOMPUTE_ROOT}"
 
 echo "Generating ranked simulation setup data for ${COUNT} height(s): ${START}-${END}"
-engine-sim \
+"${ENGINE_SIM_CMD[@]}" \
   --range "${HEIGHT_RANGE}" \
   --workers "${WORKERS}" \
   --data-root "${DATA_ROOT}" \
