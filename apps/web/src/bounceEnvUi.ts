@@ -6,6 +6,7 @@ import {
   saveBounceContext,
   type BounceContext,
 } from "./bounceEnv.js";
+import { snapHammerSlider } from "./height.js";
 import { el } from "./ui.js";
 
 export function readBounceContextFromDom(): BounceContext {
@@ -26,7 +27,7 @@ export function syncBounceContextToDom(ctx = loadBounceContext()): void {
   const ceilingSlider = el<HTMLInputElement>("ceiling-slider");
   ceilingOn.checked = ctx.ceilingGap !== null;
   const gap = ctx.ceilingGap ?? 82;
-  ceilingSlider.value = String(gap);
+  ceilingSlider.value = String(snapHammerSlider(gap));
   ceilingSlider.disabled = ctx.ceilingGap === null;
   syncCeilingDisplay(gap, ctx.ceilingGap !== null);
 
@@ -92,7 +93,9 @@ export function bindBounceEnvControls(onChange: () => void): void {
   });
 
   el<HTMLInputElement>("ceiling-slider").addEventListener("input", () => {
-    const gap = clampCeiling(Number(el<HTMLInputElement>("ceiling-slider").value));
+    const slider = el<HTMLInputElement>("ceiling-slider");
+    const gap = clampCeiling(snapHammerSlider(Number(slider.value)));
+    slider.value = String(gap);
     syncCeilingDisplay(gap, true);
     el<HTMLInputElement>("ceiling-enabled").checked = true;
     persistBounceContext(readBounceContextFromDom());

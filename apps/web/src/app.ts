@@ -1,7 +1,7 @@
 import { bindBounceEnvControls, readBounceContextFromDom } from "./bounceEnvUi.js";
 import { formatDefaultGrid, runDefaultChecks } from "./defaultCheck.js";
 import { formatSetupCard, setupMatchesFilter } from "./formatSetup.js";
-import { MAX_HAMMER_HEIGHT, normalizeHeight } from "./height.js";
+import { HAMMER_SLIDER_STEP, MAX_HAMMER_HEIGHT, normalizeHeight, snapHammerSlider } from "./height.js";
 import { loadSetupsWithSource } from "./lookup.js";
 import {
   loadWeights,
@@ -33,7 +33,7 @@ function syncHeightControls(targetHeight: number): void {
 
   const sliderMax = Number(slider.max);
   if (targetHeight <= sliderMax) {
-    slider.value = String(targetHeight);
+    slider.value = String(snapHammerSlider(targetHeight));
   } else {
     slider.value = String(sliderMax);
   }
@@ -311,6 +311,7 @@ export function initApp(): void {
   const heightSlider = el<HTMLInputElement>("height-slider");
   heightInput.max = String(MAX_HAMMER_HEIGHT);
   heightSlider.max = String(MAX_HAMMER_HEIGHT);
+  heightSlider.step = String(HAMMER_SLIDER_STEP);
 
   el<HTMLButtonElement>("check-btn").addEventListener("click", () => void runCheck());
 
@@ -323,7 +324,9 @@ export function initApp(): void {
   });
 
   heightSlider.addEventListener("input", () => {
-    heightInput.value = heightSlider.value;
+    const snapped = snapHammerSlider(Number(heightSlider.value));
+    heightSlider.value = String(snapped);
+    heightInput.value = String(snapped);
     debouncedCheck();
   });
 

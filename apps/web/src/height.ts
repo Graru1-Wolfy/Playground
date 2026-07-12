@@ -1,5 +1,12 @@
 /** Terminal-velocity height normalization (Fancy-BCheck / bcheck). */
 export const MAX_HAMMER_HEIGHT = 65536;
+export const HAMMER_SLIDER_STEP = 100;
+
+export function snapHammerSlider(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  const snapped = Math.round(value / HAMMER_SLIDER_STEP) * HAMMER_SLIDER_STEP;
+  return Math.min(MAX_HAMMER_HEIGHT, Math.max(0, snapped));
+}
 
 export function normalizeHeight(input: number): number {
   if (!Number.isFinite(input) || input < 0 || input > MAX_HAMMER_HEIGHT) {

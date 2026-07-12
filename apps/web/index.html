@@ -74,9 +74,9 @@
               type="range"
               min="0"
               max="65536"
-              step="1"
+              step="100"
               value="64"
-              aria-label="Target height in Hammer units"
+              aria-label="Target height in Hammer units, snapping by 100"
             />
             <div class="input-wrap">
               <input id="height-input" type="number" min="0" max="65536" step="1" value="64" inputmode="numeric" aria-label="Target height in Hammer units" />
@@ -136,12 +136,12 @@
                   <input
                     id="ceiling-slider"
                     type="range"
-                    min="63"
+                    min="100"
                     max="65536"
-                    step="1"
-                    value="82"
+                    step="100"
+                    value="100"
                     disabled
-                    aria-label="Ceiling gap in Hammer units"
+                    aria-label="Ceiling gap in Hammer units, snapping by 100"
                   />
                   <output id="ceiling-display" class="mono env-value" for="ceiling-slider">82</output>
                 </div>
@@ -150,7 +150,7 @@
                   <button type="button" class="chip chip-sm" data-ceiling="82" disabled>82</button>
                   <button type="button" class="chip chip-sm" data-ceiling="96" disabled>96</button>
                 </div>
-                <p class="hint env-hint">Distance from floor to ceiling · 63–65536 HU</p>
+                <p class="hint env-hint">Distance from floor to ceiling · slider snaps by 100 HU</p>
               </div>
             </div>
           </div>
