@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 def nativeVersionCode = (project.findProperty("androidVersionCode") ?: System.getenv("GITHUB_RUN_NUMBER") ?: "1").toString().toInteger()
-def nativeVersionName = (project.findProperty("androidVersionName") ?: "1.0.24").toString()
+def nativeVersionName = (project.findProperty("androidVersionName") ?: "1.0.25").toString()
 
 android {
     namespace = "com.playground.tf2bouncechecker"
