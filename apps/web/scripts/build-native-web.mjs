@@ -1,4 +1,13 @@
 import { spawnSync } from "node:child_process";
+import { cpSync, existsSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const webRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(webRoot, "../..");
+const generatedDataRoot = path.join(repoRoot, "data", "generated");
+const distDataRoot = path.join(webRoot, "dist", "data");
 
 const env = {
   ...process.env,
@@ -19,3 +28,8 @@ function run(command, args) {
 
 run("tsc", []);
 run("vite", ["build"]);
+
+if (existsSync(generatedDataRoot)) {
+  mkdirSync(distDataRoot, { recursive: true });
+  cpSync(generatedDataRoot, distDataRoot, { recursive: true });
+}

@@ -2,8 +2,8 @@
 :root {
   color-scheme: dark;
 
-  --font-display: "Barlow Condensed", "Segoe UI", system-ui, sans-serif;
-  --font-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Arial Narrow", "Roboto Condensed", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Segoe UI", Roboto, Arial, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "Cascadia Code", ui-monospace, monospace;
 
   --bg-deep: #070a0f;
