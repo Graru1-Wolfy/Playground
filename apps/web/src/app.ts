@@ -58,7 +58,13 @@ function previewHeightControls(rawHeight: number): void {
 
 function rankedSetupGenerationCallout(height: number): string {
   const command = `npm run generate:ranked-setups -- ${height}`;
-  return `No ranked simulation setups for ${height} HU. <span class="hint">Generate this height locally, then publish the generated archive.</span>
+  if (window.bounceNative?.canGenerateRankedSetups) {
+    return `No ranked simulation setups for ${height} HU. <span class="hint">Generate this height inside the desktop app.</span>
+      <span class="empty-command-row">
+        <button type="button" class="empty-state-link empty-state-action" data-generate-height="${height}">Generate in app</button>
+      </span>`;
+  }
+  return `No ranked simulation setups for ${height} HU. <span class="hint">APK/browser builds cannot run the Python generator locally. Generate this height on a machine, then publish the archive.</span>
     <span class="empty-command-row">
       <code class="empty-state-code">${command}</code>
       <button type="button" class="empty-state-link empty-state-action" data-copy-command="${command}">Copy npm command</button>
@@ -438,17 +444,47 @@ export function initApp(): void {
   });
 
   el<HTMLDivElement>("setup-empty").addEventListener("click", async (event) => {
-    const button = (event.target as HTMLElement).closest("[data-copy-command]") as HTMLButtonElement | null;
-    if (!button) return;
-    const command = button.dataset.copyCommand ?? "";
-    const original = button.textContent;
-    const ok = await copyToClipboard(command);
-    button.textContent = ok ? "Copied command" : "Copy failed";
-    button.classList.toggle("copy-success", ok);
+    const commandButton = (event.target as HTMLElement).closest("[data-copy-command]") as HTMLButtonElement | null;
+    if (commandButton) {
+      const command = commandButton.dataset.copyCommand ?? "";
+      const original = commandButton.textContent;
+      const ok = await copyToClipboard(command);
+      commandButton.textContent = ok ? "Copied command" : "Copy failed";
+      commandButton.classList.toggle("copy-success", ok);
+      setTimeout(() => {
+        commandButton.textContent = original;
+        commandButton.classList.remove("copy-success");
+      }, 1500);
+      return;
+    }
+
+    const generateButton = (event.target as HTMLElement).closest("[data-generate-height]") as HTMLButtonElement | null;
+    if (!generateButton || !window.bounceNative?.generateRankedSetups) return;
+    const height = generateButton.dataset.generateHeight ?? "";
+    const original = generateButton.textContent;
+    generateButton.disabled = true;
+    generateButton.textContent = "Generating...";
+    setLiveStatus("loading");
+    const result = await window.bounceNative.generateRankedSetups(height);
+    if (result.ok) {
+      generateButton.textContent = "Generated";
+      await runCheck();
+    } else {
+      generateButton.textContent = result.error ?? "Generation failed";
+      setLiveStatus("error");
+    }
     setTimeout(() => {
-      button.textContent = original;
-      button.classList.remove("copy-success");
-    }, 1500);
+      generateButton.disabled = false;
+      generateButton.textContent = original;
+    }, 2500);
+  });
+
+  el<HTMLDivElement>("setup-empty").addEventListener("keydown", async (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const button = (event.target as HTMLElement).closest("button") as HTMLButtonElement | null;
+    if (!button) return;
+    event.preventDefault();
+    button.click();
   });
 
   el<HTMLButtonElement>("expand-setups").addEventListener("click", () => {

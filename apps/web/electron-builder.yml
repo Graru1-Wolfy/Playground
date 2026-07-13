@@ -8,6 +8,17 @@ files:
   - dist/**/*
   - electron/**/*
   - package.json
+extraResources:
+  - from: ../../packages/engine-sim
+    to: packages/engine-sim
+    filter:
+      - src/**/*
+      - pyproject.toml
+  - from: ../../packages/tf2sim
+    to: packages/tf2sim
+    filter:
+      - src/**/*
+      - pyproject.toml
 win:
   target:
     - target: nsis

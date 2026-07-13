@@ -1749,7 +1749,13 @@ body::before {
 }
 
 .empty-state-action {
+  font: inherit;
   cursor: pointer;
+}
+
+.empty-state-action:disabled {
+  opacity: 0.65;
+  cursor: progress;
 }
 
 .empty-state-link:hover {
