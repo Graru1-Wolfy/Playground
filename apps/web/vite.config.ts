@@ -65,7 +65,7 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,svg,bin,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,svg,bin,gz,woff2}"],
         navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/^\/data\//],
       },
