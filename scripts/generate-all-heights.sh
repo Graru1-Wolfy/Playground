@@ -2,9 +2,10 @@
 #
 # Generate all bounce setup tables from height 0 up to max fall speed (terminal velocity).
 #
-# "Max fall speed" is reached at height 6999; heights above that repeat periodically and are
-# remapped client-side (see apps/web/src/height.ts, `> 8000` modulo 105). Generating 0-6999
-# therefore covers every distinct landing case.
+# Max fall speed is the Source vertical-velocity clamp sv_maxvelocity = 3500 u/s. A fall from
+# rest first reaches it at height ~7674 (tick 292 under sv_gravity=800). Heights above that
+# land at max fall speed and repeat periodically, so generating 0-7674 covers every distinct
+# landing case.
 #
 # The run is RESUMABLE and safe to interrupt / re-run:
 #   - heights whose .bin.gz already exists are skipped (`--skip-existing`), and
@@ -24,7 +25,7 @@
 set -euo pipefail
 
 START="${1:-0}"
-END="${2:-6999}"
+END="${2:-7674}"   # 7674 = height at which a fall from rest reaches max fall speed (3500 u/s)
 WORKERS="${3:-$(nproc 2>/dev/null || echo 1)}"
 
 cd "$(dirname "$0")/.."

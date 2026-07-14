@@ -34,6 +34,17 @@ def test_to_max_fallspeed_covers_full_range(monkeypatch) -> None:
     assert len(generated) == MAX_FALLSPEED_HEIGHT + 1
 
 
+def test_max_fallspeed_height_matches_physics() -> None:
+    """MAX_FALLSPEED_HEIGHT is the drop where a fall from rest hits max_vel (3500 u/s)."""
+    import math
+
+    from tf2sim.analytical import get_max_vel_tick_from_start_z_vel, get_z_from_tick
+
+    tick = get_max_vel_tick_from_start_z_vel(0.0)
+    drop = -get_z_from_tick(0.0, tick, 0.0)
+    assert MAX_FALLSPEED_HEIGHT == math.ceil(drop)
+
+
 def test_skip_existing_filters_generated(monkeypatch, tmp_path) -> None:
     generated = _record_heights(monkeypatch)
     # Pre-create outputs for heights 0-2 only.

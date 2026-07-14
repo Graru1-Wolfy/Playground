@@ -29,17 +29,19 @@ Override paths with `BOUNCE_DATA_ROOT` and `BOUNCE_PRECOMPUTE_ROOT`.
 
 ### All heights up to max fall speed (terminal velocity)
 
-Heights `0–6999` cover every distinct landing case — above height 6999 the player has
-reached terminal velocity (max fall speed) and results repeat periodically (remapped
-client-side in `apps/web/src/height.ts`).
+Max fall speed is the Source vertical-velocity clamp `sv_maxvelocity = 3500 u/s`
+(`tf2sim.max_vel`). Falling from rest under `sv_gravity = 800` (12 u/s per 0.015 s tick),
+the player first hits that clamp at tick 292 after dropping ~7673.8 u, so heights `0–7674`
+cover every distinct landing case — above 7674 the fall is all max-speed ticks and results
+repeat periodically.
 
 ```bash
-# Full range 0–6999 via the CLI (resumable)
+# Full range 0–7674 via the CLI (resumable)
 engine-sim --to-max-fallspeed --workers 4 --skip-existing
 
-# Convenience wrapper: generates 0–6999 and writes per-bucket manifest.json files.
+# Convenience wrapper: generates 0–7674 and writes per-bucket manifest.json files.
 # Resumable and safe to interrupt/re-run. Args: [START] [END] [WORKERS].
-scripts/generate-all-heights.sh              # 0–6999, workers = nproc
+scripts/generate-all-heights.sh              # 0–7674, workers = nproc
 scripts/generate-all-heights.sh 0 99 4       # just the first bucket
 ```
 

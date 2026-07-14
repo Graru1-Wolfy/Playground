@@ -9,11 +9,13 @@ from concurrent.futures import ProcessPoolExecutor
 from engine_sim.generate_setups import find_bounce_setups_for_height
 from engine_sim.paths import DEFAULT_DATA_ROOT, DEFAULT_PRECOMPUTE_ROOT, setup_data_path
 
-# Last distinct height before the player reaches terminal velocity (max fall speed).
-# Heights above this repeat periodically and are remapped client-side; see
-# apps/web/src/height.ts (`> 8000` modulo 105). Generating 0..MAX_FALLSPEED_HEIGHT
-# therefore covers every distinct landing case.
-MAX_FALLSPEED_HEIGHT = 6999
+# Height at which a fall from rest first reaches max fall speed (terminal velocity).
+# Max fall speed is the Source vertical-velocity clamp sv_maxvelocity = 3500 u/s
+# (tf2sim.max_vel). Under sv_gravity = 800 (12 u/s per 0.015 s tick) the clamp is first
+# hit at tick 292 after dropping ~7673.8 u. Heights above this land at max fall speed and
+# repeat periodically, so generating 0..MAX_FALLSPEED_HEIGHT covers every distinct landing
+# case. Cross-checked against tf2sim physics in tests/test_cli_range.py.
+MAX_FALLSPEED_HEIGHT = 7674
 
 
 def _generate_height(args: tuple[int, str, str]) -> None:
