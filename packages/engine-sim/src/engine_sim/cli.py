@@ -7,7 +7,13 @@ import argparse
 from concurrent.futures import ProcessPoolExecutor
 
 from engine_sim.generate_setups import find_bounce_setups_for_height
-from engine_sim.paths import DEFAULT_DATA_ROOT, DEFAULT_PRECOMPUTE_ROOT
+from engine_sim.paths import DEFAULT_DATA_ROOT, DEFAULT_PRECOMPUTE_ROOT, setup_data_path
+
+# Last distinct height before the player reaches terminal velocity (max fall speed).
+# Heights above this repeat periodically and are remapped client-side; see
+# apps/web/src/height.ts (`> 8000` modulo 105). Generating 0..MAX_FALLSPEED_HEIGHT
+# therefore covers every distinct landing case.
+MAX_FALLSPEED_HEIGHT = 6999
 
 
 def _generate_height(args: tuple[int, str, str]) -> None:
@@ -45,6 +51,19 @@ def main(argv: list[str] | None = None) -> int:
         help="Height range inclusive, e.g. 0-99 or 100:199",
     )
     parser.add_argument(
+        "--to-max-fallspeed",
+        action="store_true",
+        help=(
+            "Generate all heights up to max fall speed (0-%d), overriding "
+            "--height/--range" % MAX_FALLSPEED_HEIGHT
+        ),
+    )
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip heights whose output .bin.gz already exists (resumable runs)",
+    )
+    parser.add_argument(
         "--workers",
         type=int,
         default=1,
@@ -64,7 +83,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if args.height is not None:
+    if args.to_max_fallspeed:
+        start, end = 0, MAX_FALLSPEED_HEIGHT
+    elif args.height is not None:
         start = end = args.height
     else:
         start, end = _parse_range(args.range)
@@ -72,6 +93,16 @@ def main(argv: list[str] | None = None) -> int:
     heights = list(range(start, end + 1))
     if not heights:
         parser.error("empty height range")
+
+    if args.skip_existing:
+        pending = [h for h in heights if not setup_data_path(h, args.data_root).is_file()]
+        skipped = len(heights) - len(pending)
+        if skipped:
+            print(f"Skipping {skipped} already-generated height(s)")
+        heights = pending
+        if not heights:
+            print("All heights in range already generated; nothing to do.")
+            return 0
 
     data_root_s = str(args.data_root)
     precompute_root_s = str(args.precompute_root)
