@@ -10,18 +10,11 @@
 # The script auto-installs any missing packages, companion APKs, Cursor Agent,
 # storage symlinks, and launcher scripts. Safe to re-run.
 #
-# Usage (inside Termux):
+# Usage (inside Termux) — one-liner:
+#   curl -fsSL https://graru1-wolfy.github.io/Playground/setup-termux-x11-cursor.sh | bash
 #
-# This repo is private — unauthenticated raw.githubusercontent.com URLs return 404.
-# Create a fine-grained PAT with Contents: Read, then run:
-#
-#   curl -fsSL -H "Authorization: Bearer YOUR_GITHUB_PAT" https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh | bash
-#
-# Or set the token once:
-#   export GITHUB_TOKEN=YOUR_GITHUB_PAT
-#   curl -fsSL -H "Authorization: Bearer $GITHUB_TOKEN" https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh | bash
-#
-# PAT: https://github.com/settings/personal-access-tokens/new (Repository access: Playground, Contents: Read)
+# (Hosted on GitHub Pages because the repo is private and raw.githubusercontent.com returns 404.)
+# Enable Pages once if needed: repo Settings → Pages → Build and deployment → GitHub Actions.
 # Options:
 #   --skip-x11        Skip X11 / desktop packages
 #   --skip-cursor     Skip Cursor Agent CLI install

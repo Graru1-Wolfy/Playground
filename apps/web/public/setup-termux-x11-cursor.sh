@@ -1,0 +1,1 @@
+../../../scripts/setup-termux-x11-cursor.sh

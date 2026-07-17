@@ -7,6 +7,7 @@ on:
       - "apps/web/**"
       - "packages/engine-fast/**"
       - "packages/schema/**"
+      - "scripts/setup-termux-x11-cursor.sh"
       - "scripts/prepare-web-data.sh"
       - "scripts/write-web-sample-data.py"
       - ".github/workflows/deploy-pages.yml"
