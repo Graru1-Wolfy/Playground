@@ -81,10 +81,41 @@ require_termux() {
 }
 
 apk_installed() {
-  if pm path "$1" >/dev/null 2>&1; then
+  local package_id="$1"
+
+  # Reliable on Android 11+ when pm/cmd package queries are restricted.
+  if [[ -d "/data/data/${package_id}" ]]; then
     return 0
   fi
-  pm list packages "$1" 2>/dev/null | grep -qF "package:$1"
+
+  if pm path "$package_id" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  if pm list packages "$package_id" 2>/dev/null | grep -qF "package:${package_id}"; then
+    return 0
+  fi
+
+  if cmd_exists cmd; then
+    cmd package list packages "$package_id" 2>/dev/null | grep -qF "package:${package_id}" && return 0
+  fi
+
+  return 1
+}
+
+termux_api_pkg_installed() {
+  pkg_installed termux-api && return 0
+  [[ -x "${PREFIX}/libexec/termux-api" ]] && return 0
+  cmd_exists termux-wake-lock && return 0
+  return 1
+}
+
+termux_api_app_installed() {
+  apk_installed "com.termux.api"
+}
+
+termux_api_ready() {
+  termux_api_pkg_installed && termux_api_app_installed
 }
 
 termux_api_latest_apk_url() {
@@ -318,6 +349,12 @@ install_apk_from_urls() {
 }
 
 ensure_termux_api_app() {
+  if termux_api_app_installed; then
+    ok "Termux:API Android app already installed."
+    pkg_install_missing termux-api termux-tools
+    return 0
+  fi
+
   log "Installing Termux:API (Android app + termux-api package)..."
 
   pkg_install_missing termux-api termux-tools
@@ -334,36 +371,53 @@ ensure_termux_api_app() {
     return 0
   fi
 
+  if termux_api_app_installed; then
+    ok "Termux:API Android app detected after install prompt."
+    return 0
+  fi
+
   warn "Automatic Termux:API install did not complete."
   open_termux_api_install_page
-  warn "After installing from F-Droid, re-run this script."
+  warn "If Termux:API is already installed from F-Droid, you can ignore this."
   return 1
 }
 
 ensure_termux_api_ready() {
-  local needs_app=0
-
-  if ! pkg_installed termux-api; then
-    log "Installing missing termux-api package..."
-    pkg_install_missing termux-api
-  fi
-
-  if ! apk_installed "com.termux.api"; then
-    needs_app=1
-    ensure_termux_api_app || true
-  fi
-
-  if pkg_installed termux-api && apk_installed "com.termux.api"; then
+  if termux_api_ready; then
     ok "Termux:API ready (termux-api package + Android app)."
     return 0
   fi
 
-  if (( needs_app )); then
-    die "Termux:API Android app is not installed. Install from F-Droid, then re-run:
-  https://f-droid.org/packages/com.termux.api/"
+  if ! termux_api_pkg_installed; then
+    log "Installing missing termux-api package..."
+    pkg_install_missing termux-api
   fi
 
-  die "termux-api package is not installed. Run: pkg install termux-api"
+  if termux_api_app_installed; then
+    ok "Termux:API Android app already installed."
+    if termux_api_pkg_installed; then
+      ok "Termux:API ready."
+      return 0
+    fi
+    return 0
+  fi
+
+  ensure_termux_api_app || true
+
+  if termux_api_ready; then
+    ok "Termux:API ready."
+    return 0
+  fi
+
+  if termux_api_pkg_installed && [[ -d /data/data/com.termux.api ]]; then
+    ok "Termux:API ready (Android app detected at /data/data/com.termux.api)."
+    return 0
+  fi
+
+  warn "Termux:API is not fully set up."
+  warn "Install the Android app from F-Droid if needed: https://f-droid.org/packages/com.termux.api/"
+  warn "Then run: pkg install termux-api"
+  return 1
 }
 
 ensure_termux_x11_app() {
@@ -887,7 +941,7 @@ main() {
 
   bootstrap_pkg
   ensure_termux_external_apps
-  ensure_termux_api_app || warn "Termux:API app install incomplete; will verify again at end."
+  ensure_termux_api_ready || warn "Termux:API setup incomplete; continuing."
 
   install_base_packages
 
@@ -911,7 +965,7 @@ main() {
   fi
 
   write_shell_profile
-  ensure_termux_api_ready
+  ensure_termux_api_ready || warn "Termux:API not detected; install from F-Droid if commands fail."
   print_summary
 }
 
