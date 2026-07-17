@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Setup Termux:X11, Cursor Agent CLI, and Android shared-storage file access.
 #
-# Prerequisites (manual, one-time on the phone):
-#   1. Termux from F-Droid (not the outdated Play Store build)
-#      https://f-droid.org/en/packages/com.termux/
-#   2. Termux:X11 APK from nightly releases
-#      https://github.com/termux/termux-x11/releases/tag/nightly
-#   3. Allow Termux and Termux:X11 notifications (Android 13+)
+# Prerequisites:
+#   - Termux from F-Droid (not the outdated Play Store build)
+#     https://f-droid.org/en/packages/com.termux/
+#   - Grant "Install unknown apps" to Termux when prompted (for APK installs)
+#   - Allow Termux and Termux:X11 notifications (Android 13+)
+#
+# The script auto-installs any missing packages, companion APKs, Cursor Agent,
+# storage symlinks, and launcher scripts. Safe to re-run.
 #
 # Usage (inside Termux):
 #   curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/scripts/setup-termux-x11-cursor.sh -o setup-termux-x11-cursor.sh
@@ -16,19 +18,25 @@
 #   --skip-x11        Skip X11 / desktop packages
 #   --skip-cursor     Skip Cursor Agent CLI install
 #   --skip-storage    Skip storage permission prompt
+#   --force-cursor    Reinstall Cursor Agent even if present
 #   --desktop=xfce    Desktop environment for X11 (default: xfce; use "none" to skip DE)
 #   --workspace=PATH  Dev workspace directory (default: ~/workspace)
 set -euo pipefail
 
 SCRIPT_NAME="$(basename "$0")"
+CACHE_DIR="${HOME}/.cache/${SCRIPT_NAME}"
 WORKSPACE_DIR="${HOME}/workspace"
 INSTALL_X11=1
 INSTALL_CURSOR=1
 SETUP_STORAGE=1
+FORCE_CURSOR=0
 DESKTOP_ENV="xfce"
 TERMUX_X11_DISPLAY=":0"
 TERMUX_X11_LEGACY_DRAWING=0
 TERMUX_X11_FORCE_BGRA=0
+
+TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
+TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 
 log()  { printf '\033[0;34m▸\033[0m %s\n' "$*"; }
 ok()   { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
@@ -47,6 +55,7 @@ parse_args() {
       --skip-x11) INSTALL_X11=0 ;;
       --skip-cursor) INSTALL_CURSOR=0 ;;
       --skip-storage) SETUP_STORAGE=0 ;;
+      --force-cursor) FORCE_CURSOR=1 ;;
       --legacy-drawing) TERMUX_X11_LEGACY_DRAWING=1 ;;
       --force-bgra) TERMUX_X11_FORCE_BGRA=1 ;;
       --desktop=*) DESKTOP_ENV="${arg#*=}" ;;
@@ -71,37 +80,214 @@ require_termux() {
   fi
 }
 
-check_prerequisites() {
-  log "Checking prerequisites..."
+apk_installed() {
+  pm path "$1" >/dev/null 2>&1
+}
 
-  if ! command -v am >/dev/null 2>&1; then
-    warn "Android 'am' tool not found; X11 activity launch may fail."
+pkg_installed() {
+  dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"
+}
+
+cmd_exists() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+cursor_agent_installed() {
+  [[ -x "${HOME}/.local/bin/agent" ]] || [[ -x "${HOME}/.local/bin/cursor-agent" ]]
+}
+
+desktop_installed() {
+  case "${DESKTOP_ENV}" in
+    xfce) cmd_exists xfce4-session ;;
+    lxqt) cmd_exists startlxqt ;;
+    mate) cmd_exists mate-session ;;
+    none) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+desktop_pkg_name() {
+  case "${DESKTOP_ENV}" in
+    xfce) echo "xfce4" ;;
+    lxqt) echo "lxqt" ;;
+    mate) echo "mate-desktop" ;;
+    *) echo "" ;;
+  esac
+}
+
+android_apk_arch_suffix() {
+  local abi=""
+  if cmd_exists getprop; then
+    abi="$(getprop ro.product.cpu.abi 2>/dev/null || true)"
+  fi
+  [[ -z "$abi" ]] && abi="$(uname -m)"
+
+  case "$abi" in
+    arm64-v8a|aarch64) echo "arm64-v8a" ;;
+    armeabi-v7a|armv7l) echo "armeabi-v7a" ;;
+    x86_64) echo "x86_64" ;;
+    x86|i686) echo "x86" ;;
+    *) echo "universal" ;;
+  esac
+}
+
+termux_x11_apk_url() {
+  local arch suffix asset
+  suffix="$(android_apk_arch_suffix)"
+  if [[ "$suffix" == "universal" ]]; then
+    asset="app-universal-debug.apk"
+  else
+    asset="app-${suffix}-debug.apk"
   fi
 
-  if ! pm path com.termux.x11 >/dev/null 2>&1; then
-    warn "Termux:X11 app is not installed."
-    warn "Install the nightly APK before starting the desktop:"
-    warn "  https://github.com/termux/termux-x11/releases/tag/nightly"
+  if cmd_exists jq && cmd_exists curl; then
+    arch="$(curl -fsSL "${TERMUX_X11_RELEASE_API}" | jq -r --arg asset "$asset" '.assets[] | select(.name == $asset) | .browser_download_url' | head -n 1 || true)"
+    if [[ -n "$arch" && "$arch" != "null" ]]; then
+      echo "$arch"
+      return 0
+    fi
+  fi
+
+  echo "https://github.com/termux/termux-x11/releases/download/nightly/${asset}"
+}
+
+ensure_termux_external_apps() {
+  mkdir -p "${HOME}/.termux"
+  local props="${HOME}/.termux/termux.properties"
+
+  if [[ -f "$props" ]] && grep -qE '^[[:space:]]*allow-external-apps[[:space:]]*=[[:space:]]*true' "$props"; then
+    ok "allow-external-apps already enabled."
+    return 0
+  fi
+
+  log "Enabling allow-external-apps for APK installs..."
+  if [[ -f "$props" ]]; then
+    if grep -qE '^[[:space:]]*#?[[:space:]]*allow-external-apps' "$props"; then
+      sed -i -E 's/^[[:space:]]*#?[[:space:]]*allow-external-apps.*/allow-external-apps = true/' "$props"
+    else
+      printf '\nallow-external-apps = true\n' >> "$props"
+    fi
   else
-    ok "Termux:X11 app detected."
+    printf 'allow-external-apps = true\n' > "$props"
+  fi
+
+  if cmd_exists termux-reload-settings; then
+    termux-reload-settings || true
+  fi
+  ok "Termux can now launch external APK installers."
+}
+
+wait_for_apk_install() {
+  local package_id="$1"
+  local timeout="${2:-180}"
+  local waited=0
+
+  while ! apk_installed "$package_id"; do
+    sleep 2
+    waited=$((waited + 2))
+    if (( waited >= timeout )); then
+      return 1
+    fi
+    if (( waited % 10 == 0 )); then
+      log "Still waiting for ${package_id}... (${waited}s)"
+    fi
+  done
+  return 0
+}
+
+install_apk_from_url() {
+  local url="$1"
+  local package_id="$2"
+  local label="$3"
+
+  if apk_installed "$package_id"; then
+    ok "${label} app already installed."
+    return 0
+  fi
+
+  ensure_termux_external_apps
+
+  local apk_dir="${CACHE_DIR}/apks"
+  mkdir -p "$apk_dir"
+  local apk_file="${apk_dir}/$(basename "$url")"
+
+  if [[ ! -f "$apk_file" ]]; then
+    log "Downloading ${label} APK..."
+    curl -fL "$url" -o "$apk_file"
+  else
+    ok "Using cached APK: ${apk_file}"
+  fi
+
+  log "Launching Android installer for ${label}..."
+  warn "Tap Install on the Android prompt (grant unknown-app install if asked)."
+  if cmd_exists termux-open; then
+    termux-open "$apk_file"
+  else
+    am start -a android.intent.action.VIEW \
+      -d "file://${apk_file}" \
+      -t application/vnd.android.package-archive >/dev/null 2>&1 || true
+  fi
+
+  log "Waiting for ${label} installation (up to 3 minutes)..."
+  if wait_for_apk_install "$package_id" 180; then
+    ok "${label} installed."
+  else
+    die "${label} not detected after waiting. Install manually: ${url}"
   fi
 }
 
-install_base_packages() {
-  log "Updating Termux packages..."
+ensure_termux_api_app() {
+  install_apk_from_url \
+    "${TERMUX_API_APK_URL}" \
+    "com.termux.api" \
+    "Termux:API"
+}
+
+ensure_termux_x11_app() {
+  if [[ "${INSTALL_X11}" -eq 0 ]]; then
+    return 0
+  fi
+
+  install_apk_from_url \
+    "$(termux_x11_apk_url)" \
+    "com.termux.x11" \
+    "Termux:X11"
+}
+
+pkg_install_missing() {
+  local missing=()
+  local pkg
+
+  for pkg in "$@"; do
+    if ! pkg_installed "$pkg"; then
+      missing+=("$pkg")
+    fi
+  done
+
+  if [[ ${#missing[@]} -eq 0 ]]; then
+    ok "All requested packages already installed."
+    return 0
+  fi
+
+  log "Installing missing packages: ${missing[*]}"
+  pkg install -y "${missing[@]}"
+  ok "Installed: ${missing[*]}"
+}
+
+bootstrap_pkg() {
+  log "Bootstrapping package manager..."
   pkg update -y
   pkg upgrade -y
+  pkg_install_missing curl wget jq termux-tools
+}
 
+install_base_packages() {
   local packages=(
     bash
-    curl
     git
     openssh
     tmux
     termux-api
-    termux-tools
-    wget
-    jq
     ripgrep
     nodejs-lts
     python
@@ -123,14 +309,10 @@ install_base_packages() {
   fi
 
   if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
-  packages+=(
-      sqlite
-    )
+    packages+=(sqlite)
   fi
 
-  log "Installing packages: ${packages[*]}"
-  pkg install -y "${packages[@]}"
-  ok "Base packages installed."
+  pkg_install_missing "${packages[@]}"
 }
 
 install_desktop() {
@@ -138,42 +320,42 @@ install_desktop() {
     return 0
   fi
 
-  case "${DESKTOP_ENV}" in
-    xfce)
-      log "Installing XFCE desktop..."
-      pkg install -y xfce4
-      ;;
-    lxqt)
-      log "Installing LXQt desktop..."
-      pkg install -y lxqt
-      ;;
-    mate)
-      log "Installing MATE desktop..."
-      pkg install -y mate-desktop
-      ;;
-    *)
-      die "Unsupported desktop '${DESKTOP_ENV}'. Use xfce, lxqt, mate, or none."
-      ;;
-  esac
-  ok "Desktop environment '${DESKTOP_ENV}' installed."
+  if desktop_installed; then
+    ok "Desktop '${DESKTOP_ENV}' already installed."
+    return 0
+  fi
+
+  local pkg_name
+  pkg_name="$(desktop_pkg_name)"
+  [[ -n "$pkg_name" ]] || die "Unsupported desktop '${DESKTOP_ENV}'. Use xfce, lxqt, mate, or none."
+
+  log "Installing ${DESKTOP_ENV} desktop..."
+  pkg_install_missing "$pkg_name"
 }
 
 setup_file_access() {
   log "Configuring Android file access..."
 
-  mkdir -p "${WORKSPACE_DIR}"
+  mkdir -p "${WORKSPACE_DIR}" "${HOME}/bin"
   ok "Workspace directory: ${WORKSPACE_DIR}"
 
   if [[ "${SETUP_STORAGE}" -eq 1 ]]; then
+    pkg_install_missing termux-tools
+
     if [[ ! -d "${HOME}/storage/shared" ]]; then
-      warn "Grant storage permission when Android prompts you."
-      if command -v termux-setup-storage >/dev/null 2>&1; then
+      if cmd_exists termux-setup-storage; then
+        log "Requesting Android storage access..."
+        warn "Grant storage permission when Android prompts you."
         termux-setup-storage || warn "termux-setup-storage failed or was cancelled."
       else
-        warn "termux-setup-storage not found; install termux-tools."
+        warn "termux-setup-storage not found after installing termux-tools."
       fi
+    fi
+
+    if [[ -d "${HOME}/storage/shared" ]]; then
+      ok "Storage symlinks present at ~/storage/."
     else
-      ok "Storage symlinks already present at ~/storage/."
+      warn "Storage not linked yet. Re-run after granting permission."
     fi
   else
     warn "Skipping storage setup (--skip-storage)."
@@ -228,10 +410,20 @@ echo "Imported into $DEST"
 EOF
   chmod +x "${HOME}/bin/termux-import-downloads"
 
-  ok "File access helpers installed (see ~/.termux-file-access)."
+  ok "File access helpers ready (see ~/.termux-file-access)."
 }
 
 install_cursor_agent_termux() {
+  if cursor_agent_installed && [[ "${FORCE_CURSOR}" -eq 0 ]]; then
+    ok "Cursor Agent CLI already installed."
+    if [[ ! -x "${HOME}/.local/bin/agent" ]] && [[ -x "${HOME}/.local/bin/cursor-agent" ]]; then
+      ln -sf "${HOME}/.local/bin/cursor-agent" "${HOME}/.local/bin/agent"
+    fi
+    return 0
+  fi
+
+  pkg_install_missing nodejs-lts ripgrep sqlite clang make pkg-config python
+
   log "Installing Cursor Agent CLI (Termux-compatible)..."
 
   local installer android_detect_file dynamic_download_file android_fixes_file
@@ -374,6 +566,11 @@ EOF
 }
 
 write_x11_launchers() {
+  if [[ -x "${HOME}/bin/start-termux-x11" ]] && [[ -x "${HOME}/bin/stop-termux-x11" ]]; then
+    ok "Termux:X11 launchers already present."
+    return 0
+  fi
+
   log "Writing Termux:X11 launcher scripts..."
 
   mkdir -p "${HOME}/bin"
@@ -442,6 +639,11 @@ EOF
 }
 
 write_cursor_launchers() {
+  if [[ -x "${HOME}/bin/cursor-agent-tmux" ]]; then
+    ok "Cursor Agent launcher already present."
+    return 0
+  fi
+
   log "Writing Cursor Agent launcher scripts..."
 
   mkdir -p "${HOME}/bin"
@@ -540,6 +742,7 @@ Stop X11 session:
   stop-termux-x11
 
 Tips:
+  - Re-run this script anytime to install anything still missing.
   - Keep repos under ${WORKSPACE_DIR}, not on ~/storage/* (FAT limitations).
   - Use tmux so agents survive app backgrounding.
   - Disable battery optimization for Termux and Termux:X11 on Android 12+.
@@ -552,12 +755,17 @@ EOF
 main() {
   parse_args "$@"
   require_termux
-  check_prerequisites
 
-  mkdir -p "${HOME}/bin"
+  mkdir -p "${HOME}/bin" "${CACHE_DIR}"
+
+  bootstrap_pkg
+  ensure_termux_external_apps
+  ensure_termux_api_app
+
   install_base_packages
 
   if [[ "${INSTALL_X11}" -eq 1 ]]; then
+    ensure_termux_x11_app
     install_desktop
   fi
 
