@@ -84,7 +84,7 @@ apk_installed() {
   local package_id="$1"
 
   # Reliable on Android 11+ when pm/cmd package queries are restricted.
-  if [[ -d "/data/data/${package_id}" ]]; then
+  if [[ -d "/data/data/${package_id}" ]] || [[ -d "/data/user/0/${package_id}" ]]; then
     return 0
   fi
 
@@ -265,20 +265,18 @@ launch_apk_installer() {
 
 wait_for_apk_install() {
   local package_id="$1"
-  local timeout="${2:-180}"
+  local timeout="${2:-20}"
   local waited=0
 
-  while ! apk_installed "$package_id"; do
+  apk_installed "$package_id" && return 0
+
+  while (( waited < timeout )); do
     sleep 2
     waited=$((waited + 2))
-    if (( waited >= timeout )); then
-      return 1
-    fi
-    if (( waited % 10 == 0 )); then
-      log "Still waiting for ${package_id}... (${waited}s)"
-    fi
+    apk_installed "$package_id" && return 0
   done
-  return 0
+
+  return 1
 }
 
 install_apk_from_url() {
@@ -287,6 +285,11 @@ install_apk_from_url() {
   local label="$3"
 
   if apk_installed "$package_id"; then
+    ok "${label} app already installed."
+    return 0
+  fi
+
+  if [[ "$package_id" == "com.termux.api" ]] && termux_api_app_installed; then
     ok "${label} app already installed."
     return 0
   fi
@@ -309,7 +312,7 @@ install_apk_from_url() {
   fi
 
   log "Launching Android installer for ${label}..."
-  warn "Tap Install on the Android prompt."
+  warn "Tap Install on the Android prompt, then re-run this script."
   warn "Grant Termux 'Install unknown apps' permission if asked."
   if ! launch_apk_installer "$apk_file"; then
     warn "Could not open APK installer automatically."
@@ -317,13 +320,19 @@ install_apk_from_url() {
     return 1
   fi
 
-  log "Waiting for ${label} installation (up to 5 minutes)..."
-  if wait_for_apk_install "$package_id" 300; then
+  # Brief silent check only — Android often hides package info from Termux.
+  if wait_for_apk_install "$package_id" 20; then
     ok "${label} installed."
     return 0
   fi
 
-  warn "${label} app not detected yet."
+  if apk_installed "$package_id"; then
+    ok "${label} installed."
+    return 0
+  fi
+
+  warn "${label} install not confirmed on this device."
+  warn "If it is already installed, re-run this script — no further action needed."
   return 1
 }
 
@@ -338,11 +347,21 @@ install_apk_from_urls() {
     return 0
   fi
 
+  if [[ "$package_id" == "com.termux.api" ]] && termux_api_app_installed; then
+    ok "${label} app already installed."
+    return 0
+  fi
+
   for url in "$@"; do
     [[ -z "$url" ]] && continue
     if install_apk_from_url "$url" "$package_id" "$label"; then
       return 0
     fi
+    # Stop after first installer launch — avoid duplicate prompts/URLs.
+    if apk_installed "$package_id"; then
+      return 0
+    fi
+    break
   done
 
   return 1
@@ -355,9 +374,13 @@ ensure_termux_api_app() {
     return 0
   fi
 
-  log "Installing Termux:API (Android app + termux-api package)..."
-
+  log "Setting up Termux:API (Android app + termux-api package)..."
   pkg_install_missing termux-api termux-tools
+
+  if termux_api_app_installed; then
+    ok "Termux:API Android app already installed."
+    return 0
+  fi
 
   # Storage helps the system package installer read the APK.
   if [[ ! -d "${HOME}/storage/downloads" ]] && cmd_exists termux-setup-storage; then
@@ -365,20 +388,18 @@ ensure_termux_api_app() {
     termux-setup-storage || true
   fi
 
-  if install_apk_from_urls "com.termux.api" "Termux:API" \
-    "$(termux_api_latest_apk_url)" \
-    "https://f-droid.org/repo/com.termux.api_1002.apk"; then
+  if install_apk_from_urls "com.termux.api" "Termux:API" "$(termux_api_latest_apk_url)"; then
     return 0
   fi
 
   if termux_api_app_installed; then
-    ok "Termux:API Android app detected after install prompt."
+    ok "Termux:API Android app already installed."
     return 0
   fi
 
-  warn "Automatic Termux:API install did not complete."
+  warn "Could not verify Termux:API automatically on this device."
   open_termux_api_install_page
-  warn "If Termux:API is already installed from F-Droid, you can ignore this."
+  warn "If Termux:API is already installed from F-Droid, re-run this script."
   return 1
 }
 
@@ -409,8 +430,13 @@ ensure_termux_api_ready() {
     return 0
   fi
 
-  if termux_api_pkg_installed && [[ -d /data/data/com.termux.api ]]; then
+  if termux_api_pkg_installed && [[ -d /data/data/com.termux.api || -d /data/user/0/com.termux.api ]]; then
     ok "Termux:API ready (Android app detected at /data/data/com.termux.api)."
+    return 0
+  fi
+
+  if termux_api_pkg_installed && termux_api_app_installed; then
+    ok "Termux:API ready."
     return 0
   fi
 
