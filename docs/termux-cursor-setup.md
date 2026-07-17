@@ -111,13 +111,15 @@ git config --global --get init.defaultBranch
 
 SSH keys avoid storing a source-control password in Termux.
 
+If `~/.ssh/id_ed25519` already exists, do not overwrite it unintentionally; use the existing key or choose a different filename. Set a passphrase when prompted.
+
 **Run in native Termux:**
 
 ```bash
 ssh-keygen -t ed25519 -a 100 -C "termux-android"
 ```
 
-Press Enter to accept `~/.ssh/id_ed25519`. Set a passphrase when prompted.
+Press Enter to accept `~/.ssh/id_ed25519` only if that path is unused.
 
 Display the **public** key:
 
@@ -166,14 +168,15 @@ The final command should show a clean working tree.
 Cloud Agents receive read-write access to selected repositories, auto-run commands in isolated cloud VMs, and have internet access by default. Before connecting a repository:
 
 - Grant access only to repositories the agent needs.
-- Remove committed secrets and keep credentials in Cursor Runtime or Build Secrets.
+- If a credential was committed, revoke or rotate it first; deleting the file does not remove it from Git history. Follow your Git provider's history-removal guidance.
+- Keep replacement credentials in Cursor Runtime or Build Secrets, not in the repository.
 - Restrict network egress in Cursor's Cloud Agent settings where available.
 - Review your organization's privacy and retention settings.
 - Treat instructions in issues, dependencies, and repository files as potentially untrusted prompt input.
 
 1. Open [cursor.com/agents](https://cursor.com/agents) in Chrome.
 2. Sign in to Cursor.
-3. Connect your GitHub, GitLab, Bitbucket, or Azure DevOps account when prompted.
+3. Connect your supported GitHub, GitLab, Bitbucket Cloud, or Azure DevOps Services account when prompted. Availability and beta status can vary by plan.
 4. Select the repository you cloned in Termux.
 5. Optional: Chrome menu → **Install app** to add Cursor Web to your home screen.
 
@@ -241,6 +244,16 @@ PRoot emulates a Linux root user but is not a virtual machine or security bounda
 
 ### Step 1: Create the Ubuntu environment
 
+Check the real Android kernel before entering PRoot:
+
+**Run in native Termux:**
+
+```bash
+uname -r
+```
+
+Current Cursor remote-server builds require Linux kernel 4.18 or newer. If the first two version components are below `4.18`, use Route 1; PRoot cannot upgrade Android's kernel.
+
 **Run in native Termux:**
 
 ```bash
@@ -263,6 +276,8 @@ apt install -y openssh-server git curl ca-certificates build-essential python3 s
 
 Create a non-root development user:
 
+Choose a strong account password. It remains the Ubuntu guest user's `sudo` password even though SSH password login is disabled later.
+
 **Run inside Ubuntu proot as root:**
 
 ```bash
@@ -272,11 +287,12 @@ passwd dev
 install -d -m 755 -o dev -g dev /home/dev/projects
 ```
 
-Set a strong account password when prompted. SSH password login will be disabled after key setup, but the password remains the guest user's `sudo` password. `sudo` manages Ubuntu files and packages; it does not provide real Android root, systemd, mounts, or kernel namespaces.
+`sudo` manages Ubuntu files and packages; it does not provide real Android root, systemd, mounts, or kernel namespaces.
 
 ### Step 3: Create an SSH key on the Cursor computer
 
 Skip key generation if the computer already has an ED25519 key you want to use.
+Do not overwrite an existing key unintentionally, and set a passphrase when prompted.
 
 **Run on the computer that runs Cursor Desktop:**
 
@@ -284,8 +300,6 @@ Skip key generation if the computer already has an ED25519 key you want to use.
 ssh-keygen -t ed25519 -a 100 -C "cursor-to-android"
 cat "$HOME/.ssh/id_ed25519.pub"
 ```
-
-Set a passphrase when `ssh-keygen` prompts.
 
 On Windows PowerShell, display the public key with:
 
@@ -320,15 +334,22 @@ ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
 
 Save the final `SHA256:` host fingerprint. Compare it exactly with the fingerprint shown by the computer on its first connection.
 
-### Step 5: Configure the Ubuntu SSH server
+### Step 5: Choose a bind address and configure SSH
 
-The configuration below listens on the phone's available network interfaces. Continue only on a trusted home LAN, USB forwarding, or Tailscale. Do not start it on café, hotel, or other untrusted Wi-Fi. For a USB-only setup, add `ListenAddress 127.0.0.1` to the configuration.
+Choose one address before continuing:
+
+- USB forwarding: `127.0.0.1`
+- Trusted home LAN: the phone's Wi-Fi IPv4 address from Android network details
+- Tailscale: the phone's Tailscale IP
+
+Do not use café, hotel, cellular, or another untrusted/public interface. Replace `<listen-address>` below; leaving the placeholder unchanged safely causes `sshd -t` to fail.
 
 **Run inside Ubuntu proot as root:**
 
 ```bash
 cat > /etc/ssh/sshd_config.d/termux-cursor.conf <<'EOF'
 Port 10022
+ListenAddress <listen-address>
 PubkeyAuthentication yes
 PasswordAuthentication no
 KbdInteractiveAuthentication no
@@ -357,16 +378,16 @@ For better reliability:
 
 1. Run `termux-wake-lock` in a native Termux session.
 2. Set Android **Settings → Apps → Termux → Battery** to **Unrestricted** or the closest vendor-specific option.
-3. On Android versions that expose **Developer options → Disable child process restrictions**, enable it while using PRoot.
+3. Optional: on Android versions that expose **Developer options → Disable child process restrictions**, enable it only for the session. This can increase background resource and battery use.
 4. Keep the Termux notification/session active.
 
-Android can still reclaim the process under memory pressure. Android 12 and 13 can also limit large PRoot process trees even with a wake lock; use Route 1 if your device cannot keep SSH alive reliably.
+Android can still reclaim the process under memory pressure. Android 12 and newer can also limit large PRoot process trees even with a wake lock; use Route 1 if your device cannot keep SSH alive reliably.
 
 ### Step 7: Choose a connection path
 
 #### Same Wi-Fi
 
-Find the phone's IP in Android **Settings → Wi-Fi → current network details**. The computer and phone must be on the same network, and client isolation must be off.
+Find the phone's IP in Android **Settings → Wi-Fi → current network details**. The computer and phone must be on the same trusted home network. If the network isolates clients, use USB or Tailscale instead of weakening the router's isolation.
 
 **Run on the Cursor computer:**
 
@@ -459,6 +480,8 @@ At the first connection prompt, compare the displayed ED25519 `SHA256:` fingerpr
 
 Native Termux's `~/projects` and Ubuntu's `/home/dev/projects` are separate. Configure a dedicated Git identity and key inside Ubuntu instead of copying a private key from another device.
 
+If the key below does not already exist, `ssh-keygen` will prompt for a new passphrase. The `test` guard prevents accidental overwrite.
+
 **Run through `ssh termux-ubuntu` as `dev`:**
 
 ```bash
@@ -469,7 +492,7 @@ test -f "$HOME/.ssh/id_ed25519" || \
 cat "$HOME/.ssh/id_ed25519.pub"
 ```
 
-Set a passphrase if a new key is created. Add only the displayed `.pub` key to your Git provider, compare its published host fingerprint, then test the correct host:
+Add only the displayed `.pub` key to your Git provider, compare its published host fingerprint, then test the correct host:
 
 ```bash
 ssh -T git@github.com
@@ -549,7 +572,7 @@ Continue if the result is `aarch64` or `x86_64`. On most phones it is `aarch64`,
 
 1. Confirm the device runs Android 8 or newer.
 2. Download the APK matching the device architecture from the [official Termux:X11 nightly release](https://github.com/termux/termux-x11/releases/tag/nightly).
-3. Install both the Android app and its matching `termux-x11-nightly` companion package. Termux:X11 does not need to share Termux's F-Droid/GitHub signing source, but its app and companion package should come from the same official nightly.
+3. Install both the official Android app and the `termux-x11-nightly` companion package. The `x11-repo` package normally provides a compatible companion; if you download both artifacts manually, use the same official nightly release.
 4. Install the X11 packages:
 
 **Run in native Termux:**
@@ -582,6 +605,8 @@ DEBIAN_FRONTEND=noninteractive apt install -y \
 ```
 
 Create the desktop user if needed:
+
+Choose a strong Ubuntu guest password when `passwd` prompts; it remains the user's `sudo` password.
 
 **Run inside Ubuntu proot as root:**
 
@@ -619,7 +644,7 @@ EOF
 
 apt update
 apt install -y cursor
-cursor --version
+dpkg-query -W -f='${Version}\n' cursor
 ```
 
 These commands use Cursor's official repository. Do not substitute a third-party installer or prebuilt Ubuntu image.
@@ -644,6 +669,14 @@ export XDG_RUNTIME_DIR="$TMPDIR"
 export DISPLAY=:0
 termux-x11 :0 &
 x11_pid=$!
+for _ in $(seq 1 50); do
+  kill -0 "$x11_pid" 2>/dev/null || break
+  [ -S "$TMPDIR/.X11-unix/X0" ] && break
+  sleep 0.2
+done
+test -S "$TMPDIR/.X11-unix/X0" \
+  && echo "Termux:X11 is ready" \
+  || echo "Termux:X11 did not start; do not continue"
 am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
 ```
 
@@ -707,7 +740,15 @@ export DISPLAY=:0
 termux-x11 :0 >/dev/null 2>&1 &
 x11_pid=$!
 trap 'kill "$x11_pid" 2>/dev/null || true; am broadcast -a com.termux.x11.ACTION_STOP -p com.termux.x11 >/dev/null 2>&1 || true; termux-wake-unlock 2>/dev/null || true' EXIT HUP INT TERM
-sleep 2
+for _ in $(seq 1 50); do
+  kill -0 "$x11_pid" 2>/dev/null || break
+  [ -S "$TMPDIR/.X11-unix/X0" ] && break
+  sleep 0.2
+done
+[ -S "$TMPDIR/.X11-unix/X0" ] || {
+  echo "Termux:X11 did not become ready" >&2
+  exit 1
+}
 am start --user 0 \
   -n com.termux.x11/com.termux.x11.MainActivity >/dev/null
 
@@ -764,6 +805,8 @@ Open [cursor.com/agents](https://cursor.com/agents) in Chrome.
 5. On the computer, open Cursor and connect to `termux-ubuntu`.
 
 Stop the server with `Ctrl+C` in the Ubuntu session. Then run `exit` to leave Ubuntu and `termux-wake-unlock` in native Termux.
+
+If you changed **Disable child process restrictions**, restore its previous setting after the session.
 
 ### Route 3
 
@@ -824,7 +867,7 @@ Port `10022` should be listening. Restart the foreground daemon only after corre
 
 - Confirm the phone and computer can reach each other.
 - Recheck the Android Wi-Fi or Tailscale IP.
-- Disable Wi-Fi client isolation or use USB forwarding.
+- If the Wi-Fi network isolates clients, switch to USB forwarding or Tailscale.
 - Reopen Termux and reacquire its wake lock.
 - Confirm Android battery settings have not suspended Termux.
 
