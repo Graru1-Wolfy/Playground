@@ -20,6 +20,7 @@
 #   --skip-cursor     Skip Cursor Agent CLI install
 #   --skip-storage    Skip storage permission prompt
 #   --force-cursor    Reinstall Cursor Agent even if present
+#   --verbose         Show all "already installed" status lines
 #   --desktop=xfce    Desktop environment for X11 (default: xfce; use "none" to skip DE)
 #   --workspace=PATH  Dev workspace directory (default: ~/workspace)
 set -euo pipefail
@@ -31,6 +32,7 @@ INSTALL_X11=1
 INSTALL_CURSOR=1
 SETUP_STORAGE=1
 FORCE_CURSOR=0
+QUIET_OK=1
 DESKTOP_ENV="xfce"
 TERMUX_X11_DISPLAY=":0"
 TERMUX_X11_LEGACY_DRAWING=0
@@ -43,6 +45,24 @@ log()  { printf '\033[0;34m▸\033[0m %s\n' "$*"; }
 ok()   { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
 warn() { printf '\033[0;33m!\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[0;31m✗\033[0m %s\n' "$*" >&2; exit 1; }
+
+ok_maybe() {
+  if [[ "${QUIET_OK}" -eq 0 ]]; then
+    ok "$@"
+  fi
+}
+
+ensure_pkg_mirror() {
+  local chosen="${PREFIX}/etc/termux/chosen_mirrors"
+  local default="${PREFIX}/etc/termux/mirrors/default"
+
+  if [[ -e "$chosen" || ! -f "$default" ]]; then
+    return 0
+  fi
+
+  ln -sf "$default" "$chosen"
+  ok "Selected default pkg mirror group (silences termux-change-repo hint)."
+}
 
 usage() {
   sed -n '3,18p' "$0" | sed 's/^# \{0,1\}//'
@@ -57,6 +77,7 @@ parse_args() {
       --skip-cursor) INSTALL_CURSOR=0 ;;
       --skip-storage) SETUP_STORAGE=0 ;;
       --force-cursor) FORCE_CURSOR=1 ;;
+      --verbose) QUIET_OK=0 ;;
       --legacy-drawing) TERMUX_X11_LEGACY_DRAWING=1 ;;
       --force-bgra) TERMUX_X11_FORCE_BGRA=1 ;;
       --desktop=*) DESKTOP_ENV="${arg#*=}" ;;
@@ -204,7 +225,7 @@ ensure_termux_external_apps() {
   local props="${HOME}/.termux/termux.properties"
 
   if [[ -f "$props" ]] && grep -qE '^[[:space:]]*allow-external-apps[[:space:]]*=[[:space:]]*true' "$props"; then
-    ok "allow-external-apps already enabled."
+    ok_maybe "allow-external-apps already enabled."
     return 0
   fi
 
@@ -370,7 +391,6 @@ install_apk_from_urls() {
 
 ensure_termux_api_app() {
   if termux_api_app_installed; then
-    ok "Termux:API Android app already installed."
     pkg_install_missing termux-api termux-tools
     return 0
   fi
@@ -379,7 +399,6 @@ ensure_termux_api_app() {
   pkg_install_missing termux-api termux-tools
 
   if termux_api_app_installed; then
-    ok "Termux:API Android app already installed."
     return 0
   fi
 
@@ -394,7 +413,6 @@ ensure_termux_api_app() {
   fi
 
   if termux_api_app_installed; then
-    ok "Termux:API Android app already installed."
     return 0
   fi
 
@@ -405,38 +423,21 @@ ensure_termux_api_app() {
 }
 
 ensure_termux_api_ready() {
-  if termux_api_ready; then
-    ok "Termux:API ready (termux-api package + Android app)."
-    return 0
-  fi
-
   if ! termux_api_pkg_installed; then
     log "Installing missing termux-api package..."
     pkg_install_missing termux-api
   fi
 
-  if termux_api_app_installed; then
-    ok "Termux:API Android app already installed."
-    if termux_api_pkg_installed; then
-      ok "Termux:API ready."
-      return 0
-    fi
-    return 0
+  if ! termux_api_app_installed; then
+    ensure_termux_api_app || true
   fi
 
-  ensure_termux_api_app || true
-
-  if termux_api_ready; then
+  if termux_api_ready || { termux_api_pkg_installed && termux_api_app_installed; }; then
     ok "Termux:API ready."
     return 0
   fi
 
   if termux_api_pkg_installed && [[ -d /data/data/com.termux.api || -d /data/user/0/com.termux.api ]]; then
-    ok "Termux:API ready (Android app detected at /data/data/com.termux.api)."
-    return 0
-  fi
-
-  if termux_api_pkg_installed && termux_api_app_installed; then
     ok "Termux:API ready."
     return 0
   fi
@@ -469,7 +470,6 @@ pkg_install_missing() {
   done
 
   if [[ ${#missing[@]} -eq 0 ]]; then
-    ok "All requested packages already installed."
     return 0
   fi
 
@@ -480,6 +480,7 @@ pkg_install_missing() {
 
 bootstrap_pkg() {
   log "Bootstrapping package manager..."
+  ensure_pkg_mirror
   pkg update -y
   pkg upgrade -y
   pkg_install_missing curl wget jq termux-tools
@@ -491,7 +492,6 @@ enable_x11_repo() {
   fi
 
   if pkg_installed x11-repo; then
-    ok "x11-repo already enabled."
     return 0
   fi
 
@@ -550,7 +550,6 @@ install_desktop() {
   fi
 
   if desktop_installed; then
-    ok "Desktop '${DESKTOP_ENV}' already installed."
     return 0
   fi
 
@@ -645,7 +644,6 @@ EOF
 
 install_cursor_agent_termux() {
   if cursor_agent_installed && [[ "${FORCE_CURSOR}" -eq 0 ]]; then
-    ok "Cursor Agent CLI already installed."
     if [[ ! -x "${HOME}/.local/bin/agent" ]] && [[ -x "${HOME}/.local/bin/cursor-agent" ]]; then
       ln -sf "${HOME}/.local/bin/cursor-agent" "${HOME}/.local/bin/agent"
     fi
@@ -797,7 +795,6 @@ EOF
 
 write_x11_launchers() {
   if [[ -x "${HOME}/bin/start-termux-x11" ]] && [[ -x "${HOME}/bin/stop-termux-x11" ]]; then
-    ok "Termux:X11 launchers already present."
     return 0
   fi
 
@@ -870,7 +867,6 @@ EOF
 
 write_cursor_launchers() {
   if [[ -x "${HOME}/bin/cursor-agent-tmux" ]]; then
-    ok "Cursor Agent launcher already present."
     return 0
   fi
 
@@ -919,7 +915,6 @@ write_shell_profile() {
   local end_marker="# <<< termux-x11-cursor setup <<<"
 
   if [[ -f "$profile" ]] && grep -qF "$marker" "$profile"; then
-    ok "Shell profile already configured."
     return 0
   fi
 
@@ -937,6 +932,9 @@ EOF
 }
 
 print_summary() {
+  local ws_display="${WORKSPACE_DIR}"
+  [[ "${WORKSPACE_DIR}" == "${HOME}/workspace" ]] && ws_display="~/workspace"
+
   cat <<EOF
 
 ============================================================
@@ -944,44 +942,43 @@ Termux X11 + Cursor Agent setup complete
 ============================================================
 
 Workspace (native, for git/agents):
-  ${WORKSPACE_DIR}
+  ${ws_display}
+
+Next steps:
+  start-termux-x11          # graphical desktop
+  cursor-agent-tmux         # Cursor Agent in tmux
+  agent login               # first-time auth
 
 Android shared storage:
   ~/storage/shared
   ~/storage/downloads
   ~/storage/documents/cursor-workspace  -> symlink to workspace
 
-Start graphical desktop:
-  start-termux-x11
-  (then open the Termux:X11 Android app)
-
-Run Cursor Agent in tmux (recommended on phone):
-  cursor-agent-tmux
-  # or: cd ${WORKSPACE_DIR} && agent
-
-Authenticate Cursor (first run):
-  agent login
-
-Termux:API (required for wake-lock, storage, etc.):
-  pkg install termux-api
-  # Android app: https://f-droid.org/packages/com.termux.api/
-
-Export workspace to Downloads:
+Export / import workspace:
   termux-sync-to-downloads
-
-Import an archive from Downloads:
-  termux-import-downloads my-project.tar.gz
+  termux-import-downloads <archive>.tar.gz
 
 Stop X11 session:
   stop-termux-x11
+EOF
+
+  if ! termux_api_ready && ! termux_api_app_installed; then
+    cat <<'EOF'
+
+Termux:API still needed:
+  pkg install termux-api
+  https://f-droid.org/packages/com.termux.api/
+EOF
+  fi
+
+  cat <<EOF
 
 Tips:
   - Re-run this script anytime to install anything still missing.
-  - Keep repos under ${WORKSPACE_DIR}, not on ~/storage/* (FAT limitations).
-  - Use tmux so agents survive app backgrounding.
-  - Disable battery optimization for Termux and Termux:X11 on Android 12+.
-  - If the X11 screen is black, re-run setup with --legacy-drawing.
-  - If colors look wrong, re-run with --force-bgra.
+  - Keep repos under ${ws_display}, not on ~/storage/* (FAT limitations).
+  - Use --verbose to show all "already installed" checks.
+  - If the X11 screen is black: re-run with --legacy-drawing
+  - If colors look wrong: re-run with --force-bgra
 
 EOF
 }
@@ -994,7 +991,7 @@ main() {
 
   bootstrap_pkg
   ensure_termux_external_apps
-  ensure_termux_api_ready || warn "Termux:API setup incomplete; continuing."
+  pkg_install_missing termux-api termux-tools
 
   install_base_packages
 
