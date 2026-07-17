@@ -11,10 +11,7 @@
 # storage symlinks, and launcher scripts. Safe to re-run.
 #
 # Usage (inside Termux) — one-liner:
-#   curl -fsSL https://graru1-wolfy.github.io/Playground/setup-termux-x11-cursor.sh | bash
-#
-# (Hosted on GitHub Pages because the repo is private and raw.githubusercontent.com returns 404.)
-# Enable Pages once if needed: repo Settings → Pages → Build and deployment → GitHub Actions.
+#   curl -fsSL https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh | bash
 # Options:
 #   --skip-x11        Skip X11 / desktop packages
 #   --skip-cursor     Skip Cursor Agent CLI install
