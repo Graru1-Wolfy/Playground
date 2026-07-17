@@ -1,0 +1,40 @@
+# Lightweight Pages deploy for the Termux setup script only.
+# Use when you need the public curl URL without a full web app build.
+# Requires GitHub Pages enabled: Settings → Pages → Source: GitHub Actions.
+
+name: Deploy Termux setup script (Pages)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Prepare site
+        run: |
+          mkdir -p _site
+          cp scripts/setup-termux-x11-cursor.sh _site/setup-termux-x11-cursor.sh
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
