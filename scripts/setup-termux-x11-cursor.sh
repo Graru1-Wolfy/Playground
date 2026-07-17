@@ -4,6 +4,8 @@
 # Prerequisites:
 #   - Termux from F-Droid (not the outdated Play Store build)
 #     https://f-droid.org/en/packages/com.termux/
+#   - Install Termux:API from F-Droid if auto-install fails:
+#     https://f-droid.org/packages/com.termux.api/
 #   - Grant "Install unknown apps" to Termux when prompted (for APK installs)
 #   - Allow Termux and Termux:X11 notifications (Android 13+)
 #
@@ -79,7 +81,23 @@ require_termux() {
 }
 
 apk_installed() {
-  pm path "$1" >/dev/null 2>&1
+  if pm path "$1" >/dev/null 2>&1; then
+    return 0
+  fi
+  pm list packages "$1" 2>/dev/null | grep -qF "package:$1"
+}
+
+termux_api_latest_apk_url() {
+  if cmd_exists jq && cmd_exists curl; then
+    local url
+    url="$(curl -fsSL "https://api.github.com/repos/termux/termux-api/releases/latest" \
+      | jq -r '.assets[] | select(.name | endswith(".apk")) | .browser_download_url' | head -n 1 || true)"
+    if [[ -n "$url" && "$url" != "null" ]]; then
+      echo "$url"
+      return 0
+    fi
+  fi
+  echo "${TERMUX_API_APK_URL}"
 }
 
 pkg_installed() {
@@ -175,6 +193,45 @@ ensure_termux_external_apps() {
   ok "Termux can now launch external APK installers."
 }
 
+open_termux_api_install_page() {
+  warn "Install the Termux:API Android app (required companion for termux-api commands):"
+  warn "  https://f-droid.org/packages/com.termux.api/"
+  if cmd_exists termux-open; then
+    termux-open "https://f-droid.org/packages/com.termux.api/" 2>/dev/null || true
+  fi
+}
+
+launch_apk_installer() {
+  local apk_file="$1"
+  local install_apk="$apk_file"
+
+  if [[ ! -f "$apk_file" ]]; then
+    return 1
+  fi
+
+  # Package installer reads shared storage more reliably than private app data.
+  if [[ -d "${HOME}/storage/downloads" ]]; then
+    install_apk="${HOME}/storage/downloads/$(basename "$apk_file")"
+    cp -f "$apk_file" "$install_apk"
+  elif [[ -d "${HOME}/storage/shared/Download" ]]; then
+    install_apk="${HOME}/storage/shared/Download/$(basename "$apk_file")"
+    cp -f "$apk_file" "$install_apk"
+  fi
+
+  if cmd_exists termux-open; then
+    termux-open --content-type 'application/vnd.android.package-archive' "$install_apk" 2>/dev/null && return 0
+    termux-open "$install_apk" 2>/dev/null && return 0
+  fi
+
+  if cmd_exists am; then
+    am start -a android.intent.action.VIEW \
+      -d "file://${install_apk}" \
+      -t 'application/vnd.android.package-archive' >/dev/null 2>&1 && return 0
+  fi
+
+  return 1
+}
+
 wait_for_apk_install() {
   local package_id="$1"
   local timeout="${2:-180}"
@@ -204,41 +261,109 @@ install_apk_from_url() {
   fi
 
   ensure_termux_external_apps
+  pkg_install_missing termux-tools
 
   local apk_dir="${CACHE_DIR}/apks"
   mkdir -p "$apk_dir"
-  local apk_file="${apk_dir}/$(basename "$url")"
+  local apk_file="${apk_dir}/$(basename "${url%%\?*}")"
 
   if [[ ! -f "$apk_file" ]]; then
     log "Downloading ${label} APK..."
-    curl -fL "$url" -o "$apk_file"
+    if ! curl -fL "$url" -o "$apk_file"; then
+      warn "Failed to download ${label} APK from: ${url}"
+      return 1
+    fi
   else
     ok "Using cached APK: ${apk_file}"
   fi
 
   log "Launching Android installer for ${label}..."
-  warn "Tap Install on the Android prompt (grant unknown-app install if asked)."
-  if cmd_exists termux-open; then
-    termux-open "$apk_file"
-  else
-    am start -a android.intent.action.VIEW \
-      -d "file://${apk_file}" \
-      -t application/vnd.android.package-archive >/dev/null 2>&1 || true
+  warn "Tap Install on the Android prompt."
+  warn "Grant Termux 'Install unknown apps' permission if asked."
+  if ! launch_apk_installer "$apk_file"; then
+    warn "Could not open APK installer automatically."
+    warn "Manual install: ${apk_file}"
+    return 1
   fi
 
-  log "Waiting for ${label} installation (up to 3 minutes)..."
-  if wait_for_apk_install "$package_id" 180; then
+  log "Waiting for ${label} installation (up to 5 minutes)..."
+  if wait_for_apk_install "$package_id" 300; then
     ok "${label} installed."
-  else
-    die "${label} not detected after waiting. Install manually: ${url}"
+    return 0
   fi
+
+  warn "${label} app not detected yet."
+  return 1
+}
+
+install_apk_from_urls() {
+  local package_id="$1"
+  local label="$2"
+  shift 2
+  local url
+
+  if apk_installed "$package_id"; then
+    ok "${label} app already installed."
+    return 0
+  fi
+
+  for url in "$@"; do
+    [[ -z "$url" ]] && continue
+    if install_apk_from_url "$url" "$package_id" "$label"; then
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 ensure_termux_api_app() {
-  install_apk_from_url \
-    "${TERMUX_API_APK_URL}" \
-    "com.termux.api" \
-    "Termux:API"
+  log "Installing Termux:API (Android app + termux-api package)..."
+
+  pkg_install_missing termux-api termux-tools
+
+  # Storage helps the system package installer read the APK.
+  if [[ ! -d "${HOME}/storage/downloads" ]] && cmd_exists termux-setup-storage; then
+    warn "Grant storage permission if prompted (helps APK installation)."
+    termux-setup-storage || true
+  fi
+
+  if install_apk_from_urls "com.termux.api" "Termux:API" \
+    "$(termux_api_latest_apk_url)" \
+    "https://f-droid.org/repo/com.termux.api_1002.apk"; then
+    return 0
+  fi
+
+  warn "Automatic Termux:API install did not complete."
+  open_termux_api_install_page
+  warn "After installing from F-Droid, re-run this script."
+  return 1
+}
+
+ensure_termux_api_ready() {
+  local needs_app=0
+
+  if ! pkg_installed termux-api; then
+    log "Installing missing termux-api package..."
+    pkg_install_missing termux-api
+  fi
+
+  if ! apk_installed "com.termux.api"; then
+    needs_app=1
+    ensure_termux_api_app || true
+  fi
+
+  if pkg_installed termux-api && apk_installed "com.termux.api"; then
+    ok "Termux:API ready (termux-api package + Android app)."
+    return 0
+  fi
+
+  if (( needs_app )); then
+    die "Termux:API Android app is not installed. Install from F-Droid, then re-run:
+  https://f-droid.org/packages/com.termux.api/"
+  fi
+
+  die "termux-api package is not installed. Run: pkg install termux-api"
 }
 
 ensure_termux_x11_app() {
@@ -246,10 +371,10 @@ ensure_termux_x11_app() {
     return 0
   fi
 
-  install_apk_from_url \
-    "$(termux_x11_apk_url)" \
-    "com.termux.x11" \
-    "Termux:X11"
+  if ! install_apk_from_url "$(termux_x11_apk_url)" "com.termux.x11" "Termux:X11"; then
+    warn "Install Termux:X11 manually: https://github.com/termux/termux-x11/releases/tag/nightly"
+    return 1
+  fi
 }
 
 pkg_install_missing() {
@@ -730,6 +855,10 @@ Run Cursor Agent in tmux (recommended on phone):
 Authenticate Cursor (first run):
   agent login
 
+Termux:API (required for wake-lock, storage, etc.):
+  pkg install termux-api
+  # Android app: https://f-droid.org/packages/com.termux.api/
+
 Export workspace to Downloads:
   termux-sync-to-downloads
 
@@ -758,7 +887,7 @@ main() {
 
   bootstrap_pkg
   ensure_termux_external_apps
-  ensure_termux_api_app
+  ensure_termux_api_app || warn "Termux:API app install incomplete; will verify again at end."
 
   install_base_packages
 
@@ -782,6 +911,7 @@ main() {
   fi
 
   write_shell_profile
+  ensure_termux_api_ready
   print_summary
 }
 
