@@ -10,7 +10,7 @@ A guided setup for using Termux with Cursor, from the easiest supported workflow
 | Route | What you get | Needs another computer? | Status | Typical space |
 |---|---|---:|---|---:|
 | [1. Termux + Cursor Web](#route-1-termux--cursor-web) | Local terminal and Git on Android; Cursor Cloud Agents in Chrome | No | Recommended Android-only route | 0.5–2 GB |
-| [2. Cursor Desktop + Remote SSH](#route-2-cursor-desktop--remote-ssh) | Full Cursor IDE on a computer; code and tools run in Ubuntu on Android | Yes | Recommended full-IDE route; Android host is unofficial | 2–4 GB |
+| [2. Cursor Desktop + Remote SSH](#route-2-cursor-desktop--remote-ssh) | Full Cursor IDE on a computer; code and tools run in Ubuntu on Android | Yes | Best full-IDE workaround; Android host is unofficial | 2–4 GB |
 | [3. Cursor Desktop in Termux:X11](#route-3-cursor-desktop-in-termuxx11) | Full Linux Cursor window directly on Android | No | Experimental and unsupported | 6+ GB |
 
 **Use Route 1** if you only have an Android device. **Use Route 2** if you have a laptop or desktop that can run Cursor. Try Route 3 only if you accept reduced security, higher battery use, and possible breakage after updates.
@@ -20,7 +20,9 @@ A guided setup for using Termux with Cursor, from the easiest supported workflow
 You need:
 
 - Android 7 or newer.
-- A Cursor account.
+- Android 8 or newer for Route 3.
+- A paid Cursor plan for Cloud Agents in Route 1.
+- A Cursor account; team users may also need administrator approval.
 - A Git repository hosted by a provider supported by Cursor, such as GitHub or GitLab.
 - A reliable network connection.
 - For Route 2: a computer with Cursor Desktop and an SSH client.
@@ -100,7 +102,9 @@ Verify:
 **Run in native Termux:**
 
 ```bash
-git config --global --list
+git config --global --get user.name
+git config --global --get user.email
+git config --global --get init.defaultBranch
 ```
 
 ### Step 2: Authenticate with your Git host
@@ -130,6 +134,8 @@ Copy the single output line into your Git provider:
 
 Never share or upload `~/.ssh/id_ed25519`; that file is the private key.
 
+Before accepting an SSH host prompt, compare the fingerprint with your provider's published fingerprints.
+
 Test GitHub:
 
 **Run in native Termux:**
@@ -138,7 +144,7 @@ Test GitHub:
 ssh -T git@github.com
 ```
 
-For GitLab, use `ssh -T git@gitlab.com`. Confirm the host fingerprint only after comparing it with your provider's published fingerprint.
+For GitLab, use `ssh -T git@gitlab.com`.
 
 ### Step 3: Clone your repository
 
@@ -157,13 +163,21 @@ The final command should show a clean working tree.
 
 ### Step 4: Open Cursor Web on Android
 
+Cloud Agents receive read-write access to selected repositories, auto-run commands in isolated cloud VMs, and have internet access by default. Before connecting a repository:
+
+- Grant access only to repositories the agent needs.
+- Remove committed secrets and keep credentials in Cursor Runtime or Build Secrets.
+- Restrict network egress in Cursor's Cloud Agent settings where available.
+- Review your organization's privacy and retention settings.
+- Treat instructions in issues, dependencies, and repository files as potentially untrusted prompt input.
+
 1. Open [cursor.com/agents](https://cursor.com/agents) in Chrome.
 2. Sign in to Cursor.
 3. Connect your GitHub, GitLab, Bitbucket, or Azure DevOps account when prompted.
 4. Select the repository you cloned in Termux.
 5. Optional: Chrome menu → **Install app** to add Cursor Web to your home screen.
 
-Cloud Agents may require an eligible Cursor plan and administrator approval for a team account.
+Cloud Agents require a paid Cursor plan, read-write repository permission, and a spending limit on first use. Team accounts may also require administrator approval.
 
 ### Step 5: Run a small first task
 
@@ -223,13 +237,15 @@ Cursor Desktop runs on your computer. Android hosts the repository and developme
 > [!NOTE]
 > Do not connect Cursor directly to native Termux on port 8022. Cursor Server may fail because Termux uses bionic rather than glibc. This route creates an Ubuntu SSH server on port `10022`.
 
+PRoot emulates a Linux root user but is not a virtual machine or security boundary. Guest `root`, `sudo`, and the `dev` user cannot gain real Android kernel privileges. The `--isolated` option below removes nonessential host-directory bindings, but untrusted tools still run as Termux-owned Android processes.
+
 ### Step 1: Create the Ubuntu environment
 
 **Run in native Termux:**
 
 ```bash
 pkg install -y proot-distro
-proot-distro install ubuntu
+proot-distro install ubuntu:24.04
 proot-distro login --isolated ubuntu
 ```
 
@@ -253,9 +269,10 @@ Create a non-root development user:
 id -u dev >/dev/null 2>&1 || useradd --create-home --shell /bin/bash dev
 usermod -aG sudo dev
 passwd dev
+install -d -m 755 -o dev -g dev /home/dev/projects
 ```
 
-Set a strong temporary password when prompted. SSH password login will be disabled after key setup, but an unlocked account avoids OpenSSH account-lock issues and lets `sudo` prompt normally.
+Set a strong account password when prompted. SSH password login will be disabled after key setup, but the password remains the guest user's `sudo` password. `sudo` manages Ubuntu files and packages; it does not provide real Android root, systemd, mounts, or kernel namespaces.
 
 ### Step 3: Create an SSH key on the Cursor computer
 
@@ -267,6 +284,8 @@ Skip key generation if the computer already has an ED25519 key you want to use.
 ssh-keygen -t ed25519 -a 100 -C "cursor-to-android"
 cat "$HOME/.ssh/id_ed25519.pub"
 ```
+
+Set a passphrase when `ssh-keygen` prompts.
 
 On Windows PowerShell, display the public key with:
 
@@ -296,9 +315,14 @@ chown dev:dev /home/dev/.ssh/authorized_keys
 chmod 600 /home/dev/.ssh/authorized_keys
 ssh-keygen -A
 install -d -m 755 /run/sshd
+ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
 ```
 
+Save the final `SHA256:` host fingerprint. Compare it exactly with the fingerprint shown by the computer on its first connection.
+
 ### Step 5: Configure the Ubuntu SSH server
+
+The configuration below listens on the phone's available network interfaces. Continue only on a trusted home LAN, USB forwarding, or Tailscale. Do not start it on café, hotel, or other untrusted Wi-Fi. For a USB-only setup, add `ListenAddress 127.0.0.1` to the configuration.
 
 **Run inside Ubuntu proot as root:**
 
@@ -333,9 +357,10 @@ For better reliability:
 
 1. Run `termux-wake-lock` in a native Termux session.
 2. Set Android **Settings → Apps → Termux → Battery** to **Unrestricted** or the closest vendor-specific option.
-3. Keep the Termux notification/session active.
+3. On Android versions that expose **Developer options → Disable child process restrictions**, enable it while using PRoot.
+4. Keep the Termux notification/session active.
 
-Android can still reclaim the process under memory pressure.
+Android can still reclaim the process under memory pressure. Android 12 and 13 can also limit large PRoot process trees even with a wake lock; use Route 1 if your device cannot keep SSH alive reliably.
 
 ### Step 7: Choose a connection path
 
@@ -351,7 +376,7 @@ ssh -p 10022 dev@<android-ip>
 
 #### USB with ADB
 
-Enable Android Developer Options and USB debugging, connect the phone, then:
+Install [Google's official SDK Platform Tools](https://developer.android.com/tools/releases/platform-tools). Enable Android Developer Options and USB debugging, connect only to a trusted computer, and verify the computer name/fingerprint in Android's RSA authorization prompt.
 
 **Run on the Cursor computer:**
 
@@ -360,6 +385,16 @@ adb devices
 adb forward tcp:10022 tcp:10022
 ssh -p 10022 dev@127.0.0.1
 ```
+
+When finished:
+
+**Run on the Cursor computer:**
+
+```bash
+adb forward --remove tcp:10022
+```
+
+Disable USB debugging when it is no longer needed. Use **Developer options → Revoke USB debugging authorizations** if the computer should no longer be trusted.
 
 #### Tailscale
 
@@ -388,7 +423,7 @@ Expected:
 
 - User: `dev`
 - OS: Ubuntu
-- C library: `glibc 2.x`
+- C library: `glibc 2.28` or newer; Ubuntu 24.04 exceeds this requirement.
 - Home: `/home/dev`
 
 If `getconf` is missing or reports Android/Termux paths, stop. Cursor is reaching native Termux instead of Ubuntu proot.
@@ -418,7 +453,36 @@ Test before opening Cursor:
 ssh termux-ubuntu
 ```
 
-### Step 10: Connect Cursor Desktop
+At the first connection prompt, compare the displayed ED25519 `SHA256:` fingerprint with the fingerprint saved in Step 4. Do not accept a mismatch.
+
+### Step 10: Configure Git inside Ubuntu
+
+Native Termux's `~/projects` and Ubuntu's `/home/dev/projects` are separate. Configure a dedicated Git identity and key inside Ubuntu instead of copying a private key from another device.
+
+**Run through `ssh termux-ubuntu` as `dev`:**
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+test -f "$HOME/.ssh/id_ed25519" || \
+  ssh-keygen -t ed25519 -a 100 -C "ubuntu-on-android"
+cat "$HOME/.ssh/id_ed25519.pub"
+```
+
+Set a passphrase if a new key is created. Add only the displayed `.pub` key to your Git provider, compare its published host fingerprint, then test the correct host:
+
+```bash
+ssh -T git@github.com
+```
+
+For GitLab, use `git@gitlab.com`. Clone the repository:
+
+```bash
+cd "$HOME/projects"
+git clone <repo-url>
+```
+
+### Step 11: Connect Cursor Desktop
 
 1. Install Cursor from [cursor.com/downloads](https://cursor.com/downloads) on the computer and sign in.
 2. Open Extensions and search for `@id:anysphere.remote-ssh`.
@@ -430,7 +494,7 @@ ssh termux-ubuntu
 
 Cursor may take a few minutes to install its ARM64 or x64 server on the first connection.
 
-### Step 11: Run an end-to-end smoke test
+### Step 12: Run an end-to-end smoke test
 
 **Run in Cursor's remote integrated terminal:**
 
@@ -458,6 +522,7 @@ You are done when:
 
 - Plain `ssh termux-ubuntu` works without a password.
 - The remote shell reports Ubuntu and glibc.
+- Git authentication works inside Ubuntu.
 - Cursor opens `/home/dev/projects`.
 - Editing a file changes the output in Cursor's remote terminal.
 
@@ -466,7 +531,7 @@ You are done when:
 ## Route 3: Cursor Desktop in Termux:X11
 
 > [!WARNING]
-> This is an experimental, unsupported Android configuration. It runs a desktop Electron application under PRoot and will usually require `--no-sandbox`. That flag disables Chromium's process sandbox and weakens isolation. Use only trusted repositories and extensions. Prefer Route 1 or 2 for sensitive work.
+> This is an experimental, unsupported Android configuration. It runs a desktop Electron application under PRoot and will usually require `--no-sandbox`. That flag disables Chromium's process sandbox and weakens isolation. PRoot itself is not a security boundary, and Cursor's separate Agent command sandbox may also be unavailable. Use only trusted repositories and extensions, keep Agent in an approval-oriented mode such as Auto-review, and prefer Route 1 or 2 for sensitive work.
 
 Expect high memory use, heat, battery drain, imperfect touch controls, and occasional breakage after Cursor, Android, or Termux updates. A physical keyboard and mouse are strongly recommended.
 
@@ -482,15 +547,16 @@ Continue if the result is `aarch64` or `x86_64`. On most phones it is `aarch64`,
 
 ### Step 2: Install Termux:X11 from official sources
 
-1. Download the matching Android APK from the [official Termux:X11 releases](https://github.com/termux/termux-x11/releases).
-2. Install it alongside Termux from the same source family.
-3. Install the X11 packages:
+1. Confirm the device runs Android 8 or newer.
+2. Download the APK matching the device architecture from the [official Termux:X11 nightly release](https://github.com/termux/termux-x11/releases/tag/nightly).
+3. Install both the Android app and its matching `termux-x11-nightly` companion package. Termux:X11 does not need to share Termux's F-Droid/GitHub signing source, but its app and companion package should come from the same official nightly.
+4. Install the X11 packages:
 
 **Run in native Termux:**
 
 ```bash
 pkg install -y x11-repo
-pkg install -y termux-x11-nightly pulseaudio proot-distro
+pkg install -y termux-x11-nightly proot-distro
 ```
 
 ### Step 3: Install Ubuntu
@@ -500,8 +566,8 @@ Skip installation if Route 2 already created the `ubuntu` distro.
 **Run in native Termux:**
 
 ```bash
-proot-distro install ubuntu
-proot-distro login --shared-tmp ubuntu
+proot-distro install ubuntu:24.04
+proot-distro login --isolated --shared-tmp ubuntu
 ```
 
 ### Step 4: Install XFCE and Cursor's prerequisites
@@ -537,6 +603,8 @@ dpkg --print-architecture
 ```
 
 Continue only for `arm64` or `amd64`.
+
+The next operation adds Cursor's persistent official APT signing key and package source to Ubuntu.
 
 **Run inside Ubuntu proot as root:**
 
@@ -575,6 +643,7 @@ termux-wake-lock
 export XDG_RUNTIME_DIR="$TMPDIR"
 export DISPLAY=:0
 termux-x11 :0 &
+x11_pid=$!
 am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
 ```
 
@@ -583,7 +652,7 @@ Enter Ubuntu as the desktop user:
 **Run in the same native Termux session:**
 
 ```bash
-proot-distro login --shared-tmp --user dev ubuntu
+proot-distro login --isolated --shared-tmp --user dev ubuntu
 ```
 
 Start XFCE:
@@ -592,7 +661,6 @@ Start XFCE:
 
 ```bash
 export DISPLAY=:0
-export PULSE_SERVER=127.0.0.1
 export XDG_RUNTIME_DIR=/tmp/runtime-dev
 dbus-launch --exit-with-session startxfce4
 ```
@@ -604,6 +672,8 @@ Open the Termux:X11 Android app if it did not open automatically.
 Open **Terminal Emulator** from the XFCE Applications menu.
 
 Because PRoot cannot provide Electron's normal sandbox, Cursor will generally abort unless `--no-sandbox` is supplied. This weakens process isolation.
+
+In Cursor, keep **Settings → Agents → Run mode** on **Auto-review** or a stricter approval mode. Do not assume the separate terminal-command sandbox works under PRoot.
 
 **Run in the XFCE terminal as `dev`:**
 
@@ -635,13 +705,14 @@ export XDG_RUNTIME_DIR="$TMPDIR"
 export DISPLAY=:0
 
 termux-x11 :0 >/dev/null 2>&1 &
+x11_pid=$!
+trap 'kill "$x11_pid" 2>/dev/null || true; am broadcast -a com.termux.x11.ACTION_STOP -p com.termux.x11 >/dev/null 2>&1 || true; termux-wake-unlock 2>/dev/null || true' EXIT HUP INT TERM
 sleep 2
 am start --user 0 \
   -n com.termux.x11/com.termux.x11.MainActivity >/dev/null
 
-proot-distro login --shared-tmp --user dev ubuntu -- \
+proot-distro login --isolated --shared-tmp --user dev ubuntu -- \
   env DISPLAY=:0 \
-      PULSE_SERVER=127.0.0.1 \
       XDG_RUNTIME_DIR=/tmp/runtime-dev \
       dbus-launch --exit-with-session startxfce4
 EOF
@@ -658,6 +729,8 @@ Daily start command:
 ```
 
 Then open XFCE Terminal and run `cursor --no-sandbox`.
+
+For a real repository, follow [Route 2, Step 10](#step-10-configure-git-inside-ubuntu) from the XFCE terminal, then open the cloned folder in Cursor.
 
 ### Route 3 checkpoint
 
@@ -697,13 +770,24 @@ Stop the server with `Ctrl+C` in the Ubuntu session. Then run `exit` to leave Ub
 1. Run `~/start-cursor-desktop.sh` in Termux.
 2. Open Termux:X11.
 3. Launch `cursor --no-sandbox` from XFCE Terminal.
-4. Log out from XFCE when finished, then run `termux-wake-unlock` in native Termux.
+4. Log out from XFCE when finished. The launcher stops the exact X-server process it started, closes the activity, and releases the wake lock.
+
+After a manual session from Step 6 returns to the original native Termux shell, stop that exact X server:
+
+```bash
+kill "$x11_pid"
+am broadcast -a com.termux.x11.ACTION_STOP -p com.termux.x11
+termux-wake-unlock
+```
 
 ## Troubleshooting
 
 ### “App not installed” or signature mismatch
 
 Termux or a plugin came from a different source.
+
+> [!CAUTION]
+> Uninstalling Termux erases its private `$HOME`, including repositories, SSH keys, configuration, and every PRoot container. Push all work and verify a complete backup first. Do not place unencrypted private keys in shared storage.
 
 1. Back up files from `$HOME`.
 2. Uninstall Termux and all Termux plugins.
@@ -784,7 +868,7 @@ Android may still stop processes under memory pressure; this cannot be completel
 
 1. Confirm the Termux:X11 Android app and package came from matching official sources.
 2. Confirm Ubuntu was entered with `--shared-tmp`.
-3. Confirm both shells use `DISPLAY=:0`.
+3. Confirm both shells use `DISPLAY=:0` and that the native X-server process is still running.
 4. Log out of the failed XFCE session and start it again.
 5. Retry Cursor with `--disable-gpu`.
 
@@ -798,6 +882,8 @@ cursor --no-sandbox
 
 This is expected for Route 3 and reduces security. There is no equivalent Android kernel/AppArmor fix that restores Cursor's normal Electron sandbox inside PRoot.
 
+Cursor's Agent command sandbox is separate from Electron's sandbox and may also fail under PRoot. Keep Auto-review or a stricter approval mode enabled.
+
 ### Low storage or memory
 
 Check usage:
@@ -806,7 +892,7 @@ Check usage:
 
 ```bash
 df -h "$HOME"
-du -sh "$PREFIX/var/lib/proot-distro/installed-rootfs/ubuntu" 2>/dev/null
+du -sh "$PREFIX/var/lib/proot-distro/containers/ubuntu/rootfs" 2>/dev/null
 ```
 
 Remove project build caches with each project's documented clean command. Do not delete arbitrary directories under the Ubuntu rootfs.
@@ -862,6 +948,8 @@ From a trusted device:
 
 - [Cursor mobile and Android status](https://cursor.com/docs/cloud-agent/mobile)
 - [Cursor Cloud Agents](https://cursor.com/docs/cloud-agent)
+- [Cursor Cloud Agent security and network controls](https://cursor.com/docs/cloud-agent/security-network)
+- [Cursor Agent run modes](https://cursor.com/docs/agent/security/run-modes)
 - [Cursor downloads and Linux installation](https://cursor.com/docs/get-started/quickstart)
 - [Cursor CLI supported installation platforms](https://cursor.com/docs/cli/installation)
 - [Official Termux app](https://github.com/termux/termux-app)
