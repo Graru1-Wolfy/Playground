@@ -7,6 +7,7 @@
 #   - Install Termux:API from F-Droid if auto-install fails:
 #     https://f-droid.org/packages/com.termux.api/
 #   - Grant "Install unknown apps" to Termux when prompted (for APK installs)
+#   - Android 7+ required for x11-repo / Termux:X11 packages
 #   - Allow Termux and Termux:X11 notifications (Android 13+)
 #
 # The script auto-installs any missing packages, companion APKs, Cursor Agent,
@@ -484,6 +485,42 @@ bootstrap_pkg() {
   pkg_install_missing curl wget jq termux-tools
 }
 
+enable_x11_repo() {
+  if [[ "${INSTALL_X11}" -eq 0 ]]; then
+    return 0
+  fi
+
+  if pkg_installed x11-repo; then
+    ok "x11-repo already enabled."
+    return 0
+  fi
+
+  log "Enabling x11-repo (required for Termux:X11 and desktop packages)..."
+  pkg install -y x11-repo
+  log "Refreshing package lists for x11-repo..."
+  pkg update -y
+  ok "x11-repo enabled."
+}
+
+install_x11_packages() {
+  if [[ "${INSTALL_X11}" -eq 0 ]]; then
+    return 0
+  fi
+
+  enable_x11_repo
+
+  local packages=(
+    termux-x11-nightly
+    pulseaudio
+    dbus
+    xfce4-terminal
+    thunar
+    mousepad
+  )
+
+  pkg_install_missing "${packages[@]}"
+}
+
 install_base_packages() {
   local packages=(
     bash
@@ -499,23 +536,12 @@ install_base_packages() {
     pkg-config
   )
 
-  if [[ "${INSTALL_X11}" -eq 1 ]]; then
-    packages+=(
-      x11-repo
-      termux-x11-nightly
-      pulseaudio
-      dbus
-      xfce4-terminal
-      thunar
-      mousepad
-    )
-  fi
-
   if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
     packages+=(sqlite)
   fi
 
   pkg_install_missing "${packages[@]}"
+  install_x11_packages
 }
 
 install_desktop() {
@@ -533,6 +559,7 @@ install_desktop() {
   [[ -n "$pkg_name" ]] || die "Unsupported desktop '${DESKTOP_ENV}'. Use xfce, lxqt, mate, or none."
 
   log "Installing ${DESKTOP_ENV} desktop..."
+  enable_x11_repo
   pkg_install_missing "$pkg_name"
 }
 
