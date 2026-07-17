@@ -271,7 +271,7 @@ The prompt is now inside Ubuntu as its proot root user.
 ```bash
 apt update
 apt upgrade -y
-apt install -y openssh-server git curl ca-certificates build-essential python3 sudo
+apt install -y openssh-server git curl ca-certificates build-essential iproute2 python3 sudo
 ```
 
 Create a non-root development user:
