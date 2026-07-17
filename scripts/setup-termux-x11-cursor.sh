@@ -1,0 +1,582 @@
+#!/usr/bin/env bash
+# Setup Termux:X11, Cursor Agent CLI, and Android shared-storage file access.
+#
+# Prerequisites (manual, one-time on the phone):
+#   1. Termux from F-Droid (not the outdated Play Store build)
+#      https://f-droid.org/en/packages/com.termux/
+#   2. Termux:X11 APK from nightly releases
+#      https://github.com/termux/termux-x11/releases/tag/nightly
+#   3. Allow Termux and Termux:X11 notifications (Android 13+)
+#
+# Usage (inside Termux):
+#   curl -fsSL https://raw.githubusercontent.com/<owner>/<repo>/main/scripts/setup-termux-x11-cursor.sh -o setup-termux-x11-cursor.sh
+#   bash setup-termux-x11-cursor.sh
+#
+# Options:
+#   --skip-x11        Skip X11 / desktop packages
+#   --skip-cursor     Skip Cursor Agent CLI install
+#   --skip-storage    Skip storage permission prompt
+#   --desktop=xfce    Desktop environment for X11 (default: xfce; use "none" to skip DE)
+#   --workspace=PATH  Dev workspace directory (default: ~/workspace)
+set -euo pipefail
+
+SCRIPT_NAME="$(basename "$0")"
+WORKSPACE_DIR="${HOME}/workspace"
+INSTALL_X11=1
+INSTALL_CURSOR=1
+SETUP_STORAGE=1
+DESKTOP_ENV="xfce"
+TERMUX_X11_DISPLAY=":0"
+TERMUX_X11_LEGACY_DRAWING=0
+TERMUX_X11_FORCE_BGRA=0
+
+log()  { printf '\033[0;34m▸\033[0m %s\n' "$*"; }
+ok()   { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
+warn() { printf '\033[0;33m!\033[0m %s\n' "$*" >&2; }
+die()  { printf '\033[0;31m✗\033[0m %s\n' "$*" >&2; exit 1; }
+
+usage() {
+  sed -n '3,18p' "$0" | sed 's/^# \{0,1\}//'
+  exit 0
+}
+
+parse_args() {
+  for arg in "$@"; do
+    case "$arg" in
+      -h|--help) usage ;;
+      --skip-x11) INSTALL_X11=0 ;;
+      --skip-cursor) INSTALL_CURSOR=0 ;;
+      --skip-storage) SETUP_STORAGE=0 ;;
+      --legacy-drawing) TERMUX_X11_LEGACY_DRAWING=1 ;;
+      --force-bgra) TERMUX_X11_FORCE_BGRA=1 ;;
+      --desktop=*) DESKTOP_ENV="${arg#*=}" ;;
+      --workspace=*) WORKSPACE_DIR="${arg#*=}" ;;
+      --display=*) TERMUX_X11_DISPLAY="${arg#*=}" ;;
+      *) die "Unknown option: $arg (try --help)" ;;
+    esac
+  done
+
+  case "${WORKSPACE_DIR}" in
+    "~"/*) WORKSPACE_DIR="${HOME}/${WORKSPACE_DIR#\~/}" ;;
+    "~") WORKSPACE_DIR="${HOME}" ;;
+  esac
+}
+
+require_termux() {
+  if [[ -z "${PREFIX:-}" ]] || [[ ! -d "${PREFIX}/bin" ]]; then
+    die "This script must be run inside Termux (PREFIX not set)."
+  fi
+  if ! command -v pkg >/dev/null 2>&1; then
+    die "Termux package manager (pkg) not found."
+  fi
+}
+
+check_prerequisites() {
+  log "Checking prerequisites..."
+
+  if ! command -v am >/dev/null 2>&1; then
+    warn "Android 'am' tool not found; X11 activity launch may fail."
+  fi
+
+  if ! pm path com.termux.x11 >/dev/null 2>&1; then
+    warn "Termux:X11 app is not installed."
+    warn "Install the nightly APK before starting the desktop:"
+    warn "  https://github.com/termux/termux-x11/releases/tag/nightly"
+  else
+    ok "Termux:X11 app detected."
+  fi
+}
+
+install_base_packages() {
+  log "Updating Termux packages..."
+  pkg update -y
+  pkg upgrade -y
+
+  local packages=(
+    bash
+    curl
+    git
+    openssh
+    tmux
+    termux-api
+    termux-tools
+    wget
+    jq
+    ripgrep
+    nodejs-lts
+    python
+    clang
+    make
+    pkg-config
+  )
+
+  if [[ "${INSTALL_X11}" -eq 1 ]]; then
+    packages+=(
+      x11-repo
+      termux-x11-nightly
+      pulseaudio
+      dbus
+      xfce4-terminal
+      thunar
+      mousepad
+    )
+  fi
+
+  if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
+  packages+=(
+      sqlite
+    )
+  fi
+
+  log "Installing packages: ${packages[*]}"
+  pkg install -y "${packages[@]}"
+  ok "Base packages installed."
+}
+
+install_desktop() {
+  if [[ "${INSTALL_X11}" -eq 0 ]] || [[ "${DESKTOP_ENV}" == "none" ]]; then
+    return 0
+  fi
+
+  case "${DESKTOP_ENV}" in
+    xfce)
+      log "Installing XFCE desktop..."
+      pkg install -y xfce4
+      ;;
+    lxqt)
+      log "Installing LXQt desktop..."
+      pkg install -y lxqt
+      ;;
+    mate)
+      log "Installing MATE desktop..."
+      pkg install -y mate-desktop
+      ;;
+    *)
+      die "Unsupported desktop '${DESKTOP_ENV}'. Use xfce, lxqt, mate, or none."
+      ;;
+  esac
+  ok "Desktop environment '${DESKTOP_ENV}' installed."
+}
+
+setup_file_access() {
+  log "Configuring Android file access..."
+
+  mkdir -p "${WORKSPACE_DIR}"
+  ok "Workspace directory: ${WORKSPACE_DIR}"
+
+  if [[ "${SETUP_STORAGE}" -eq 1 ]]; then
+    if [[ ! -d "${HOME}/storage/shared" ]]; then
+      warn "Grant storage permission when Android prompts you."
+      if command -v termux-setup-storage >/dev/null 2>&1; then
+        termux-setup-storage || warn "termux-setup-storage failed or was cancelled."
+      else
+        warn "termux-setup-storage not found; install termux-tools."
+      fi
+    else
+      ok "Storage symlinks already present at ~/storage/."
+    fi
+  else
+    warn "Skipping storage setup (--skip-storage)."
+  fi
+
+  mkdir -p "${HOME}/storage" 2>/dev/null || true
+
+  cat > "${HOME}/.termux-file-access" <<EOF
+# Generated by ${SCRIPT_NAME}
+# Native Linux workspace (use for git repos, node_modules, agents):
+export CURSOR_WORKSPACE="${WORKSPACE_DIR}"
+
+# Android shared storage (use for import/export with other apps):
+#   ~/storage/shared      -> /storage/emulated/0
+#   ~/storage/downloads   -> Downloads
+#   ~/storage/documents   -> Documents
+#   ~/storage/dcim        -> Camera roll
+export TERMUX_STORAGE_ROOT="${HOME}/storage"
+export TERMUX_SHARED="${HOME}/storage/shared"
+export TERMUX_DOWNLOADS="${HOME}/storage/downloads"
+export TERMUX_DOCUMENTS="${HOME}/storage/documents"
+EOF
+
+  mkdir -p "${HOME}/storage/documents" "${HOME}/storage/downloads" 2>/dev/null || true
+  ln -sfn "${WORKSPACE_DIR}" "${HOME}/storage/documents/cursor-workspace" 2>/dev/null || true
+
+  cat > "${HOME}/bin/termux-sync-to-downloads" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+SRC="${1:-${CURSOR_WORKSPACE:-$HOME/workspace}}"
+DEST="${HOME}/storage/downloads/termux-export"
+mkdir -p "$DEST"
+ts="$(date +%Y%m%d-%H%M%S)"
+tar -C "$(dirname "$SRC")" -czf "${DEST}/$(basename "$SRC")-${ts}.tar.gz" "$(basename "$SRC")"
+echo "Exported to ${DEST}/$(basename "$SRC")-${ts}.tar.gz"
+EOF
+  chmod +x "${HOME}/bin/termux-sync-to-downloads"
+
+  cat > "${HOME}/bin/termux-import-downloads" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+ARCHIVE="${1:-}"
+DEST="${CURSOR_WORKSPACE:-$HOME/workspace}"
+if [[ -z "$ARCHIVE" ]]; then
+  echo "Usage: termux-import-downloads <archive-in-~/storage/downloads>" >&2
+  exit 1
+fi
+[[ "$ARCHIVE" != /* ]] && ARCHIVE="${HOME}/storage/downloads/$ARCHIVE"
+mkdir -p "$DEST"
+tar -xzf "$ARCHIVE" -C "$DEST"
+echo "Imported into $DEST"
+EOF
+  chmod +x "${HOME}/bin/termux-import-downloads"
+
+  ok "File access helpers installed (see ~/.termux-file-access)."
+}
+
+install_cursor_agent_termux() {
+  log "Installing Cursor Agent CLI (Termux-compatible)..."
+
+  local installer android_detect_file dynamic_download_file android_fixes_file
+  installer="$(mktemp)"
+  android_detect_file="$(mktemp)"
+  dynamic_download_file="$(mktemp)"
+  android_fixes_file="$(mktemp)"
+  trap 'rm -f "$installer" "$android_detect_file" "$dynamic_download_file" "$android_fixes_file"' RETURN
+
+  cat > "${android_detect_file}" <<'EOF'
+# Android/Termux detection
+IS_ANDROID=false
+if command -v getprop > /dev/null 2>&1 || [[ "${ANDROID_ROOT-}" ]] || [[ "${PREFIX-}" == /data/data/* ]]; then
+  IS_ANDROID=true
+fi
+EOF
+
+  cat > "${dynamic_download_file}" <<'EOF'
+# Prefer android build if vendor provides it
+DOWNLOAD_OS="$OS"
+if $IS_ANDROID; then
+  if curl -sfI "https://downloads.cursor.com/lab/${VER}/android/${ARCH}/agent-cli-package.tar.gz" > /dev/null; then
+    DOWNLOAD_OS="android"
+  else
+    DOWNLOAD_OS="linux"
+  fi
+fi
+DOWNLOAD_URL="https://downloads.cursor.com/lab/${VER}/${DOWNLOAD_OS}/${ARCH}/agent-cli-package.tar.gz"
+EOF
+
+  cat > "${android_fixes_file}" <<'EOF'
+
+# ============ Android/Termux post-install fixes ============
+if $IS_ANDROID; then
+  echo
+  echo -e "${BOLD}Android/Termux post-install fixes${NC}"
+
+  print_step "Patching Node runtime..."
+  if ! command -v node > /dev/null 2>&1; then
+    print_error "Node.js not found in PATH. Install it (e.g. pkg install nodejs-lts)."
+    exit 1
+  fi
+  SYS_NODE="$(command -v node)"
+  rm -f "$FINAL_DIR/node"
+  ln -s "$SYS_NODE" "$FINAL_DIR/node"
+  print_success "node → $SYS_NODE"
+
+  if [[ -e "$FINAL_DIR/rg" ]]; then
+    print_step "Replacing bundled rg (ripgrep)..."
+    if command -v rg > /dev/null 2>&1; then
+      rm -f "$FINAL_DIR/rg"
+      ln -s "$(command -v rg)" "$FINAL_DIR/rg"
+      print_success "rg → $(command -v rg)"
+    else
+      print_error "ripgrep (rg) not found. Install it (e.g. pkg install ripgrep)."
+    fi
+  fi
+
+  echo
+  print_step "Rebuilding sqlite3 native addon for Android/bionic..."
+
+  need_bins=(clang make python pkg-config npm)
+  missing=()
+  for b in "${need_bins[@]}"; do command -v "$b" > /dev/null 2>&1 || missing+=("$b"); done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    print_error "Missing build tools: ${missing[*]}"
+    exit 1
+  fi
+
+  cd "$FINAL_DIR" || { print_error "Could not enter directory '$FINAL_DIR'"; exit 1; }
+
+  unset LINK || true
+  J=$(($(getconf _NPROCESSORS_ONLN 2> /dev/null || echo 1)))
+  rm -f build/node_sqlite3.node || true
+  npm ci --ignore-scripts > /dev/null 2>&1 || true
+  npm i sqlite3 --ignore-scripts
+
+  if [[ -d node_modules/sqlite3 ]]; then
+    print_step "Patching gyp files..."
+    find node_modules/sqlite3 -type f \( -name '*.gyp' -o -name '*.gypi' \) -print0 | xargs -0 sed -i -E \
+      -e 's/\bOS\s*==\s*"android"/OS=="never"/g' \
+      -e 's/\btarget_os\s*==\s*"android"/target_os=="never"/g' \
+      -e '/android_ndk_path/d' \
+      -e '/ANDROID_/d'
+    print_success "Patched gyp"
+  else
+    print_error "sqlite3 sources not found under node_modules."
+    exit 1
+  fi
+
+  print_step "Building sqlite3 addon (this can take a minute)..."
+  npx node-gyp configure -C node_modules/sqlite3 -- -DOS=linux -Dtarget_os=linux -Dandroid_ndk_path=/nonexistent
+  make -C node_modules/sqlite3/build -j "$J" V=1 LINK=clang++
+
+  if [[ -f node_modules/sqlite3/build/Release/node_sqlite3.node ]]; then
+    install -m0755 node_modules/sqlite3/build/Release/node_sqlite3.node build/node_sqlite3.node
+    print_success "sqlite3 addon rebuilt"
+  else
+    print_error "Failed to produce node_sqlite3.node"
+    exit 1
+  fi
+
+  node -e "require('$FINAL_DIR/build/node_sqlite3.node');"
+  print_success "sqlite3 addon loads under Termux Node"
+
+  cd - > /dev/null
+fi
+EOF
+
+  curl -fsSL "https://cursor.com/install" -o "$installer" || die "Failed to download Cursor installer."
+
+  local ver_string
+  ver_string="$(grep -E -o '[0-9]{4}\.[0-9]{2}\.[0-9]{2}-[a-f0-9]{7,}' "$installer" | head -n 1 || true)"
+  [[ -n "$ver_string" ]] || die "Could not detect Cursor CLI version from installer."
+
+  log "Detected Cursor CLI version: ${ver_string}"
+
+  sed -i \
+    -e "/^ARCH=.*$/r ${android_detect_file}" \
+    -e "/print_success \"Detected/c\print_success \"Detected \${OS}/\${ARCH}\$([ \${IS_ANDROID} = true ] && echo ' (Android/Termux)')\"" \
+    -e "s/${ver_string}/\${VER}/g" \
+    -e "/# Installation steps/i VER=\"${ver_string}\"" \
+    -e "/DOWNLOAD_URL=.*/r ${dynamic_download_file}" \
+    -e "/DOWNLOAD_URL=.*/d" \
+    -e "/^print_step \"Creating symlink/a BIN_DIR=\$HOME/.local/bin\nBIN_LINK=\$BIN_DIR/cursor-agent\nFINAL_DIR=\$HOME/.local/share/cursor-agent/versions/\${VER}" \
+    -e "s|~/.local/bin/cursor-agent|\$BIN_LINK|g" \
+    -e "s|~/.local/share/cursor-agent/versions/\${VER}/cursor-agent|\$FINAL_DIR/cursor-agent|g" \
+    -e "/^print_success \"Symlink created\"/r ${android_fixes_file}" \
+    -e "/Start using Cursor Agent:/c\echo -e \"\${BOLD}2.\${NC} Start using Cursor Agent:\"\necho -e \" \${BOLD}cursor-agent --help\${NC}\"" \
+    "$installer"
+
+  bash "$installer"
+
+  mkdir -p "${HOME}/bin"
+  if [[ ! -x "${HOME}/.local/bin/agent" ]] && [[ -x "${HOME}/.local/bin/cursor-agent" ]]; then
+    ln -sf "${HOME}/.local/bin/cursor-agent" "${HOME}/.local/bin/agent"
+  fi
+
+  ok "Cursor Agent CLI installed."
+}
+
+write_x11_launchers() {
+  log "Writing Termux:X11 launcher scripts..."
+
+  mkdir -p "${HOME}/bin"
+
+  local x11_flags=""
+  [[ "${TERMUX_X11_LEGACY_DRAWING}" -eq 1 ]] && x11_flags+=" -legacy-drawing"
+  [[ "${TERMUX_X11_FORCE_BGRA}" -eq 1 ]] && x11_flags+=" -force-bgra"
+
+  local session_cmd="xfce4-session"
+  case "${DESKTOP_ENV}" in
+    lxqt) session_cmd="startlxqt" ;;
+    mate) session_cmd="mate-session" ;;
+    xfce|*) session_cmd="xfce4-session" ;;
+  esac
+
+  cat > "${HOME}/bin/start-termux-x11" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+# Prevent Android from killing long-running GUI sessions (Android 12+).
+if command -v termux-wake-lock >/dev/null 2>&1; then
+  termux-wake-lock || true
+fi
+
+pkill -f "termux.x11" 2>/dev/null || true
+pkill -f "termux-x11" 2>/dev/null || true
+
+pulseaudio --start --load="module-native-protocol-tcp auth-ip-acl=127.0.0.1 auth-anonymous=1" --exit-idle-time=-1 2>/dev/null || true
+
+export XDG_RUNTIME_DIR="\${TMPDIR}"
+export DISPLAY="${TERMUX_X11_DISPLAY}"
+export PULSE_SERVER=127.0.0.1
+
+termux-x11 ${TERMUX_X11_DISPLAY}${x11_flags} >/dev/null 2>&1 &
+sleep 3
+
+am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity >/dev/null 2>&1 || true
+sleep 1
+
+if command -v dbus-launch >/dev/null 2>&1; then
+  dbus-launch --exit-with-session ${session_cmd} >/dev/null 2>&1 &
+else
+  ${session_cmd} >/dev/null 2>&1 &
+fi
+
+echo "Termux:X11 started on DISPLAY=${TERMUX_X11_DISPLAY}"
+echo "Open the Termux:X11 app if the desktop is not visible."
+EOF
+  chmod +x "${HOME}/bin/start-termux-x11"
+
+  cat > "${HOME}/bin/stop-termux-x11" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+am broadcast -a com.termux.x11.ACTION_STOP -p com.termux.x11 >/dev/null 2>&1 || true
+pkill -f "termux.x11" 2>/dev/null || true
+pkill -f "termux-x11" 2>/dev/null || true
+pkill -f "xfce4-session" 2>/dev/null || true
+if command -v termux-wake-unlock >/dev/null 2>&1; then
+  termux-wake-unlock || true
+fi
+echo "Termux:X11 stopped."
+EOF
+  chmod +x "${HOME}/bin/stop-termux-x11"
+
+  ok "Launchers: start-termux-x11, stop-termux-x11"
+}
+
+write_cursor_launchers() {
+  log "Writing Cursor Agent launcher scripts..."
+
+  mkdir -p "${HOME}/bin"
+
+  cat > "${HOME}/bin/cursor-agent-tmux" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+
+SESSION="cursor-agent"
+WORKDIR="${CURSOR_WORKSPACE:-$HOME/workspace}"
+AGENT_BIN="${AGENT_BIN:-$HOME/.local/bin/agent}"
+
+if [[ ! -x "$AGENT_BIN" ]] && [[ -x "$HOME/.local/bin/cursor-agent" ]]; then
+  AGENT_BIN="$HOME/.local/bin/cursor-agent"
+fi
+
+command -v tmux >/dev/null 2>&1 || { echo "tmux not installed (pkg install tmux)" >&2; exit 1; }
+[[ -x "$AGENT_BIN" ]] || { echo "Cursor agent not found. Re-run setup with cursor install enabled." >&2; exit 1; }
+
+mkdir -p "$WORKDIR"
+cd "$WORKDIR"
+
+if tmux has-session -t "$SESSION" 2>/dev/null; then
+  exec tmux attach -t "$SESSION"
+fi
+
+if command -v termux-wake-lock >/dev/null 2>&1; then
+  termux-wake-lock || true
+fi
+
+exec tmux new-session -s "$SESSION" "$AGENT_BIN" "$@"
+EOF
+  chmod +x "${HOME}/bin/cursor-agent-tmux"
+
+  ok "Launcher: cursor-agent-tmux"
+}
+
+write_shell_profile() {
+  log "Updating shell profile..."
+
+  local profile="${HOME}/.bashrc"
+  local marker="# >>> termux-x11-cursor setup >>>"
+  local end_marker="# <<< termux-x11-cursor setup <<<"
+
+  if [[ -f "$profile" ]] && grep -qF "$marker" "$profile"; then
+    ok "Shell profile already configured."
+    return 0
+  fi
+
+  cat >> "$profile" <<EOF
+
+${marker}
+[[ -f "\${HOME}/.termux-file-access" ]] && source "\${HOME}/.termux-file-access"
+export PATH="\${HOME}/bin:\${HOME}/.local/bin:\${PATH}"
+export DISPLAY="${TERMUX_X11_DISPLAY}"
+export EDITOR="\${EDITOR:-micro}"
+${end_marker}
+EOF
+
+  ok "Added setup block to ${profile}"
+}
+
+print_summary() {
+  cat <<EOF
+
+============================================================
+Termux X11 + Cursor Agent setup complete
+============================================================
+
+Workspace (native, for git/agents):
+  ${WORKSPACE_DIR}
+
+Android shared storage:
+  ~/storage/shared
+  ~/storage/downloads
+  ~/storage/documents/cursor-workspace  -> symlink to workspace
+
+Start graphical desktop:
+  start-termux-x11
+  (then open the Termux:X11 Android app)
+
+Run Cursor Agent in tmux (recommended on phone):
+  cursor-agent-tmux
+  # or: cd ${WORKSPACE_DIR} && agent
+
+Authenticate Cursor (first run):
+  agent login
+
+Export workspace to Downloads:
+  termux-sync-to-downloads
+
+Import an archive from Downloads:
+  termux-import-downloads my-project.tar.gz
+
+Stop X11 session:
+  stop-termux-x11
+
+Tips:
+  - Keep repos under ${WORKSPACE_DIR}, not on ~/storage/* (FAT limitations).
+  - Use tmux so agents survive app backgrounding.
+  - Disable battery optimization for Termux and Termux:X11 on Android 12+.
+  - If the X11 screen is black, re-run setup with --legacy-drawing.
+  - If colors look wrong, re-run with --force-bgra.
+
+EOF
+}
+
+main() {
+  parse_args "$@"
+  require_termux
+  check_prerequisites
+
+  mkdir -p "${HOME}/bin"
+  install_base_packages
+
+  if [[ "${INSTALL_X11}" -eq 1 ]]; then
+    install_desktop
+  fi
+
+  setup_file_access
+
+  if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
+    install_cursor_agent_termux
+  fi
+
+  if [[ "${INSTALL_X11}" -eq 1 ]]; then
+    write_x11_launchers
+  fi
+
+  if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
+    write_cursor_launchers
+  fi
+
+  write_shell_profile
+  print_summary
+}
+
+main "$@"
