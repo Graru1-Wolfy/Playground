@@ -61,7 +61,7 @@ SETUP_SCRIPT_PATH="scripts/setup-termux-x11-cursor.sh"
 SETUP_SCRIPT_PIN="8fa10e32a91d340d04a5a3bb362a5866c5fe1e83"
 SETUP_SCRIPT_URL="https://raw.githubusercontent.com/${SETUP_SCRIPT_REPO}/${SETUP_SCRIPT_PIN}/${SETUP_SCRIPT_PATH}"
 SETUP_SCRIPT_URL_CDN="https://cdn.jsdelivr.net/gh/${SETUP_SCRIPT_REPO}@${SETUP_SCRIPT_PIN}/${SETUP_SCRIPT_PATH}"
-SETUP_SCRIPT_VERSION="20"
+SETUP_SCRIPT_VERSION="21"
 CURSOR_GLIBC_NODE_VERSION="24.5.0"
 CURSOR_GLIBC_RUNTIME_VERSION="4"
 CURSOR_LAUNCHER_VERSION="5"
@@ -1474,6 +1474,11 @@ write_cursor_launchers() {
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
 
+# tmux needs a full controlling TTY (fails after curl | bash menu with stdin-only attach).
+if [[ ! -t 0 || ! -t 1 ]] && [[ -r /dev/tty && -w /dev/tty ]]; then
+  exec </dev/tty >/dev/tty 2>&1 "$0" "$@"
+fi
+
 SESSION="cursor-agent"
 WORKDIR="${CURSOR_WORKSPACE:-$HOME/workspace}"
 AGENT_BIN="${AGENT_BIN:-$HOME/.local/bin/agent}"
@@ -1539,17 +1544,47 @@ can_interact() {
 }
 
 attach_interactive_terminal() {
-  if [[ -t 0 ]]; then
+  if [[ -t 0 && -t 1 ]]; then
     return 0
   fi
 
-  if [[ ! -r /dev/tty ]]; then
+  if [[ ! -r /dev/tty || ! -w /dev/tty ]]; then
     die "Interactive setup needs a Termux terminal session." \
       "Use: curl ... | bash -s -- --non-interactive"
   fi
 
   printf '\n▸ Interactive setup — waiting for your input in Termux.\n' >&2
-  exec < /dev/tty
+  exec </dev/tty >/dev/tty 2>&1
+}
+
+run_in_foreground_tty() {
+  local label="$1"
+  shift
+
+  if [[ $# -eq 0 ]]; then
+    warn "Nothing to run for: ${label}"
+    return 1
+  fi
+
+  if [[ -t 0 && -t 1 ]]; then
+    "$@"
+    return $?
+  fi
+
+  if [[ ! -r /dev/tty || ! -w /dev/tty ]]; then
+    warn "${label} needs an interactive Termux window."
+    printf '  Run manually: %q' "$1" >&2
+    shift
+    while [[ $# -gt 0 ]]; do
+      printf ' %q' "$1" >&2
+      shift
+    done
+    printf '\n' >&2
+    return 1
+  fi
+
+  warn "Reconnecting to Termux terminal for ${label}..."
+  "$@" </dev/tty >/dev/tty 2>&1
 }
 
 read_reply() {
@@ -1788,7 +1823,7 @@ interactive_post_setup_menu() {
       x11)
         if cmd_exists start-termux-x11; then
           log "Launching start-termux-x11..."
-          start-termux-x11
+          run_in_foreground_tty "X11 desktop" start-termux-x11
         else
           warn "start-termux-x11 not found. Run full setup first."
         fi
@@ -1796,7 +1831,7 @@ interactive_post_setup_menu() {
       agent)
         if cmd_exists cursor-agent-tmux; then
           log "Launching cursor-agent-tmux..."
-          cursor-agent-tmux
+          run_in_foreground_tty "Cursor Agent tmux" cursor-agent-tmux
         else
           warn "cursor-agent-tmux not found. Run setup with Cursor enabled."
         fi
@@ -1804,7 +1839,7 @@ interactive_post_setup_menu() {
       login)
         if [[ -x "${HOME}/.local/bin/agent" ]]; then
           log "Running agent login..."
-          "${HOME}/.local/bin/agent" login
+          run_in_foreground_tty "Cursor Agent login" "${HOME}/.local/bin/agent" login
         else
           warn "agent not found. Run setup with Cursor enabled."
         fi
