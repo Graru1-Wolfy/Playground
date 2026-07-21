@@ -1027,6 +1027,9 @@ Tips:
   - Re-run this script anytime to install anything still missing.
   - Keep repos under ${ws_display}, not on ~/storage/* (FAT limitations).
   - Use --verbose to show all "already installed" checks.
+  - X11 logs: tail -f ~/termux-x11.log
+  - Desktop closes instantly: start-termux-x11 --legacy-drawing
+  - Android 12+: disable phantom process killer / battery optimization for Termux
   - If the X11 screen is black: re-run with --legacy-drawing
   - If colors look wrong: re-run with --force-bgra
 
