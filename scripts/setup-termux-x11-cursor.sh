@@ -13,9 +13,9 @@
 # The script auto-installs any missing packages, companion APKs, Cursor Agent,
 # storage symlinks, and launcher scripts. Safe to re-run.
 #
-# Usage (inside Termux) — one-liner:
+# Usage (inside Termux) — one-liner (no GitHub token; repo is public):
 #   curl -fsSL https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh | bash
-# Verify latest script: curl -fsSL .../setup-termux-x11-cursor.sh | grep SETUP_SCRIPT_VERSION
+# Verify latest: curl -fsSL .../setup-termux-x11-cursor.sh | grep SETUP_SCRIPT_VERSION
 # Options:
 #   --skip-x11        Skip X11 / desktop packages
 #   --skip-cursor     Skip Cursor Agent CLI install

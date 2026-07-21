@@ -5,6 +5,10 @@
 name: Deploy Termux setup script (Pages)
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "scripts/setup-termux-x11-cursor.sh"
   workflow_dispatch:
 
 permissions:
