@@ -14,13 +14,13 @@
 # storage symlinks, and launcher scripts. Safe to re-run.
 #
 # Usage (inside Termux) — one-liner (no GitHub token; repo is public):
-#   curl -fsSL "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh" | bash
-# If you see old errors, bust cache: append ?v=$(date +%s) to the URL above
+#   curl -fsSL "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh?v=$(date +%s)" | bash
+# Opens the interactive menu automatically (even through curl | bash).
+# Skip menu: curl ... | bash -s -- --non-interactive
 # Verify latest: curl -fsSL ".../setup-termux-x11-cursor.sh" | grep SETUP_SCRIPT_VERSION
 # Quick repair only: repair-cursor-agent
-# Interactive menu (when run directly in Termux): bash setup.sh
 # Options:
-#   -i, --interactive   Show setup menu (default when run with a TTY and no args)
+#   -i, --interactive   Show setup menu (default with a terminal and no args)
 #   --non-interactive   Skip menu; use defaults or flags only
 #   --skip-x11        Skip X11 / desktop packages
 #   --skip-cursor     Skip Cursor Agent CLI install
@@ -52,7 +52,7 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="15"
+SETUP_SCRIPT_VERSION="16"
 CURSOR_GLIBC_NODE_VERSION="24.5.0"
 CURSOR_GLIBC_RUNTIME_VERSION="4"
 CURSOR_LAUNCHER_VERSION="5"
@@ -1524,6 +1524,21 @@ is_tty() {
   [[ -t 0 && -t 1 ]]
 }
 
+can_interact() {
+  is_tty && return 0
+  [[ -r /dev/tty && -w /dev/tty ]]
+}
+
+read_reply() {
+  if [[ -t 0 ]]; then
+    read -r "$@" && return 0
+  fi
+  if [[ -r /dev/tty ]]; then
+    read -r "$@" < /dev/tty && return 0
+  fi
+  return 1
+}
+
 prompt_yes_no() {
   local prompt="$1"
   local default="${2:-1}"
@@ -1537,7 +1552,9 @@ prompt_yes_no() {
 
   while true; do
     printf '%s %s ' "$prompt" "$hint"
-    read -r reply || return "$default"
+    if ! read_reply reply; then
+      [[ "$default" -eq 1 ]] && return 0 || return 1
+    fi
     reply="${reply,,}"
     case "$reply" in
       y|yes) return 0 ;;
@@ -1563,8 +1580,9 @@ prompt_text() {
     printf '%s: ' "$prompt"
   fi
 
-  read -r reply || reply="$default"
-  if [[ -z "$reply" ]]; then
+  if ! read_reply reply; then
+    reply="$default"
+  elif [[ -z "$reply" ]]; then
     reply="$default"
   fi
   printf '%s' "$reply"
@@ -1588,8 +1606,11 @@ select_option() {
 
   while true; do
     printf 'Selection [1-%d]: ' "${#options[@]}"
-    read -r reply || reply="$default_idx"
-    [[ -z "$reply" ]] && reply="$default_idx"
+    if ! read_reply reply; then
+      reply="$default_idx"
+    elif [[ -z "$reply" ]]; then
+      reply="$default_idx"
+    fi
     if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= ${#options[@]} )); then
       choice="${options[$((reply - 1))]}"
       printf '%s' "${choice%%|*}"
@@ -1915,7 +1936,8 @@ EOF
 
 Tips:
   - Re-run this script anytime to install anything still missing.
-  - Interactive menu: bash ${SCRIPT_NAME}  (or curl ... | bash -s -- -i)
+  - Interactive menu: curl ... | bash  (or bash ${SCRIPT_NAME})
+  - Skip menu: curl ... | bash -s -- --non-interactive
   - Android Files cannot follow symlinks into Termux home; use shared mode or sync commands.
   - Shared mode stores files in Documents (visible in Files). Avoid heavy node_modules there.
   - For big Node projects use --workspace-mode=dual and keep git work in ~/workspace.
@@ -1942,8 +1964,13 @@ main() {
   log "setup-termux-x11-cursor.sh SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION}"
   mkdir -p "${HOME}/bin" "${CACHE_DIR}"
 
-  if [[ "${INTERACTIVE}" -eq 0 ]] && [[ "${argc}" -eq 0 ]] && is_tty; then
+  if [[ "${INTERACTIVE}" -eq 0 ]] && [[ "${argc}" -eq 0 ]] && can_interact; then
     INTERACTIVE=1
+  fi
+
+  if [[ "${INTERACTIVE}" -eq 1 ]] && ! can_interact; then
+    warn "Interactive mode requested but no terminal available; running non-interactive setup."
+    INTERACTIVE=0
   fi
 
   if [[ "${REPAIR_CURSOR_ONLY}" -eq 1 ]]; then
