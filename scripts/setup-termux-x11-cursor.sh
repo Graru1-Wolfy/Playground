@@ -42,7 +42,7 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="10"
+SETUP_SCRIPT_VERSION="11"
 CURSOR_GLIBC_NODE_VERSION="24.17.0"
 CURSOR_GLIBC_RUNTIME_VERSION="3"
 CURSOR_LAUNCHER_VERSION="4"
@@ -675,7 +675,7 @@ restore_cursor_bundled_glibc_node() {
   log "Downloading Cursor Agent package to restore bundled glibc Node (${ver})..."
   rm -f "$tarball"
   curl -fsSL "https://downloads.cursor.com/lab/${ver}/linux/${arch}/agent-cli-package.tar.gz" -o "$tarball"
-  tar -xzf "$tarball" -C "$tmpdir" node
+  tar -xzf "$tarball" --strip-components=1 -C "$tmpdir" dist-package/node
   install -m0755 "${tmpdir}/node" "$dest"
   rm -rf "$tmpdir"
   cursor_glibc_node_valid "$dest" || die "Downloaded Cursor Node binary is invalid for ${ver}."
@@ -757,7 +757,11 @@ verify_cursor_agent_runtime() {
 
   (
     cd "$final_dir"
-    "$node_wrapper" -e "require('./build/node_sqlite3.node');" >/dev/null 2>&1
+    "$node_wrapper" -e "
+      const fs = require('fs');
+      const sqlite = ['./node_sqlite3.node', './build/node_sqlite3.node'].find((p) => fs.existsSync(p));
+      if (sqlite) require(sqlite);
+    " >/dev/null 2>&1
     "$node_wrapper" --use-system-ca "${final_dir}/index.js" --version >/dev/null 2>&1
   )
 }
