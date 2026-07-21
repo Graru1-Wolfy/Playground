@@ -45,10 +45,10 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="12"
-CURSOR_GLIBC_NODE_VERSION="24.17.0"
-CURSOR_GLIBC_RUNTIME_VERSION="3"
-CURSOR_LAUNCHER_VERSION="4"
+SETUP_SCRIPT_VERSION="13"
+CURSOR_GLIBC_NODE_VERSION="24.5.0"
+CURSOR_GLIBC_RUNTIME_VERSION="4"
+CURSOR_LAUNCHER_VERSION="5"
 
 log()  { printf '\033[0;34m▸\033[0m %s\n' "$*"; }
 ok()   { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
@@ -714,25 +714,45 @@ ensure_cursor_glibc_node() {
   local final_dir="$1"
   local real_node="${final_dir}/node.glibc"
 
-  if cursor_glibc_node_valid "$real_node"; then
+  if cursor_glibc_node_valid "$real_node" && run_glibc_node_smoke_test "$real_node"; then
     return 0
   fi
 
   rm -f "$real_node"
-  if [[ -x "${final_dir}/node.real" ]]; then
-    mv -f "${final_dir}/node.real" "$real_node"
-  fi
+  log "Selecting a working glibc Node for Cursor Agent..."
 
-  if cursor_glibc_node_valid "$real_node"; then
+  if ensure_official_glibc_node "$real_node" && run_glibc_node_smoke_test "$real_node"; then
+    ok "Using official Node.js v${CURSOR_GLIBC_NODE_VERSION} (glibc runtime)"
     return 0
   fi
 
-  if restore_cursor_bundled_glibc_node "$final_dir" "$real_node"; then
+  warn "Official Node.js v${CURSOR_GLIBC_NODE_VERSION} failed under glibc; trying Cursor bundled node..."
+  rm -f "$real_node"
+
+  if restore_cursor_bundled_glibc_node "$final_dir" "$real_node" && run_glibc_node_smoke_test "$real_node"; then
+    ok "Using Cursor bundled glibc Node"
     return 0
   fi
 
-  ensure_official_glibc_node "$real_node"
-  cursor_glibc_node_valid "$real_node" || die "Could not install a valid glibc Node at ${real_node}"
+  rm -f "$real_node"
+  die "No working glibc Node on this device. Try: pkg install proot-distro && proot-distro install ubuntu"
+}
+
+run_glibc_node_smoke_test() {
+  local node_bin="$1"
+  local ld_so glibc_prefix
+
+  cursor_glibc_node_valid "$node_bin" || return 1
+  ld_so="$(cursor_glibc_ld_so)" || return 1
+  glibc_prefix="${PREFIX}/glibc"
+
+  (
+    unset LD_PRELOAD
+    export MALLOC_ARENA_MAX=2
+    export LD_LIBRARY_PATH="${glibc_prefix}/lib"
+    export PATH="${glibc_prefix}/bin:${PATH}"
+    "${ld_so}" --library-path "${glibc_prefix}/lib" "${node_bin}" -e 'console.log("ok")' >/dev/null 2>&1
+  )
 }
 
 write_cursor_glibc_node_wrapper() {
@@ -746,34 +766,29 @@ write_cursor_glibc_node_wrapper() {
 
   ensure_cursor_glibc_node "$final_dir"
 
-  if cmd_exists patchelf; then
-    patchelf --set-interpreter "$ld_so" --set-rpath "${glibc_prefix}/lib" "$real_node" 2>/dev/null || true
-  fi
-
   cat > "$node_wrapper" <<EOF
 #!/data/data/com.termux/files/usr/bin/bash
 # CURSOR_GLIBC_NODE_WRAPPER=v${CURSOR_GLIBC_RUNTIME_VERSION}
 GLIBC_PREFIX="${glibc_prefix}"
 LD_SO="${ld_so}"
 REAL_NODE="${real_node}"
+unset LD_PRELOAD
+export MALLOC_ARENA_MAX=2
 export PATH="\${GLIBC_PREFIX}/bin:\${PATH}"
 export LD_LIBRARY_PATH="\${GLIBC_PREFIX}/lib"
 export SSL_CERT_FILE="${PREFIX}/etc/tls/cert.pem"
 export SSL_CERT_DIR="${PREFIX}/etc/tls/certs"
 export NODE_EXTRA_CA_CERTS="${PREFIX}/etc/tls/cert.pem"
 export TMPDIR="\${TMPDIR:-${PREFIX}/tmp}"
-unset LD_PRELOAD
 if [[ ! -f "\$REAL_NODE" ]]; then
   echo "Missing glibc Node binary: \$REAL_NODE" >&2
-  echo "Re-run setup: curl -fsSL https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh | bash" >&2
   exit 1
-fi
-if command -v grun >/dev/null 2>&1; then
-  exec grun "\$REAL_NODE" "\$@"
 fi
 exec "\$LD_SO" --library-path "\${GLIBC_PREFIX}/lib" "\$REAL_NODE" "\$@"
 EOF
   chmod +x "$node_wrapper"
+
+  run_glibc_node_smoke_test "$real_node" || die "glibc Node wrapper still fails (segfault). Try proot-distro ubuntu."
 }
 
 verify_cursor_agent_runtime() {
@@ -785,6 +800,7 @@ verify_cursor_agent_runtime() {
 
   (
     cd "$final_dir"
+    run_glibc_node_smoke_test "${final_dir}/node.glibc" || return 1
     "$node_wrapper" -e "
       const fs = require('fs');
       const sqlite = ['./node_sqlite3.node', './build/node_sqlite3.node'].find((p) => fs.existsSync(p));
@@ -981,7 +997,7 @@ patch_cursor_agent_glibc_runtime() {
   [[ -d "$final_dir" ]] || return 0
 
   ensure_glibc_runner
-  pkg_install_missing patchelf 2>/dev/null || true
+  pkg_install_missing curl wget
 
   node_wrapper="${final_dir}/node"
 
@@ -1253,7 +1269,7 @@ EOF
 
 repair_cursor_agent_only() {
   log "Repairing Cursor Agent only (SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION})..."
-  pkg_install_missing curl wget patchelf 2>/dev/null || pkg_install_missing curl wget
+  pkg_install_missing curl wget
   ensure_glibc_runner
   patch_installed_cursor_agents
   write_cursor_agent_bin_wrappers
@@ -1386,7 +1402,8 @@ Tips:
   - If the X11 screen is black: re-run with --legacy-drawing
   - If colors look wrong: re-run with --force-bgra
   - X11 dbus/ConsoleKit warnings in the log are harmless on Termux
-  - agent node.glibc error: re-run setup (repairs node wrapper + re-downloads Node)
+  - agent segfault: re-run repair-cursor-agent (uses official Node v24.5.0, not debug bundle)
+  - If agent still segfaults: pkg install proot-distro && proot-distro install ubuntu
   - glibc-runner not found: pkg install glibc-repo && pkg update && pkg install glibc-runner
   - Run agent from Termux or XFCE terminal after setup (PATH includes ~/.local/bin)
 
