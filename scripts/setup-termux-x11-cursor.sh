@@ -52,7 +52,7 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="16"
+SETUP_SCRIPT_VERSION="17"
 CURSOR_GLIBC_NODE_VERSION="24.5.0"
 CURSOR_GLIBC_RUNTIME_VERSION="4"
 CURSOR_LAUNCHER_VERSION="5"
@@ -1526,17 +1526,25 @@ is_tty() {
 
 can_interact() {
   is_tty && return 0
-  [[ -r /dev/tty && -w /dev/tty ]]
+  [[ -r /dev/tty ]]
+}
+
+attach_interactive_terminal() {
+  if [[ -t 0 ]]; then
+    return 0
+  fi
+
+  if [[ ! -r /dev/tty ]]; then
+    die "Interactive setup needs a Termux terminal session." \
+      "Use: curl ... | bash -s -- --non-interactive"
+  fi
+
+  printf '\n▸ Interactive setup — waiting for your input in Termux.\n' >&2
+  exec < /dev/tty
 }
 
 read_reply() {
-  if [[ -t 0 ]]; then
-    read -r "$@" && return 0
-  fi
-  if [[ -r /dev/tty ]]; then
-    read -r "$@" < /dev/tty && return 0
-  fi
-  return 1
+  read -r "$@"
 }
 
 prompt_yes_no() {
@@ -1553,7 +1561,8 @@ prompt_yes_no() {
   while true; do
     printf '%s %s ' "$prompt" "$hint"
     if ! read_reply reply; then
-      [[ "$default" -eq 1 ]] && return 0 || return 1
+      warn "Could not read input — tap the Termux window and try again."
+      continue
     fi
     reply="${reply,,}"
     case "$reply" in
@@ -1581,6 +1590,7 @@ prompt_text() {
   fi
 
   if ! read_reply reply; then
+    warn "Could not read input — using default."
     reply="$default"
   elif [[ -z "$reply" ]]; then
     reply="$default"
@@ -1607,10 +1617,10 @@ select_option() {
   while true; do
     printf 'Selection [1-%d]: ' "${#options[@]}"
     if ! read_reply reply; then
-      reply="$default_idx"
-    elif [[ -z "$reply" ]]; then
-      reply="$default_idx"
+      warn "Could not read input — tap the Termux window and try again."
+      continue
     fi
+    [[ -z "$reply" ]] && reply="$default_idx"
     if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= ${#options[@]} )); then
       choice="${options[$((reply - 1))]}"
       printf '%s' "${choice%%|*}"
@@ -1830,6 +1840,8 @@ run_setup() {
 }
 
 run_interactive_menu() {
+  attach_interactive_terminal
+
   while true; do
     echo ""
     echo "============================================================"
@@ -1964,13 +1976,8 @@ main() {
   log "setup-termux-x11-cursor.sh SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION}"
   mkdir -p "${HOME}/bin" "${CACHE_DIR}"
 
-  if [[ "${INTERACTIVE}" -eq 0 ]] && [[ "${argc}" -eq 0 ]] && can_interact; then
+  if [[ "${INTERACTIVE}" -eq 0 ]] && [[ "${argc}" -eq 0 ]]; then
     INTERACTIVE=1
-  fi
-
-  if [[ "${INTERACTIVE}" -eq 1 ]] && ! can_interact; then
-    warn "Interactive mode requested but no terminal available; running non-interactive setup."
-    INTERACTIVE=0
   fi
 
   if [[ "${REPAIR_CURSOR_ONLY}" -eq 1 ]]; then
