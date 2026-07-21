@@ -13,11 +13,13 @@
 # The script auto-installs any missing packages, companion APKs, Cursor Agent,
 # storage symlinks, and launcher scripts. Safe to re-run.
 #
-# Usage (inside Termux) — one-liner (no GitHub token; repo is public):
-#   curl -fsSL "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh?v=$(date +%s)" | bash
+# Usage (inside Termux) — recommended URL (avoids GitHub raw CDN cache on /main):
+#   curl -fsSL "https://cdn.jsdelivr.net/gh/Graru1-Wolfy/Playground@main/scripts/setup-termux-x11-cursor.sh" | bash
+# Alternate (raw GitHub — may serve an old copy for ~5 min after updates):
+#   curl -fsSL "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh" | bash
 # Opens the interactive menu automatically (even through curl | bash).
 # Skip menu: curl ... | bash -s -- --non-interactive
-# Verify latest: curl -fsSL ".../setup-termux-x11-cursor.sh" | grep SETUP_SCRIPT_VERSION
+# Verify latest: curl -fsSL "https://cdn.jsdelivr.net/gh/Graru1-Wolfy/Playground@main/scripts/setup-termux-x11-cursor.sh" | grep SETUP_SCRIPT_VERSION
 # Quick repair only: repair-cursor-agent
 # Options:
 #   -i, --interactive   Show setup menu (default with a terminal and no args)
@@ -52,7 +54,11 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="17"
+SETUP_SCRIPT_REPO="Graru1-Wolfy/Playground"
+SETUP_SCRIPT_PATH="scripts/setup-termux-x11-cursor.sh"
+# jsDelivr avoids raw.githubusercontent.com CDN caching stale /main copies.
+SETUP_SCRIPT_URL="https://cdn.jsdelivr.net/gh/${SETUP_SCRIPT_REPO}@main/${SETUP_SCRIPT_PATH}"
+SETUP_SCRIPT_VERSION="18"
 CURSOR_GLIBC_NODE_VERSION="24.5.0"
 CURSOR_GLIBC_RUNTIME_VERSION="4"
 CURSOR_LAUNCHER_VERSION="5"
@@ -1425,13 +1431,13 @@ EOF
 
 write_repair_cursor_agent() {
   mkdir -p "${HOME}/bin"
-  cat > "${HOME}/bin/repair-cursor-agent" <<'EOF'
+  cat > "${HOME}/bin/repair-cursor-agent" <<EOF
 #!/data/data/com.termux/files/usr/bin/bash
 set -euo pipefail
-SCRIPT_URL="https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh"
-tmp="$(mktemp)"
-curl -fsSL "${SCRIPT_URL}?v=$(date +%s)" -o "$tmp"
-bash "$tmp" --repair-cursor-only "$@"
+SCRIPT_URL="${SETUP_SCRIPT_URL}"
+tmp="\$(mktemp)"
+curl -fsSL "\${SCRIPT_URL}" -o "\$tmp"
+bash "\$tmp" --repair-cursor-only "\$@"
 EOF
   chmod +x "${HOME}/bin/repair-cursor-agent"
   ok "Quick repair command: repair-cursor-agent"
@@ -1948,8 +1954,9 @@ EOF
 
 Tips:
   - Re-run this script anytime to install anything still missing.
-  - Interactive menu: curl ... | bash  (or bash ${SCRIPT_NAME})
+  - Interactive menu: curl -fsSL "${SETUP_SCRIPT_URL}" | bash
   - Skip menu: curl ... | bash -s -- --non-interactive
+  - If you still see SETUP_SCRIPT_VERSION below 18, use the jsDelivr URL above (not raw GitHub).
   - Android Files cannot follow symlinks into Termux home; use shared mode or sync commands.
   - Shared mode stores files in Documents (visible in Files). Avoid heavy node_modules there.
   - For big Node projects use --workspace-mode=dual and keep git work in ~/workspace.
