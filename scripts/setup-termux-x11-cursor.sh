@@ -15,6 +15,7 @@
 #
 # Usage (inside Termux) — one-liner:
 #   curl -fsSL https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh | bash
+# Verify latest script: curl -fsSL .../setup-termux-x11-cursor.sh | grep SETUP_SCRIPT_VERSION
 # Options:
 #   --skip-x11        Skip X11 / desktop packages
 #   --skip-cursor     Skip Cursor Agent CLI install
@@ -41,6 +42,10 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="3"
+SETUP_SCRIPT_VERSION="7"
+CURSOR_GLIBC_NODE_VERSION="24.17.0"
+CURSOR_GLIBC_RUNTIME_VERSION="1"
+CURSOR_LAUNCHER_VERSION="2"
 
 log()  { printf '\033[0;34m▸\033[0m %s\n' "$*"; }
 ok()   { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
@@ -643,24 +648,177 @@ EOF
   ok "File access helpers ready (see ~/.termux-file-access)."
 }
 
+cursor_node_platform() {
+  case "$(uname -m)" in
+    aarch64|arm64) echo "linux-arm64" ;;
+    x86_64|amd64) echo "linux-x64" ;;
+    *) die "Unsupported CPU for Cursor Agent glibc runtime: $(uname -m)" ;;
+  esac
+}
+
+cursor_glibc_ld_so() {
+  local platform
+  platform="$(cursor_node_platform)"
+  case "$platform" in
+    linux-arm64) echo "${PREFIX}/glibc/lib/ld-linux-aarch64.so.1" ;;
+    linux-x64) echo "${PREFIX}/glibc/lib/ld-linux-x86-64.so.2" ;;
+  esac
+}
+
+ensure_glibc_runner() {
+  pkg_install_missing glibc-repo glibc-runner
+
+  local nss="${PREFIX}/glibc/etc/nsswitch.conf"
+  if [[ -f "$nss" ]]; then
+    return 0
+  fi
+
+  mkdir -p "${PREFIX}/glibc/etc"
+  cat > "$nss" <<'EOF'
+passwd: files
+group: files
+shadow: files
+hosts: files dns
+networks: files
+protocols: files
+services: files
+EOF
+  ok "Configured glibc nsswitch.conf (DNS for Cursor Agent)."
+}
+
+ensure_official_glibc_node() {
+  local dest="$1"
+  local platform cache_dir tarball extract_dir cached_node
+  platform="$(cursor_node_platform)"
+  cache_dir="${HOME}/.cache/cursor-agent-glibc-node/v${CURSOR_GLIBC_NODE_VERSION}-${platform}"
+  cached_node="${cache_dir}/bin/node"
+  tarball="${HOME}/.cache/cursor-agent-glibc-node/node-v${CURSOR_GLIBC_NODE_VERSION}-${platform}.tar.xz"
+  extract_dir="${HOME}/.cache/cursor-agent-glibc-node/node-v${CURSOR_GLIBC_NODE_VERSION}-${platform}"
+
+  if [[ -x "$cached_node" ]]; then
+    install -m0755 "$cached_node" "$dest"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$dest")" "${HOME}/.cache/cursor-agent-glibc-node"
+  log "Downloading official Node.js v${CURSOR_GLIBC_NODE_VERSION} (${platform}) for glibc runtime..."
+  curl -fsSL "https://nodejs.org/dist/v${CURSOR_GLIBC_NODE_VERSION}/node-v${CURSOR_GLIBC_NODE_VERSION}-${platform}.tar.xz" -o "$tarball"
+  rm -rf "$extract_dir" "$cache_dir"
+  mkdir -p "$cache_dir"
+  tar -xJf "$tarball" -C "${HOME}/.cache/cursor-agent-glibc-node"
+  mv "$extract_dir" "$cache_dir"
+  install -m0755 "$cached_node" "$dest"
+  ok "Cached glibc Node.js at ${cached_node}"
+}
+
+patch_cursor_agent_glibc_runtime() {
+  local final_dir="$1"
+  local ld_so real_node node_wrapper glibc_prefix
+
+  [[ -d "$final_dir" ]] || return 0
+
+  ensure_glibc_runner
+
+  ld_so="$(cursor_glibc_ld_so)"
+  [[ -x "$ld_so" ]] || die "glibc dynamic linker not found at ${ld_so}. Run: pkg install glibc-repo glibc-runner"
+
+  glibc_prefix="${PREFIX}/glibc"
+  real_node="${final_dir}/node.glibc"
+  node_wrapper="${final_dir}/node"
+
+  if [[ -f "$node_wrapper" ]]; then
+    if [[ -L "$node_wrapper" ]]; then
+      rm -f "$node_wrapper"
+    elif [[ -f "$node_wrapper" ]] && head -n 1 "$node_wrapper" 2>/dev/null | grep -q '^#!'; then
+      if grep -q "CURSOR_GLIBC_NODE_WRAPPER=v${CURSOR_GLIBC_RUNTIME_VERSION}" "$node_wrapper" 2>/dev/null \
+        && [[ -x "$real_node" ]]; then
+        ok_maybe "Cursor glibc Node wrapper already configured for $(basename "$final_dir")."
+        return 0
+      fi
+      rm -f "$node_wrapper"
+    elif file "$node_wrapper" 2>/dev/null | grep -q 'ELF'; then
+      mv -f "$node_wrapper" "$real_node"
+    fi
+  fi
+
+  if [[ ! -x "$real_node" ]]; then
+    if [[ -x "${final_dir}/node.real" ]]; then
+      mv -f "${final_dir}/node.real" "$real_node"
+    else
+      ensure_official_glibc_node "$real_node"
+    fi
+  fi
+
+  cat > "$node_wrapper" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+# CURSOR_GLIBC_NODE_WRAPPER=v${CURSOR_GLIBC_RUNTIME_VERSION}
+GLIBC_PREFIX="${glibc_prefix}"
+LD_SO="${ld_so}"
+REAL_NODE="${real_node}"
+export PATH="\${GLIBC_PREFIX}/bin:\${PATH}"
+export TMPDIR="\${TMPDIR:-${PREFIX}/tmp}"
+unset LD_PRELOAD
+exec "\$LD_SO" "\$REAL_NODE" "\$@"
+EOF
+  chmod +x "$node_wrapper"
+
+  if [[ -e "${final_dir}/rg" ]] && cmd_exists rg; then
+    rm -f "${final_dir}/rg"
+    ln -sf "$(command -v rg)" "${final_dir}/rg"
+  fi
+
+  log "Verifying Cursor Agent native modules in $(basename "$final_dir")..."
+  if (
+    cd "$final_dir"
+    "$node_wrapper" -e "
+      require('./build/node_sqlite3.node');
+      const fs = require('fs');
+      const merkle = fs.readdirSync('.').find((name) => name.startsWith('merkle-tree-napi.') && name.endsWith('.node'));
+      if (merkle) require('./' + merkle);
+    "
+  ); then
+    ok "Cursor Agent glibc runtime ready for $(basename "$final_dir")."
+  else
+    warn "Native module self-test failed for $(basename "$final_dir")."
+    warn "If cursor-agent still errors, re-run with --force-cursor."
+  fi
+}
+
+patch_installed_cursor_agents() {
+  local versions_dir="${HOME}/.local/share/cursor-agent/versions"
+  [[ -d "$versions_dir" ]] || return 0
+
+  local ver_dir
+  for ver_dir in "$versions_dir"/*/; do
+    [[ -d "$ver_dir" ]] || continue
+    patch_cursor_agent_glibc_runtime "${ver_dir%/}"
+  done
+}
+
 install_cursor_agent_termux() {
+  if [[ "${INSTALL_CURSOR}" -eq 0 ]]; then
+    return 0
+  fi
+
+  ensure_glibc_runner
+
   if cursor_agent_installed && [[ "${FORCE_CURSOR}" -eq 0 ]]; then
     if [[ ! -x "${HOME}/.local/bin/agent" ]] && [[ -x "${HOME}/.local/bin/cursor-agent" ]]; then
       ln -sf "${HOME}/.local/bin/cursor-agent" "${HOME}/.local/bin/agent"
     fi
+    patch_installed_cursor_agents
     return 0
   fi
 
-  pkg_install_missing nodejs-lts ripgrep sqlite clang make pkg-config python
+  pkg_install_missing ripgrep curl wget
 
-  log "Installing Cursor Agent CLI (Termux-compatible)..."
+  log "Installing Cursor Agent CLI (Termux glibc-compatible)..."
 
-  local installer android_detect_file dynamic_download_file android_fixes_file
+  local installer android_detect_file dynamic_download_file
   installer="$(mktemp)"
   android_detect_file="$(mktemp)"
   dynamic_download_file="$(mktemp)"
-  android_fixes_file="$(mktemp)"
-  trap 'rm -f "$installer" "$android_detect_file" "$dynamic_download_file" "$android_fixes_file"' RETURN
+  trap 'rm -f "$installer" "$android_detect_file" "$dynamic_download_file"' RETURN
 
   cat > "${android_detect_file}" <<'EOF'
 # Android/Termux detection
@@ -683,85 +841,6 @@ fi
 DOWNLOAD_URL="https://downloads.cursor.com/lab/${VER}/${DOWNLOAD_OS}/${ARCH}/agent-cli-package.tar.gz"
 EOF
 
-  cat > "${android_fixes_file}" <<'EOF'
-
-# ============ Android/Termux post-install fixes ============
-if $IS_ANDROID; then
-  echo
-  echo -e "${BOLD}Android/Termux post-install fixes${NC}"
-
-  print_step "Patching Node runtime..."
-  if ! command -v node > /dev/null 2>&1; then
-    print_error "Node.js not found in PATH. Install it (e.g. pkg install nodejs-lts)."
-    exit 1
-  fi
-  SYS_NODE="$(command -v node)"
-  rm -f "$FINAL_DIR/node"
-  ln -s "$SYS_NODE" "$FINAL_DIR/node"
-  print_success "node → $SYS_NODE"
-
-  if [[ -e "$FINAL_DIR/rg" ]]; then
-    print_step "Replacing bundled rg (ripgrep)..."
-    if command -v rg > /dev/null 2>&1; then
-      rm -f "$FINAL_DIR/rg"
-      ln -s "$(command -v rg)" "$FINAL_DIR/rg"
-      print_success "rg → $(command -v rg)"
-    else
-      print_error "ripgrep (rg) not found. Install it (e.g. pkg install ripgrep)."
-    fi
-  fi
-
-  echo
-  print_step "Rebuilding sqlite3 native addon for Android/bionic..."
-
-  need_bins=(clang make python pkg-config npm)
-  missing=()
-  for b in "${need_bins[@]}"; do command -v "$b" > /dev/null 2>&1 || missing+=("$b"); done
-  if [[ ${#missing[@]} -gt 0 ]]; then
-    print_error "Missing build tools: ${missing[*]}"
-    exit 1
-  fi
-
-  cd "$FINAL_DIR" || { print_error "Could not enter directory '$FINAL_DIR'"; exit 1; }
-
-  unset LINK || true
-  J=$(($(getconf _NPROCESSORS_ONLN 2> /dev/null || echo 1)))
-  rm -f build/node_sqlite3.node || true
-  npm ci --ignore-scripts > /dev/null 2>&1 || true
-  npm i sqlite3 --ignore-scripts
-
-  if [[ -d node_modules/sqlite3 ]]; then
-    print_step "Patching gyp files..."
-    find node_modules/sqlite3 -type f \( -name '*.gyp' -o -name '*.gypi' \) -print0 | xargs -0 sed -i -E \
-      -e 's/\bOS\s*==\s*"android"/OS=="never"/g' \
-      -e 's/\btarget_os\s*==\s*"android"/target_os=="never"/g' \
-      -e '/android_ndk_path/d' \
-      -e '/ANDROID_/d'
-    print_success "Patched gyp"
-  else
-    print_error "sqlite3 sources not found under node_modules."
-    exit 1
-  fi
-
-  print_step "Building sqlite3 addon (this can take a minute)..."
-  npx node-gyp configure -C node_modules/sqlite3 -- -DOS=linux -Dtarget_os=linux -Dandroid_ndk_path=/nonexistent
-  make -C node_modules/sqlite3/build -j "$J" V=1 LINK=clang++
-
-  if [[ -f node_modules/sqlite3/build/Release/node_sqlite3.node ]]; then
-    install -m0755 node_modules/sqlite3/build/Release/node_sqlite3.node build/node_sqlite3.node
-    print_success "sqlite3 addon rebuilt"
-  else
-    print_error "Failed to produce node_sqlite3.node"
-    exit 1
-  fi
-
-  node -e "require('$FINAL_DIR/build/node_sqlite3.node');"
-  print_success "sqlite3 addon loads under Termux Node"
-
-  cd - > /dev/null
-fi
-EOF
-
   curl -fsSL "https://cursor.com/install" -o "$installer" || die "Failed to download Cursor installer."
 
   local ver_string
@@ -780,11 +859,12 @@ EOF
     -e "/^print_step \"Creating symlink/a BIN_DIR=\$HOME/.local/bin\nBIN_LINK=\$BIN_DIR/cursor-agent\nFINAL_DIR=\$HOME/.local/share/cursor-agent/versions/\${VER}" \
     -e "s|~/.local/bin/cursor-agent|\$BIN_LINK|g" \
     -e "s|~/.local/share/cursor-agent/versions/\${VER}/cursor-agent|\$FINAL_DIR/cursor-agent|g" \
-    -e "/^print_success \"Symlink created\"/r ${android_fixes_file}" \
     -e "/Start using Cursor Agent:/c\echo -e \"\${BOLD}2.\${NC} Start using Cursor Agent:\"\necho -e \" \${BOLD}cursor-agent --help\${NC}\"" \
     "$installer"
 
   bash "$installer"
+
+  patch_cursor_agent_glibc_runtime "${HOME}/.local/share/cursor-agent/versions/${ver_string}"
 
   mkdir -p "${HOME}/bin"
   if [[ ! -x "${HOME}/.local/bin/agent" ]] && [[ -x "${HOME}/.local/bin/cursor-agent" ]]; then
@@ -915,7 +995,9 @@ EOF
 }
 
 write_cursor_launchers() {
-  if [[ -x "${HOME}/bin/cursor-agent-tmux" ]]; then
+  local version_file="${HOME}/bin/.cursor-agent-launcher-version"
+  if [[ -x "${HOME}/bin/cursor-agent-tmux" ]] && [[ -f "$version_file" ]] \
+    && [[ "$(cat "$version_file")" == "${CURSOR_LAUNCHER_VERSION}" ]]; then
     return 0
   fi
 
@@ -949,11 +1031,13 @@ if command -v termux-wake-lock >/dev/null 2>&1; then
   termux-wake-lock || true
 fi
 
+unset LD_PRELOAD
 exec tmux new-session -s "$SESSION" "$AGENT_BIN" "$@"
 EOF
   chmod +x "${HOME}/bin/cursor-agent-tmux"
+  echo "${CURSOR_LAUNCHER_VERSION}" > "${version_file}"
 
-  ok "Launcher: cursor-agent-tmux"
+  ok "Launcher: cursor-agent-tmux (v${CURSOR_LAUNCHER_VERSION})"
 }
 
 write_shell_profile() {
@@ -1031,6 +1115,7 @@ Tips:
   - Android 12+: disable phantom process killer / battery optimization for Termux
   - If the X11 screen is black: re-run with --legacy-drawing
   - If colors look wrong: re-run with --force-bgra
+  - Cursor Agent libdl.so.2 error: re-run setup (uses glibc Node wrapper)
 
 EOF
 }
@@ -1039,6 +1124,7 @@ main() {
   parse_args "$@"
   require_termux
 
+  log "setup-termux-x11-cursor.sh SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION}"
   mkdir -p "${HOME}/bin" "${CACHE_DIR}"
 
   bootstrap_pkg
