@@ -15,6 +15,8 @@
 #
 # Usage (inside Termux) — one-liner:
 #   curl -fsSL https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh | bash
+# Verify you fetched the latest script (should print SETUP_SCRIPT_VERSION=6):
+#   curl -fsSL .../setup-termux-x11-cursor.sh | grep SETUP_SCRIPT_VERSION
 # Options:
 #   --skip-x11        Skip X11 / desktop packages
 #   --skip-cursor     Skip Cursor Agent CLI install
@@ -41,6 +43,7 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="3"
+SETUP_SCRIPT_VERSION="6"
 
 log()  { printf '\033[0;34m▸\033[0m %s\n' "$*"; }
 ok()   { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
@@ -460,13 +463,32 @@ ensure_termux_x11_app() {
   fi
 }
 
+termux_pkg_name() {
+  case "$1" in
+    dbus-x11)
+      warn "Package dbus-x11 does not exist in Termux; using dbus instead."
+      echo dbus
+      ;;
+    *)
+      echo "$1"
+      ;;
+  esac
+}
+
 pkg_install_missing() {
   local missing=()
   local pkg
+  local resolved
+  local -A seen_pkgs=()
 
   for pkg in "$@"; do
-    if ! pkg_installed "$pkg"; then
-      missing+=("$pkg")
+    resolved="$(termux_pkg_name "$pkg")"
+    if [[ -n "${seen_pkgs[$resolved]:-}" ]]; then
+      continue
+    fi
+    seen_pkgs[$resolved]=1
+    if ! pkg_installed "$resolved"; then
+      missing+=("$resolved")
     fi
   done
 
@@ -1039,6 +1061,7 @@ main() {
   parse_args "$@"
   require_termux
 
+  log "setup-termux-x11-cursor.sh SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION}"
   mkdir -p "${HOME}/bin" "${CACHE_DIR}"
 
   bootstrap_pkg
