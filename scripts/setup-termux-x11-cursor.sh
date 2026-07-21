@@ -41,11 +41,11 @@ TERMUX_X11_FORCE_BGRA=0
 
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
-X11_LAUNCHER_VERSION="3"
-SETUP_SCRIPT_VERSION="7"
+X11_LAUNCHER_VERSION="4"
+SETUP_SCRIPT_VERSION="8"
 CURSOR_GLIBC_NODE_VERSION="24.17.0"
-CURSOR_GLIBC_RUNTIME_VERSION="1"
-CURSOR_LAUNCHER_VERSION="2"
+CURSOR_GLIBC_RUNTIME_VERSION="2"
+CURSOR_LAUNCHER_VERSION="3"
 
 log()  { printf '\033[0;34m▸\033[0m %s\n' "$*"; }
 ok()   { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
@@ -648,6 +648,76 @@ EOF
   ok "File access helpers ready (see ~/.termux-file-access)."
 }
 
+cursor_agent_latest_dir() {
+  local versions_dir="${HOME}/.local/share/cursor-agent/versions"
+  local dir
+
+  [[ -d "$versions_dir" ]] || return 1
+  dir="$(ls -1d "${versions_dir}"/*/ 2>/dev/null | grep -v '/\.tmp-' | sort | tail -n 1 || true)"
+  dir="${dir%/}"
+  [[ -d "$dir" && -f "${dir}/index.js" ]] || return 1
+  echo "$dir"
+}
+
+restore_cursor_bundled_glibc_node() {
+  local final_dir="$1"
+  local dest="$2"
+  local ver arch tarball tmpdir
+  ver="$(basename "$final_dir")"
+  arch="arm64"
+  case "$(uname -m)" in
+    x86_64|amd64) arch="x64" ;;
+  esac
+
+  tarball="${CACHE_DIR}/cursor-agent-${ver}-linux-${arch}.tar.gz"
+  tmpdir="$(mktemp -d)"
+
+  if [[ ! -f "$tarball" ]]; then
+    log "Downloading Cursor Agent package to restore bundled glibc Node (${ver})..."
+    curl -fsSL "https://downloads.cursor.com/lab/${ver}/linux/${arch}/agent-cli-package.tar.gz" -o "$tarball"
+  fi
+
+  tar -xzf "$tarball" -C "$tmpdir" node
+  install -m0755 "${tmpdir}/node" "$dest"
+  rm -rf "$tmpdir"
+  ok "Restored bundled glibc Node for ${ver}"
+}
+
+write_cursor_agent_bin_wrappers() {
+  local agent_dir marker_file
+  agent_dir="$(cursor_agent_latest_dir)" || return 0
+
+  mkdir -p "${HOME}/.local/bin"
+  marker_file="${HOME}/.local/bin/.cursor-agent-wrapper-version"
+  if [[ -f "$marker_file" ]] && [[ "$(cat "$marker_file")" == "${CURSOR_LAUNCHER_VERSION}" ]] \
+    && [[ -x "${HOME}/.local/bin/agent" ]] && grep -q "CURSOR_AGENT_WRAPPER=v${CURSOR_LAUNCHER_VERSION}" "${HOME}/.local/bin/agent" 2>/dev/null; then
+    ok_maybe "Cursor Agent launchers already up to date."
+    return 0
+  fi
+
+  log "Writing Cursor Agent launchers (agent, cursor-agent)..."
+
+  for bin_name in agent cursor-agent; do
+    cat > "${HOME}/.local/bin/${bin_name}" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+# CURSOR_AGENT_WRAPPER=v${CURSOR_LAUNCHER_VERSION}
+set -euo pipefail
+AGENT_DIR="${agent_dir}"
+unset LD_PRELOAD
+export PATH="${HOME}/bin:${HOME}/.local/bin:${PREFIX}/bin:${PREFIX}/glibc/bin:\${PATH}"
+export SSL_CERT_FILE="${PREFIX}/etc/tls/cert.pem"
+export SSL_CERT_DIR="${PREFIX}/etc/tls/certs"
+export NODE_EXTRA_CA_CERTS="${PREFIX}/etc/tls/cert.pem"
+export TMPDIR="\${TMPDIR:-${PREFIX}/tmp}"
+exec "\${AGENT_DIR}/node" --use-system-ca "\${AGENT_DIR}/index.js" "\$@"
+EOF
+    chmod +x "${HOME}/.local/bin/${bin_name}"
+  done
+
+  echo "${CURSOR_LAUNCHER_VERSION}" > "$marker_file"
+  ok "Cursor Agent launchers: ~/.local/bin/agent and ~/.local/bin/cursor-agent"
+}
+
 cursor_node_platform() {
   case "$(uname -m)" in
     aarch64|arm64) echo "linux-arm64" ;;
@@ -683,6 +753,16 @@ networks: files
 protocols: files
 services: files
 EOF
+
+  local glibc_resolv="${PREFIX}/glibc/etc/resolv.conf"
+  if [[ ! -f "$glibc_resolv" ]]; then
+    if [[ -f "${PREFIX}/etc/resolv.conf" ]]; then
+      cp "${PREFIX}/etc/resolv.conf" "$glibc_resolv"
+    else
+      printf 'nameserver 8.8.8.8\nnameserver 1.1.1.1\n' > "$glibc_resolv"
+    fi
+  fi
+
   ok "Configured glibc nsswitch.conf (DNS for Cursor Agent)."
 }
 
@@ -745,7 +825,9 @@ patch_cursor_agent_glibc_runtime() {
     if [[ -x "${final_dir}/node.real" ]]; then
       mv -f "${final_dir}/node.real" "$real_node"
     else
-      ensure_official_glibc_node "$real_node"
+      if ! restore_cursor_bundled_glibc_node "$final_dir" "$real_node" 2>/dev/null; then
+        ensure_official_glibc_node "$real_node"
+      fi
     fi
   fi
 
@@ -756,9 +838,13 @@ GLIBC_PREFIX="${glibc_prefix}"
 LD_SO="${ld_so}"
 REAL_NODE="${real_node}"
 export PATH="\${GLIBC_PREFIX}/bin:\${PATH}"
+export LD_LIBRARY_PATH="\${GLIBC_PREFIX}/lib"
+export SSL_CERT_FILE="${PREFIX}/etc/tls/cert.pem"
+export SSL_CERT_DIR="${PREFIX}/etc/tls/certs"
+export NODE_EXTRA_CA_CERTS="${PREFIX}/etc/tls/cert.pem"
 export TMPDIR="\${TMPDIR:-${PREFIX}/tmp}"
 unset LD_PRELOAD
-exec "\$LD_SO" "\$REAL_NODE" "\$@"
+exec "\$LD_SO" --library-path "\${GLIBC_PREFIX}/lib" "\$REAL_NODE" "\$@"
 EOF
   chmod +x "$node_wrapper"
 
@@ -771,11 +857,23 @@ EOF
   if (
     cd "$final_dir"
     "$node_wrapper" -e "
-      require('./build/node_sqlite3.node');
       const fs = require('fs');
-      const merkle = fs.readdirSync('.').find((name) => name.startsWith('merkle-tree-napi.') && name.endsWith('.node'));
-      if (merkle) require('./' + merkle);
-    "
+      const path = require('path');
+      require('./build/node_sqlite3.node');
+      const findMerkle = (dir) => {
+        for (const name of fs.readdirSync(dir)) {
+          const p = path.join(dir, name);
+          if (name.startsWith('merkle-tree-napi.') && name.endsWith('.node')) return p;
+          if (fs.statSync(p).isDirectory()) {
+            const nested = findMerkle(p);
+            if (nested) return nested;
+          }
+        }
+        return null;
+      };
+      const merkle = findMerkle('.');
+      if (merkle) require(path.resolve(merkle));
+    " && "$node_wrapper" --use-system-ca "${final_dir}/index.js" --version >/dev/null 2>&1
   ); then
     ok "Cursor Agent glibc runtime ready for $(basename "$final_dir")."
   else
@@ -807,6 +905,7 @@ install_cursor_agent_termux() {
       ln -sf "${HOME}/.local/bin/cursor-agent" "${HOME}/.local/bin/agent"
     fi
     patch_installed_cursor_agents
+    write_cursor_agent_bin_wrappers
     return 0
   fi
 
@@ -865,11 +964,7 @@ EOF
   bash "$installer"
 
   patch_cursor_agent_glibc_runtime "${HOME}/.local/share/cursor-agent/versions/${ver_string}"
-
-  mkdir -p "${HOME}/bin"
-  if [[ ! -x "${HOME}/.local/bin/agent" ]] && [[ -x "${HOME}/.local/bin/cursor-agent" ]]; then
-    ln -sf "${HOME}/.local/bin/cursor-agent" "${HOME}/.local/bin/agent"
-  fi
+  write_cursor_agent_bin_wrappers
 
   ok "Cursor Agent CLI installed."
 }
@@ -903,6 +998,27 @@ DISPLAY="${TERMUX_X11_DISPLAY}"
 X11_FLAGS="${x11_flags}"
 DESKTOP_SESSION="${session_cmd}"
 EOF
+
+  cat > "${HOME}/bin/termux-x11-xstartup" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+# XFCE/desktop session starter for Termux:X11 (includes agent PATH for GUI terminals).
+
+export PATH="${HOME}/bin:${HOME}/.local/bin:${PREFIX}/bin:${PATH}"
+export TMPDIR="${TMPDIR:-/data/data/com.termux/files/usr/tmp}"
+
+DESKTOP_SESSION="xfce4-session"
+if [[ -f "${HOME}/.termux-x11.env" ]]; then
+  # shellcheck source=/dev/null
+  source "${HOME}/.termux-x11.env"
+fi
+
+if command -v dbus-launch >/dev/null 2>&1; then
+  exec dbus-launch --exit-with-session "${DESKTOP_SESSION}"
+fi
+
+exec "${DESKTOP_SESSION}"
+EOF
+  chmod +x "${HOME}/bin/termux-x11-xstartup"
 
   cat > "${HOME}/bin/start-termux-x11" <<'EOF'
 #!/data/data/com.termux/files/usr/bin/bash
@@ -944,10 +1060,7 @@ X11_FLAGS="${X11_FLAGS# }"
   export DISPLAY
   export PULSE_SERVER=127.0.0.1
 
-  startup="${DESKTOP_SESSION}"
-  if command -v dbus-launch >/dev/null 2>&1; then
-    startup="dbus-launch --exit-with-session ${DESKTOP_SESSION}"
-  fi
+  startup="${HOME}/bin/termux-x11-xstartup"
 
   # Official Termux:X11 flow: server stays up; session starts on client connect.
   # shellcheck disable=SC2086
@@ -991,7 +1104,7 @@ EOF
   chmod +x "${HOME}/bin/stop-termux-x11"
   echo "${X11_LAUNCHER_VERSION}" > "${version_file}"
 
-  ok "Launchers: start-termux-x11, stop-termux-x11 (v${X11_LAUNCHER_VERSION})"
+  ok "Launchers: start-termux-x11, stop-termux-x11, termux-x11-xstartup (v${X11_LAUNCHER_VERSION})"
 }
 
 write_cursor_launchers() {
@@ -1116,6 +1229,7 @@ Tips:
   - If the X11 screen is black: re-run with --legacy-drawing
   - If colors look wrong: re-run with --force-bgra
   - Cursor Agent libdl.so.2 error: re-run setup (uses glibc Node wrapper)
+  - Run agent from Termux or XFCE terminal after setup (PATH includes ~/.local/bin)
 
 EOF
 }
