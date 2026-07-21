@@ -14,8 +14,10 @@
 # storage symlinks, and launcher scripts. Safe to re-run.
 #
 # Usage (inside Termux) — one-liner (no GitHub token; repo is public):
-#   curl -fsSL https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh | bash
-# Verify latest: curl -fsSL .../setup-termux-x11-cursor.sh | grep SETUP_SCRIPT_VERSION
+#   curl -fsSL "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh" | bash
+# If you see old errors, bust cache: append ?v=$(date +%s) to the URL above
+# Verify latest: curl -fsSL ".../setup-termux-x11-cursor.sh" | grep SETUP_SCRIPT_VERSION
+# Quick repair only: repair-cursor-agent
 # Options:
 #   --skip-x11        Skip X11 / desktop packages
 #   --skip-cursor     Skip Cursor Agent CLI install
@@ -33,6 +35,7 @@ INSTALL_X11=1
 INSTALL_CURSOR=1
 SETUP_STORAGE=1
 FORCE_CURSOR=0
+REPAIR_CURSOR_ONLY=0
 QUIET_OK=1
 DESKTOP_ENV="xfce"
 TERMUX_X11_DISPLAY=":0"
@@ -42,7 +45,7 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="11"
+SETUP_SCRIPT_VERSION="12"
 CURSOR_GLIBC_NODE_VERSION="24.17.0"
 CURSOR_GLIBC_RUNTIME_VERSION="3"
 CURSOR_LAUNCHER_VERSION="4"
@@ -83,6 +86,7 @@ parse_args() {
       --skip-cursor) INSTALL_CURSOR=0 ;;
       --skip-storage) SETUP_STORAGE=0 ;;
       --force-cursor) FORCE_CURSOR=1 ;;
+      --repair-cursor-only) REPAIR_CURSOR_ONLY=1; INSTALL_X11=0; SETUP_STORAGE=0 ;;
       --verbose) QUIET_OK=0 ;;
       --legacy-drawing) TERMUX_X11_LEGACY_DRAWING=1 ;;
       --force-bgra) TERMUX_X11_FORCE_BGRA=1 ;;
@@ -662,7 +666,7 @@ cursor_agent_latest_dir() {
 restore_cursor_bundled_glibc_node() {
   local final_dir="$1"
   local dest="$2"
-  local ver arch tarball tmpdir
+  local ver arch tarball tmpdir node_path
   ver="$(basename "$final_dir")"
   arch="arm64"
   case "$(uname -m)" in
@@ -675,11 +679,35 @@ restore_cursor_bundled_glibc_node() {
   log "Downloading Cursor Agent package to restore bundled glibc Node (${ver})..."
   rm -f "$tarball"
   curl -fsSL "https://downloads.cursor.com/lab/${ver}/linux/${arch}/agent-cli-package.tar.gz" -o "$tarball"
-  tar -xzf "$tarball" --strip-components=1 -C "$tmpdir" dist-package/node
-  install -m0755 "${tmpdir}/node" "$dest"
+
+  if ! tar -xzf "$tarball" -C "$tmpdir" 2>/dev/null; then
+    rm -rf "$tmpdir"
+    die "Failed to extract Cursor Agent package for ${ver}."
+  fi
+
+  for node_path in \
+    "${tmpdir}/dist-package/node" \
+    "${tmpdir}/node"; do
+    if cursor_glibc_node_valid "$node_path"; then
+      install -m0755 "$node_path" "$dest"
+      rm -rf "$tmpdir"
+      cursor_glibc_node_valid "$dest" || die "Downloaded Cursor Node binary is invalid for ${ver}."
+      ok "Restored bundled glibc Node for ${ver}"
+      return 0
+    fi
+  done
+
+  node_path="$(find "$tmpdir" -type f -name node 2>/dev/null | head -n 1)"
   rm -rf "$tmpdir"
-  cursor_glibc_node_valid "$dest" || die "Downloaded Cursor Node binary is invalid for ${ver}."
-  ok "Restored bundled glibc Node for ${ver}"
+
+  if [[ -n "$node_path" ]] && cursor_glibc_node_valid "$node_path"; then
+    install -m0755 "$node_path" "$dest"
+    cursor_glibc_node_valid "$dest" || die "Downloaded Cursor Node binary is invalid for ${ver}."
+    ok "Restored bundled glibc Node for ${ver}"
+    return 0
+  fi
+
+  die "Could not find node binary inside Cursor Agent package for ${ver}."
 }
 
 ensure_cursor_glibc_node() {
@@ -1209,6 +1237,33 @@ EOF
   ok "Launchers: start-termux-x11, stop-termux-x11, termux-x11-xstartup (v${X11_LAUNCHER_VERSION})"
 }
 
+write_repair_cursor_agent() {
+  mkdir -p "${HOME}/bin"
+  cat > "${HOME}/bin/repair-cursor-agent" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+SCRIPT_URL="https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh"
+tmp="$(mktemp)"
+curl -fsSL "${SCRIPT_URL}?v=$(date +%s)" -o "$tmp"
+bash "$tmp" --repair-cursor-only "$@"
+EOF
+  chmod +x "${HOME}/bin/repair-cursor-agent"
+  ok "Quick repair command: repair-cursor-agent"
+}
+
+repair_cursor_agent_only() {
+  log "Repairing Cursor Agent only (SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION})..."
+  pkg_install_missing curl wget patchelf 2>/dev/null || pkg_install_missing curl wget
+  ensure_glibc_runner
+  patch_installed_cursor_agents
+  write_cursor_agent_bin_wrappers
+  if verify_cursor_agent_runtime "$(cursor_agent_latest_dir)"; then
+    ok "Cursor Agent repair complete. Try: agent --version"
+  else
+    warn "Repair finished but self-test failed. Run: agent --version"
+  fi
+}
+
 write_cursor_launchers() {
   local version_file="${HOME}/bin/.cursor-agent-launcher-version"
   if [[ -x "${HOME}/bin/cursor-agent-tmux" ]] && [[ -f "$version_file" ]] \
@@ -1345,6 +1400,13 @@ main() {
   log "setup-termux-x11-cursor.sh SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION}"
   mkdir -p "${HOME}/bin" "${CACHE_DIR}"
 
+  if [[ "${REPAIR_CURSOR_ONLY}" -eq 1 ]]; then
+    require_termux
+    repair_cursor_agent_only
+    write_repair_cursor_agent
+    exit 0
+  fi
+
   bootstrap_pkg
   ensure_termux_external_apps
   pkg_install_missing termux-api termux-tools
@@ -1368,6 +1430,7 @@ main() {
 
   if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
     write_cursor_launchers
+    write_repair_cursor_agent
   fi
 
   write_shell_profile
