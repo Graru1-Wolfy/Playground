@@ -13,13 +13,14 @@
 # The script auto-installs any missing packages, companion APKs, Cursor Agent,
 # storage symlinks, and launcher scripts. Safe to re-run.
 #
-# Usage (inside Termux) — recommended URL (avoids GitHub raw CDN cache on /main):
-#   curl -fsSL "https://cdn.jsdelivr.net/gh/Graru1-Wolfy/Playground@main/scripts/setup-termux-x11-cursor.sh" | bash
-# Alternate (raw GitHub — may serve an old copy for ~5 min after updates):
-#   curl -fsSL "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh" | bash
+# Usage (inside Termux) — pinned URL (always current; @main CDNs lag hours behind):
+#   curl -fsSL "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/66bb2ffc0380b57c3543bda9bf915b9f4533247c/scripts/setup-termux-x11-cursor.sh" | bash
+# Same file via jsDelivr:
+#   curl -fsSL "https://cdn.jsdelivr.net/gh/Graru1-Wolfy/Playground@66bb2ffc0380b57c3543bda9bf915b9f4533247c/scripts/setup-termux-x11-cursor.sh" | bash
+# Do NOT use @main on jsDelivr — it can stay on an old version (e.g. v17) for hours.
 # Opens the interactive menu automatically (even through curl | bash).
 # Skip menu: curl ... | bash -s -- --non-interactive
-# Verify latest: curl -fsSL "https://cdn.jsdelivr.net/gh/Graru1-Wolfy/Playground@main/scripts/setup-termux-x11-cursor.sh" | grep SETUP_SCRIPT_VERSION
+# Verify: curl -fsSL "<pinned-url-above>" | grep 'SETUP_SCRIPT_VERSION="'
 # Quick repair only: repair-cursor-agent
 # Options:
 #   -i, --interactive   Show setup menu (default with a terminal and no args)
@@ -56,9 +57,11 @@ TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/
 X11_LAUNCHER_VERSION="4"
 SETUP_SCRIPT_REPO="Graru1-Wolfy/Playground"
 SETUP_SCRIPT_PATH="scripts/setup-termux-x11-cursor.sh"
-# jsDelivr avoids raw.githubusercontent.com CDN caching stale /main copies.
-SETUP_SCRIPT_URL="https://cdn.jsdelivr.net/gh/${SETUP_SCRIPT_REPO}@main/${SETUP_SCRIPT_PATH}"
-SETUP_SCRIPT_VERSION="19"
+# Pinned commit — update on each release (jsDelivr @main and raw @main both cache/lag).
+SETUP_SCRIPT_PIN="66bb2ffc0380b57c3543bda9bf915b9f4533247c"
+SETUP_SCRIPT_URL="https://raw.githubusercontent.com/${SETUP_SCRIPT_REPO}/${SETUP_SCRIPT_PIN}/${SETUP_SCRIPT_PATH}"
+SETUP_SCRIPT_URL_CDN="https://cdn.jsdelivr.net/gh/${SETUP_SCRIPT_REPO}@${SETUP_SCRIPT_PIN}/${SETUP_SCRIPT_PATH}"
+SETUP_SCRIPT_VERSION="20"
 CURSOR_GLIBC_NODE_VERSION="24.5.0"
 CURSOR_GLIBC_RUNTIME_VERSION="4"
 CURSOR_LAUNCHER_VERSION="5"
@@ -1956,7 +1959,7 @@ Tips:
   - Re-run this script anytime to install anything still missing.
   - Interactive menu: curl -fsSL "${SETUP_SCRIPT_URL}" | bash
   - Skip menu: curl ... | bash -s -- --non-interactive
-  - If you still see SETUP_SCRIPT_VERSION below 18, use the jsDelivr URL above (not raw GitHub).
+  - Do not use jsDelivr @main — it lags; use pinned URL above or SETUP_SCRIPT_PIN in script header.
   - Android Files cannot follow symlinks into Termux home; use shared mode or sync commands.
   - Shared mode stores files in Documents (visible in Files). Avoid heavy node_modules there.
   - For big Node projects use --workspace-mode=dual and keep git work in ~/workspace.
