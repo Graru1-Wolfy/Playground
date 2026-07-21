@@ -58,7 +58,7 @@ SETUP_SCRIPT_REPO="Graru1-Wolfy/Playground"
 SETUP_SCRIPT_PATH="scripts/setup-termux-x11-cursor.sh"
 # jsDelivr avoids raw.githubusercontent.com CDN caching stale /main copies.
 SETUP_SCRIPT_URL="https://cdn.jsdelivr.net/gh/${SETUP_SCRIPT_REPO}@main/${SETUP_SCRIPT_PATH}"
-SETUP_SCRIPT_VERSION="18"
+SETUP_SCRIPT_VERSION="19"
 CURSOR_GLIBC_NODE_VERSION="24.5.0"
 CURSOR_GLIBC_RUNTIME_VERSION="4"
 CURSOR_LAUNCHER_VERSION="5"
@@ -1565,7 +1565,7 @@ prompt_yes_no() {
   fi
 
   while true; do
-    printf '%s %s ' "$prompt" "$hint"
+    printf '%s %s ' "$prompt" "$hint" >&2
     if ! read_reply reply; then
       warn "Could not read input — tap the Termux window and try again."
       continue
@@ -1590,9 +1590,9 @@ prompt_text() {
   local reply
 
   if [[ -n "$default" ]]; then
-    printf '%s [%s]: ' "$prompt" "$default"
+    printf '%s [%s]: ' "$prompt" "$default" >&2
   else
-    printf '%s: ' "$prompt"
+    printf '%s: ' "$prompt" >&2
   fi
 
   if ! read_reply reply; then
@@ -1611,17 +1611,17 @@ select_option() {
   local options=("$@")
   local i reply choice
 
-  echo ""
-  printf '%s\n' "$prompt"
+  echo "" >&2
+  printf '%s\n' "$prompt" >&2
   for i in "${!options[@]}"; do
     local num=$((i + 1))
     local mark=""
     [[ "$num" -eq "$default_idx" ]] && mark=" (default)"
-    printf '  %d) %s%s\n' "$num" "${options[$i]}" "$mark"
+    printf '  %d) %s%s\n' "$num" "${options[$i]}" "$mark" >&2
   done
 
   while true; do
-    printf 'Selection [1-%d]: ' "${#options[@]}"
+    printf 'Selection [1-%d]: ' "${#options[@]}" >&2
     if ! read_reply reply; then
       warn "Could not read input — tap the Termux window and try again."
       continue
