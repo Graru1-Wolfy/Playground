@@ -514,7 +514,6 @@ install_x11_packages() {
     termux-x11-nightly
     pulseaudio
     dbus
-    dbus-x11
     xfce4-terminal
     thunar
     mousepad
