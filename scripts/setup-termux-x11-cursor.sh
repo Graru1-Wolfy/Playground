@@ -42,7 +42,7 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="8"
+SETUP_SCRIPT_VERSION="9"
 CURSOR_GLIBC_NODE_VERSION="24.17.0"
 CURSOR_GLIBC_RUNTIME_VERSION="2"
 CURSOR_LAUNCHER_VERSION="3"
@@ -735,16 +735,18 @@ cursor_glibc_ld_so() {
   esac
 }
 
-ensure_glibc_runner() {
-  pkg_install_missing glibc-repo glibc-runner
+glibc_runtime_ready() {
+  [[ -x "$(cursor_glibc_ld_so)" ]]
+}
 
+configure_glibc_dns() {
   local nss="${PREFIX}/glibc/etc/nsswitch.conf"
-  if [[ -f "$nss" ]]; then
-    return 0
-  fi
+  local glibc_resolv="${PREFIX}/glibc/etc/resolv.conf"
 
   mkdir -p "${PREFIX}/glibc/etc"
-  cat > "$nss" <<'EOF'
+
+  if [[ ! -f "$nss" ]]; then
+    cat > "$nss" <<'EOF'
 passwd: files
 group: files
 shadow: files
@@ -753,8 +755,9 @@ networks: files
 protocols: files
 services: files
 EOF
+    ok "Configured glibc nsswitch.conf (DNS for Cursor Agent)."
+  fi
 
-  local glibc_resolv="${PREFIX}/glibc/etc/resolv.conf"
   if [[ ! -f "$glibc_resolv" ]]; then
     if [[ -f "${PREFIX}/etc/resolv.conf" ]]; then
       cp "${PREFIX}/etc/resolv.conf" "$glibc_resolv"
@@ -762,8 +765,50 @@ EOF
       printf 'nameserver 8.8.8.8\nnameserver 1.1.1.1\n' > "$glibc_resolv"
     fi
   fi
+}
 
-  ok "Configured glibc nsswitch.conf (DNS for Cursor Agent)."
+enable_glibc_repo() {
+  if pkg_installed glibc-repo; then
+    return 0
+  fi
+
+  log "Enabling glibc-repo (required for Cursor Agent glibc native modules)..."
+  if ! pkg install -y glibc-repo; then
+    warn "Could not install glibc-repo from Termux mirrors."
+    warn "Update Termux from GitHub releases (F-Droid builds can be too old):"
+    warn "  https://github.com/termux/termux-app/releases"
+    return 1
+  fi
+
+  log "Refreshing package lists for glibc-repo..."
+  pkg update -y
+  ok "glibc-repo enabled."
+}
+
+ensure_glibc_runner() {
+  if glibc_runtime_ready; then
+    configure_glibc_dns
+    return 0
+  fi
+
+  enable_glibc_repo || die "glibc-repo is required for Cursor Agent on Termux."
+
+  if ! pkg_installed glibc-runner; then
+    log "Installing glibc-runner..."
+    if ! pkg install -y glibc-runner; then
+      warn "glibc-runner not found after enabling glibc-repo."
+      warn "Try manually: pkg install glibc-repo && pkg update && pkg install glibc-runner"
+      warn "If that fails, install the latest Termux APK from GitHub (not Play Store / old F-Droid)."
+      die "glibc-runner is required for Cursor Agent native modules."
+    fi
+    ok "glibc-runner installed."
+  fi
+
+  if ! glibc_runtime_ready; then
+    die "glibc dynamic linker not found at $(cursor_glibc_ld_so) after installing glibc-runner."
+  fi
+
+  configure_glibc_dns
 }
 
 ensure_official_glibc_node() {
@@ -1229,6 +1274,7 @@ Tips:
   - If the X11 screen is black: re-run with --legacy-drawing
   - If colors look wrong: re-run with --force-bgra
   - Cursor Agent libdl.so.2 error: re-run setup (uses glibc Node wrapper)
+  - glibc-runner not found: pkg install glibc-repo && pkg update && pkg install glibc-runner
   - Run agent from Termux or XFCE terminal after setup (PATH includes ~/.local/bin)
 
 EOF
