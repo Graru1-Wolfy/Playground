@@ -14,9 +14,9 @@
 # storage symlinks, and launcher scripts. Safe to re-run.
 #
 # Usage (inside Termux) — pinned URL (always current; @main CDNs lag hours behind):
-#   curl -fsSL "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/66bb2ffc0380b57c3543bda9bf915b9f4533247c/scripts/setup-termux-x11-cursor.sh" | bash
+#   curl -fsSL "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/8fa10e32a91d340d04a5a3bb362a5866c5fe1e83/scripts/setup-termux-x11-cursor.sh" | bash
 # Same file via jsDelivr:
-#   curl -fsSL "https://cdn.jsdelivr.net/gh/Graru1-Wolfy/Playground@66bb2ffc0380b57c3543bda9bf915b9f4533247c/scripts/setup-termux-x11-cursor.sh" | bash
+#   curl -fsSL "https://cdn.jsdelivr.net/gh/Graru1-Wolfy/Playground@8fa10e32a91d340d04a5a3bb362a5866c5fe1e83/scripts/setup-termux-x11-cursor.sh" | bash
 # Do NOT use @main on jsDelivr — it can stay on an old version (e.g. v17) for hours.
 # Opens the interactive menu automatically (even through curl | bash).
 # Skip menu: curl ... | bash -s -- --non-interactive
@@ -58,7 +58,7 @@ X11_LAUNCHER_VERSION="4"
 SETUP_SCRIPT_REPO="Graru1-Wolfy/Playground"
 SETUP_SCRIPT_PATH="scripts/setup-termux-x11-cursor.sh"
 # Pinned commit — update on each release (jsDelivr @main and raw @main both cache/lag).
-SETUP_SCRIPT_PIN="66bb2ffc0380b57c3543bda9bf915b9f4533247c"
+SETUP_SCRIPT_PIN="8fa10e32a91d340d04a5a3bb362a5866c5fe1e83"
 SETUP_SCRIPT_URL="https://raw.githubusercontent.com/${SETUP_SCRIPT_REPO}/${SETUP_SCRIPT_PIN}/${SETUP_SCRIPT_PATH}"
 SETUP_SCRIPT_URL_CDN="https://cdn.jsdelivr.net/gh/${SETUP_SCRIPT_REPO}@${SETUP_SCRIPT_PIN}/${SETUP_SCRIPT_PATH}"
 SETUP_SCRIPT_VERSION="20"
