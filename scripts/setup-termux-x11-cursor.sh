@@ -28,12 +28,15 @@
 #   --force-cursor    Reinstall Cursor Agent even if present
 #   --verbose         Show all "already installed" status lines
 #   --desktop=xfce    Desktop environment for X11 (default: xfce; use "none" to skip DE)
-#   --workspace=PATH  Dev workspace directory (default: ~/workspace)
+#   --workspace=PATH  Dev workspace directory (overrides workspace mode)
+#   --workspace-mode=MODE  shared (default), private, or dual — see setup_file_access()
 set -euo pipefail
 
 SCRIPT_NAME="$(basename "$0")"
 CACHE_DIR="${HOME}/.cache/${SCRIPT_NAME}"
 WORKSPACE_DIR="${HOME}/workspace"
+WORKSPACE_MODE="shared"
+WORKSPACE_EXPLICIT=0
 INSTALL_X11=1
 INSTALL_CURSOR=1
 SETUP_STORAGE=1
@@ -49,7 +52,7 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="14"
+SETUP_SCRIPT_VERSION="15"
 CURSOR_GLIBC_NODE_VERSION="24.5.0"
 CURSOR_GLIBC_RUNTIME_VERSION="4"
 CURSOR_LAUNCHER_VERSION="5"
@@ -97,7 +100,8 @@ parse_args() {
       --legacy-drawing) TERMUX_X11_LEGACY_DRAWING=1 ;;
       --force-bgra) TERMUX_X11_FORCE_BGRA=1 ;;
       --desktop=*) DESKTOP_ENV="${arg#*=}" ;;
-      --workspace=*) WORKSPACE_DIR="${arg#*=}" ;;
+      --workspace=*) WORKSPACE_DIR="${arg#*=}"; WORKSPACE_EXPLICIT=1 ;;
+      --workspace-mode=*) WORKSPACE_MODE="${arg#*=}" ;;
       --display=*) TERMUX_X11_DISPLAY="${arg#*=}" ;;
       *) die "Unknown option: $arg (try --help)" ;;
     esac
@@ -107,6 +111,15 @@ parse_args() {
     "~"/*) WORKSPACE_DIR="${HOME}/${WORKSPACE_DIR#\~/}" ;;
     "~") WORKSPACE_DIR="${HOME}" ;;
   esac
+
+  case "${WORKSPACE_MODE}" in
+    shared|private|dual) ;;
+    *) die "Invalid --workspace-mode '${WORKSPACE_MODE}'. Use shared, private, or dual." ;;
+  esac
+
+  if [[ "${WORKSPACE_EXPLICIT}" -eq 0 && "${SETUP_STORAGE}" -eq 0 ]]; then
+    WORKSPACE_MODE="private"
+  fi
 }
 
 require_termux() {
@@ -578,11 +591,150 @@ install_desktop() {
   pkg_install_missing "$pkg_name"
 }
 
+storage_linked() {
+  [[ -d "${HOME}/storage/documents" ]]
+}
+
+android_visible_workspace_dir() {
+  echo "${HOME}/storage/documents/cursor-workspace"
+}
+
+remove_broken_documents_workspace_link() {
+  local vis="$1"
+
+  if [[ ! -L "$vis" ]]; then
+    return 0
+  fi
+
+  local target
+  target="$(readlink "$vis" 2>/dev/null || true)"
+  case "$target" in
+    "${HOME}"/*|/data/data/com.termux/*)
+      warn "Removing broken link at ${vis}"
+      warn "Android Files cannot open symlinks into Termux private storage."
+      warn "Shared storage also cannot host symlinks (FUSE: Function not implemented)."
+      rm -f "$vis"
+      ;;
+  esac
+}
+
+migrate_legacy_private_workspace() {
+  local legacy="$1"
+  local visible="$2"
+
+  [[ -L "$legacy" ]] && return 0
+  [[ ! -d "$legacy" ]] && return 0
+  [[ -n "$(ls -A "$visible" 2>/dev/null || true)" ]] && return 0
+  [[ -z "$(ls -A "$legacy" 2>/dev/null || true)" ]] && return 0
+
+  log "Migrating existing ~/workspace into Documents/cursor-workspace..."
+  if cmd_exists rsync; then
+    rsync -a "${legacy}/" "${visible}/"
+  else
+    cp -a "${legacy}/." "${visible}/"
+  fi
+  local backup="${legacy}.bak-$(date +%Y%m%d-%H%M%S)"
+  mv "$legacy" "$backup"
+  ok "Migrated to Android-visible workspace. Backup kept at ${backup}"
+}
+
+ensure_home_workspace_alias() {
+  local target="$1"
+  local alias="${2:-${HOME}/workspace}"
+
+  if [[ -e "$alias" && ! -L "$alias" ]]; then
+    warn "~/workspace is a real folder (not updated). Use --workspace-mode=shared to migrate."
+    return 0
+  fi
+
+  ln -sfn "$target" "$alias"
+  ok "~/workspace -> ${target}"
+}
+
+resolve_workspace_layout() {
+  local visible legacy
+
+  visible="$(android_visible_workspace_dir)"
+  legacy="${HOME}/workspace"
+
+  if [[ "${WORKSPACE_EXPLICIT}" -eq 1 ]]; then
+    mkdir -p "${WORKSPACE_DIR}"
+    return 0
+  fi
+
+  case "${WORKSPACE_MODE}" in
+    shared)
+      if ! storage_linked; then
+        warn "Storage not linked yet; using private ~/workspace until termux-setup-storage succeeds."
+        mkdir -p "$legacy"
+        WORKSPACE_DIR="$legacy"
+        return 0
+      fi
+
+      remove_broken_documents_workspace_link "$visible"
+      mkdir -p "$visible"
+      migrate_legacy_private_workspace "$legacy" "$visible"
+      WORKSPACE_DIR="$visible"
+      ensure_home_workspace_alias "$visible" "$legacy"
+      ok "Workspace is a real folder in Android Documents (visible in Files app)."
+      ;;
+    dual)
+      mkdir -p "$legacy" "$visible"
+      WORKSPACE_DIR="$legacy"
+      ok "Dual workspace: agent uses ${legacy}; Android Files uses ${visible}."
+      ok "Sync with: termux-workspace-publish / termux-workspace-import"
+      ;;
+    private)
+      mkdir -p "$legacy"
+      WORKSPACE_DIR="$legacy"
+      if storage_linked; then
+        remove_broken_documents_workspace_link "$visible"
+        mkdir -p "$visible"
+        ok "Private workspace for agent/git. Publish to Files: termux-workspace-publish"
+      fi
+      ;;
+  esac
+}
+
+write_workspace_sync_helpers() {
+  cat > "${HOME}/bin/termux-workspace-publish" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+PRIVATE="${1:-${CURSOR_WORKSPACE:-$HOME/workspace}}"
+PUBLIC="${TERMUX_ANDROID_WORKSPACE:-$HOME/storage/documents/cursor-workspace}"
+[[ -d "$PRIVATE" ]] || { echo "Private workspace missing: $PRIVATE" >&2; exit 1; }
+mkdir -p "$PUBLIC"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a "${PRIVATE}/" "${PUBLIC}/"
+else
+  rm -rf "${PUBLIC:?}/"*
+  cp -a "${PRIVATE}/." "${PUBLIC}/"
+fi
+echo "Published to ${PUBLIC} (open Android Files -> Documents -> cursor-workspace)"
+EOF
+  chmod +x "${HOME}/bin/termux-workspace-publish"
+
+  cat > "${HOME}/bin/termux-workspace-import" <<'EOF'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+PRIVATE="${2:-${CURSOR_WORKSPACE:-$HOME/workspace}}"
+PUBLIC="${1:-${TERMUX_ANDROID_WORKSPACE:-$HOME/storage/documents/cursor-workspace}}"
+[[ -d "$PUBLIC" ]] || { echo "Android-visible folder missing: $PUBLIC" >&2; exit 1; }
+mkdir -p "$PRIVATE"
+if command -v rsync >/dev/null 2>&1; then
+  rsync -a "${PUBLIC}/" "${PRIVATE}/"
+else
+  cp -a "${PUBLIC}/." "${PRIVATE}/"
+fi
+echo "Imported from ${PUBLIC} into ${PRIVATE}"
+EOF
+  chmod +x "${HOME}/bin/termux-workspace-import"
+}
+
 setup_file_access() {
   log "Configuring Android file access..."
 
-  mkdir -p "${WORKSPACE_DIR}" "${HOME}/bin"
-  ok "Workspace directory: ${WORKSPACE_DIR}"
+  mkdir -p "${HOME}/bin"
 
   if [[ "${SETUP_STORAGE}" -eq 1 ]]; then
     pkg_install_missing termux-tools
@@ -597,23 +749,32 @@ setup_file_access() {
       fi
     fi
 
-    if [[ -d "${HOME}/storage/shared" ]]; then
+    if storage_linked; then
       ok "Storage symlinks present at ~/storage/."
     else
       warn "Storage not linked yet. Re-run after granting permission."
+      warn "Tip: Settings -> Apps -> Termux -> Permissions -> Files -> Allow"
+      warn "Then run: termux-setup-storage"
     fi
   else
     warn "Skipping storage setup (--skip-storage)."
   fi
 
+  resolve_workspace_layout
+  ok "Workspace directory: ${WORKSPACE_DIR}"
+
   mkdir -p "${HOME}/storage" 2>/dev/null || true
 
   cat > "${HOME}/.termux-file-access" <<EOF
 # Generated by ${SCRIPT_NAME}
-# Native Linux workspace (use for git repos, node_modules, agents):
+# Agent / git workspace:
 export CURSOR_WORKSPACE="${WORKSPACE_DIR}"
+export WORKSPACE_MODE="${WORKSPACE_MODE}"
 
-# Android shared storage (use for import/export with other apps):
+# Android Files app folder (real directory, not a symlink):
+export TERMUX_ANDROID_WORKSPACE="${HOME}/storage/documents/cursor-workspace"
+
+# Android shared storage entry points (from termux-setup-storage):
 #   ~/storage/shared      -> /storage/emulated/0
 #   ~/storage/downloads   -> Downloads
 #   ~/storage/documents   -> Documents
@@ -624,8 +785,11 @@ export TERMUX_DOWNLOADS="${HOME}/storage/downloads"
 export TERMUX_DOCUMENTS="${HOME}/storage/documents"
 EOF
 
-  mkdir -p "${HOME}/storage/documents" "${HOME}/storage/downloads" 2>/dev/null || true
-  ln -sfn "${WORKSPACE_DIR}" "${HOME}/storage/documents/cursor-workspace" 2>/dev/null || true
+  if storage_linked; then
+    mkdir -p "$(android_visible_workspace_dir)" "${HOME}/storage/downloads" 2>/dev/null || true
+  fi
+
+  write_workspace_sync_helpers
 
   cat > "${HOME}/bin/termux-sync-to-downloads" <<'EOF'
 #!/data/data/com.termux/files/usr/bin/bash
@@ -1443,6 +1607,8 @@ Current selections:
   Cursor Agent:      $([[ "${INSTALL_CURSOR}" -eq 1 ]] && echo "yes" || echo "no")
   Android storage:   $([[ "${SETUP_STORAGE}" -eq 1 ]] && echo "yes" || echo "no")
   Workspace:         ${WORKSPACE_DIR}
+  Workspace mode:    ${WORKSPACE_MODE}
+  Android Files dir: $(android_visible_workspace_dir)
   X11 display:       ${TERMUX_X11_DISPLAY}
   Legacy drawing:    $([[ "${TERMUX_X11_LEGACY_DRAWING}" -eq 1 ]] && echo "yes" || echo "no")
   Force BGRA:        $([[ "${TERMUX_X11_FORCE_BGRA}" -eq 1 ]] && echo "yes" || echo "no")
@@ -1513,13 +1679,23 @@ interactive_custom_setup() {
     SETUP_STORAGE=1
   else
     SETUP_STORAGE=0
+    WORKSPACE_MODE="private"
   fi
 
-  WORKSPACE_DIR="$(prompt_text "Workspace directory" "${WORKSPACE_DIR}")"
-  case "${WORKSPACE_DIR}" in
-    "~"/*) WORKSPACE_DIR="${HOME}/${WORKSPACE_DIR#\~/}" ;;
-    "~") WORKSPACE_DIR="${HOME}" ;;
-  esac
+  if [[ "${SETUP_STORAGE}" -eq 1 && "${WORKSPACE_EXPLICIT}" -eq 0 ]]; then
+    WORKSPACE_MODE="$(select_option "Workspace visibility in Android Files:" 1 \
+      "shared|Shared — real folder in Documents/cursor-workspace (recommended)" \
+      "dual|Dual — agent in ~/workspace, copy to Documents via sync commands" \
+      "private|Private — ~/workspace only (use termux-workspace-publish to export)")"
+  fi
+
+  if [[ "${WORKSPACE_EXPLICIT}" -eq 1 ]]; then
+    WORKSPACE_DIR="$(prompt_text "Workspace directory" "${WORKSPACE_DIR}")"
+    case "${WORKSPACE_DIR}" in
+      "~"/*) WORKSPACE_DIR="${HOME}/${WORKSPACE_DIR#\~/}" ;;
+      "~") WORKSPACE_DIR="${HOME}" ;;
+    esac
+  fi
 
   if [[ "${INSTALL_X11}" -eq 1 ]]; then
     TERMUX_X11_DISPLAY="$(prompt_text "X11 DISPLAY value" "${TERMUX_X11_DISPLAY}")"
@@ -1689,7 +1865,10 @@ run_interactive_menu() {
 
 print_summary() {
   local ws_display="${WORKSPACE_DIR}"
+  local android_display
+  android_display="$(android_visible_workspace_dir)"
   [[ "${WORKSPACE_DIR}" == "${HOME}/workspace" ]] && ws_display="~/workspace"
+  [[ "${WORKSPACE_DIR}" == "${android_display}" ]] && ws_display="~/storage/documents/cursor-workspace"
 
   cat <<EOF
 
@@ -1697,20 +1876,23 @@ print_summary() {
 Termux X11 + Cursor Agent setup complete
 ============================================================
 
-Workspace (native, for git/agents):
+Workspace (mode: ${WORKSPACE_MODE}):
   ${ws_display}
+
+Android Files app (real folder, not a symlink):
+  Documents/cursor-workspace
+  Termux path: ~/storage/documents/cursor-workspace
 
 Next steps:
   start-termux-x11          # graphical desktop
   cursor-agent-tmux         # Cursor Agent in tmux
   agent login               # first-time auth
 
-Android shared storage:
-  ~/storage/shared
-  ~/storage/downloads
-  ~/storage/documents/cursor-workspace  -> symlink to workspace
+Sync workspace with Android Files (dual/private modes):
+  termux-workspace-publish  # copy agent workspace -> Documents
+  termux-workspace-import   # copy Documents -> agent workspace
 
-Export / import workspace:
+Export / import archive:
   termux-sync-to-downloads
   termux-import-downloads <archive>.tar.gz
 
@@ -1732,7 +1914,9 @@ EOF
 Tips:
   - Re-run this script anytime to install anything still missing.
   - Interactive menu: bash ${SCRIPT_NAME}  (or curl ... | bash -s -- -i)
-  - Keep repos under ${ws_display}, not on ~/storage/* (FAT limitations).
+  - Android Files cannot follow symlinks into Termux home; use shared mode or sync commands.
+  - Shared mode stores files in Documents (visible in Files). Avoid heavy node_modules there.
+  - For big Node projects use --workspace-mode=dual and keep git work in ~/workspace.
   - Use --verbose to show all "already installed" checks.
   - X11 logs: tail -f ~/termux-x11.log
   - Desktop closes instantly: start-termux-x11 --legacy-drawing
