@@ -18,7 +18,10 @@
 # If you see old errors, bust cache: append ?v=$(date +%s) to the URL above
 # Verify latest: curl -fsSL ".../setup-termux-x11-cursor.sh" | grep SETUP_SCRIPT_VERSION
 # Quick repair only: repair-cursor-agent
+# Interactive menu (when run directly in Termux): bash setup.sh
 # Options:
+#   -i, --interactive   Show setup menu (default when run with a TTY and no args)
+#   --non-interactive   Skip menu; use defaults or flags only
 #   --skip-x11        Skip X11 / desktop packages
 #   --skip-cursor     Skip Cursor Agent CLI install
 #   --skip-storage    Skip storage permission prompt
@@ -36,6 +39,7 @@ INSTALL_CURSOR=1
 SETUP_STORAGE=1
 FORCE_CURSOR=0
 REPAIR_CURSOR_ONLY=0
+INTERACTIVE=0
 QUIET_OK=1
 DESKTOP_ENV="xfce"
 TERMUX_X11_DISPLAY=":0"
@@ -45,7 +49,7 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="13"
+SETUP_SCRIPT_VERSION="14"
 CURSOR_GLIBC_NODE_VERSION="24.5.0"
 CURSOR_GLIBC_RUNTIME_VERSION="4"
 CURSOR_LAUNCHER_VERSION="5"
@@ -82,6 +86,8 @@ parse_args() {
   for arg in "$@"; do
     case "$arg" in
       -h|--help) usage ;;
+      -i|--interactive) INTERACTIVE=1 ;;
+      --non-interactive) INTERACTIVE=0 ;;
       --skip-x11) INSTALL_X11=0 ;;
       --skip-cursor) INSTALL_CURSOR=0 ;;
       --skip-storage) SETUP_STORAGE=0 ;;
@@ -1350,6 +1356,337 @@ EOF
   ok "Added setup block to ${profile}"
 }
 
+is_tty() {
+  [[ -t 0 && -t 1 ]]
+}
+
+prompt_yes_no() {
+  local prompt="$1"
+  local default="${2:-1}"
+  local hint reply
+
+  if [[ "$default" -eq 1 ]]; then
+    hint="[Y/n]"
+  else
+    hint="[y/N]"
+  fi
+
+  while true; do
+    printf '%s %s ' "$prompt" "$hint"
+    read -r reply || return "$default"
+    reply="${reply,,}"
+    case "$reply" in
+      y|yes) return 0 ;;
+      n|no) return 1 ;;
+      "")
+        [[ "$default" -eq 1 ]] && return 0 || return 1
+        ;;
+      *)
+        warn "Enter y or n."
+        ;;
+    esac
+  done
+}
+
+prompt_text() {
+  local prompt="$1"
+  local default="${2:-}"
+  local reply
+
+  if [[ -n "$default" ]]; then
+    printf '%s [%s]: ' "$prompt" "$default"
+  else
+    printf '%s: ' "$prompt"
+  fi
+
+  read -r reply || reply="$default"
+  if [[ -z "$reply" ]]; then
+    reply="$default"
+  fi
+  printf '%s' "$reply"
+}
+
+select_option() {
+  local prompt="$1"
+  local default_idx="${2:-1}"
+  shift 2
+  local options=("$@")
+  local i reply choice
+
+  echo ""
+  printf '%s\n' "$prompt"
+  for i in "${!options[@]}"; do
+    local num=$((i + 1))
+    local mark=""
+    [[ "$num" -eq "$default_idx" ]] && mark=" (default)"
+    printf '  %d) %s%s\n' "$num" "${options[$i]}" "$mark"
+  done
+
+  while true; do
+    printf 'Selection [1-%d]: ' "${#options[@]}"
+    read -r reply || reply="$default_idx"
+    [[ -z "$reply" ]] && reply="$default_idx"
+    if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= ${#options[@]} )); then
+      choice="${options[$((reply - 1))]}"
+      printf '%s' "${choice%%|*}"
+      return 0
+    fi
+    warn "Invalid selection."
+  done
+}
+
+show_current_config() {
+  cat <<EOF
+
+Current selections:
+  X11 / desktop:     $([[ "${INSTALL_X11}" -eq 1 ]] && echo "yes (${DESKTOP_ENV})" || echo "no")
+  Cursor Agent:      $([[ "${INSTALL_CURSOR}" -eq 1 ]] && echo "yes" || echo "no")
+  Android storage:   $([[ "${SETUP_STORAGE}" -eq 1 ]] && echo "yes" || echo "no")
+  Workspace:         ${WORKSPACE_DIR}
+  X11 display:       ${TERMUX_X11_DISPLAY}
+  Legacy drawing:    $([[ "${TERMUX_X11_LEGACY_DRAWING}" -eq 1 ]] && echo "yes" || echo "no")
+  Force BGRA:        $([[ "${TERMUX_X11_FORCE_BGRA}" -eq 1 ]] && echo "yes" || echo "no")
+  Force Cursor:      $([[ "${FORCE_CURSOR}" -eq 1 ]] && echo "yes" || echo "no")
+EOF
+}
+
+show_setup_status() {
+  local agent_dir agent_ver
+
+  cat <<EOF
+
+============================================================
+Setup status (SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION})
+============================================================
+  Termux PREFIX:       ${PREFIX}
+  Workspace:           ${WORKSPACE_DIR}
+  x11-repo:            $(pkg_installed x11-repo && echo "installed" || echo "not installed")
+  Termux:X11 app:      $(apk_installed com.termux.x11 && echo "installed" || echo "not installed")
+  Desktop (${DESKTOP_ENV}): $(desktop_installed && echo "ready" || echo "not installed")
+  Cursor Agent:        $(cursor_agent_installed && echo "installed" || echo "not installed")
+  glibc-runner:        $(pkg_installed glibc-runner && echo "installed" || echo "not installed")
+  Storage symlinks:    $([[ -d "${HOME}/storage/shared" ]] && echo "linked" || echo "not linked")
+  Termux:API:          $(termux_api_ready && echo "ready" || echo "incomplete")
+EOF
+
+  if cursor_agent_installed; then
+    agent_dir="$(cursor_agent_latest_dir 2>/dev/null || true)"
+    if [[ -n "$agent_dir" && -x "${agent_dir}/node" ]]; then
+      agent_ver="$("${agent_dir}/node" --version 2>/dev/null || echo "unknown")"
+      printf '  Agent glibc Node:    %s\n' "$agent_ver"
+    fi
+    if [[ -x "${HOME}/.local/bin/agent" ]]; then
+      printf '  agent --version:     %s\n' "$("${HOME}/.local/bin/agent" --version 2>/dev/null || echo "failed")"
+    fi
+  fi
+
+  echo ""
+}
+
+interactive_custom_setup() {
+  echo ""
+  log "Custom setup — answer prompts or press Enter for defaults."
+
+  if prompt_yes_no "Install X11 and desktop packages?" 1; then
+    INSTALL_X11=1
+  else
+    INSTALL_X11=0
+  fi
+
+  if [[ "${INSTALL_X11}" -eq 1 ]]; then
+    DESKTOP_ENV="$(select_option "Choose desktop environment:" 1 \
+      "xfce|XFCE4 (recommended)" \
+      "lxqt|LXQt" \
+      "mate|MATE" \
+      "none|None (X11 only, no desktop)")"
+  else
+    DESKTOP_ENV="none"
+  fi
+
+  if prompt_yes_no "Install Cursor Agent CLI?" 1; then
+    INSTALL_CURSOR=1
+  else
+    INSTALL_CURSOR=0
+  fi
+
+  if prompt_yes_no "Configure Android shared storage?" 1; then
+    SETUP_STORAGE=1
+  else
+    SETUP_STORAGE=0
+  fi
+
+  WORKSPACE_DIR="$(prompt_text "Workspace directory" "${WORKSPACE_DIR}")"
+  case "${WORKSPACE_DIR}" in
+    "~"/*) WORKSPACE_DIR="${HOME}/${WORKSPACE_DIR#\~/}" ;;
+    "~") WORKSPACE_DIR="${HOME}" ;;
+  esac
+
+  if [[ "${INSTALL_X11}" -eq 1 ]]; then
+    TERMUX_X11_DISPLAY="$(prompt_text "X11 DISPLAY value" "${TERMUX_X11_DISPLAY}")"
+    if prompt_yes_no "Enable legacy drawing workaround?" 0; then
+      TERMUX_X11_LEGACY_DRAWING=1
+    else
+      TERMUX_X11_LEGACY_DRAWING=0
+    fi
+    if prompt_yes_no "Force BGRA pixel format?" 0; then
+      TERMUX_X11_FORCE_BGRA=1
+    else
+      TERMUX_X11_FORCE_BGRA=0
+    fi
+  fi
+
+  if [[ "${INSTALL_CURSOR}" -eq 1 ]] && cursor_agent_installed; then
+    if prompt_yes_no "Force reinstall Cursor Agent?" 0; then
+      FORCE_CURSOR=1
+    else
+      FORCE_CURSOR=0
+    fi
+  fi
+
+  show_current_config
+  if ! prompt_yes_no "Proceed with these settings?" 1; then
+    warn "Custom setup cancelled."
+    return 1
+  fi
+  return 0
+}
+
+interactive_post_setup_menu() {
+  while true; do
+    echo ""
+    log "Post-setup shortcuts"
+    local choice
+    choice="$(select_option "What would you like to do?" 1 \
+      "tips|Show next steps and tips" \
+      "x11|Start X11 desktop (start-termux-x11)" \
+      "agent|Open Cursor Agent in tmux" \
+      "login|Run agent login" \
+      "back|Back to main menu")"
+
+    case "$choice" in
+      tips)
+        print_summary
+        ;;
+      x11)
+        if cmd_exists start-termux-x11; then
+          log "Launching start-termux-x11..."
+          start-termux-x11
+        else
+          warn "start-termux-x11 not found. Run full setup first."
+        fi
+        ;;
+      agent)
+        if cmd_exists cursor-agent-tmux; then
+          log "Launching cursor-agent-tmux..."
+          cursor-agent-tmux
+        else
+          warn "cursor-agent-tmux not found. Run setup with Cursor enabled."
+        fi
+        ;;
+      login)
+        if [[ -x "${HOME}/.local/bin/agent" ]]; then
+          log "Running agent login..."
+          "${HOME}/.local/bin/agent" login
+        else
+          warn "agent not found. Run setup with Cursor enabled."
+        fi
+        ;;
+      back)
+        return 0
+        ;;
+    esac
+  done
+}
+
+run_setup() {
+  bootstrap_pkg
+  ensure_termux_external_apps
+  pkg_install_missing termux-api termux-tools
+
+  install_base_packages
+
+  if [[ "${INSTALL_X11}" -eq 1 ]]; then
+    ensure_termux_x11_app
+    install_desktop
+  fi
+
+  setup_file_access
+
+  if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
+    install_cursor_agent_termux
+  fi
+
+  if [[ "${INSTALL_X11}" -eq 1 ]]; then
+    write_x11_launchers
+  fi
+
+  if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
+    write_cursor_launchers
+    write_repair_cursor_agent
+  fi
+
+  write_shell_profile
+  ensure_termux_api_ready || warn "Termux:API not detected; install from F-Droid if commands fail."
+  print_summary
+}
+
+run_interactive_menu() {
+  while true; do
+    echo ""
+    echo "============================================================"
+    echo " Termux X11 + Cursor Agent Setup (v${SETUP_SCRIPT_VERSION})"
+    echo "============================================================"
+
+    local choice
+    choice="$(select_option "Choose an option:" 1 \
+      "quick|Quick setup — X11 + Cursor + storage" \
+      "custom|Custom setup — choose components" \
+      "repair|Repair Cursor Agent only" \
+      "status|View installation status" \
+      "shortcuts|Post-setup shortcuts" \
+      "exit|Exit")"
+
+    case "$choice" in
+      quick)
+        INSTALL_X11=1
+        INSTALL_CURSOR=1
+        SETUP_STORAGE=1
+        FORCE_CURSOR=0
+        DESKTOP_ENV="xfce"
+        run_setup
+        if ! prompt_yes_no "Return to main menu?" 1; then
+          break
+        fi
+        ;;
+      custom)
+        if interactive_custom_setup; then
+          run_setup
+          if ! prompt_yes_no "Return to main menu?" 1; then
+            break
+          fi
+        fi
+        ;;
+      repair)
+        repair_cursor_agent_only
+        write_repair_cursor_agent
+        if ! prompt_yes_no "Return to main menu?" 1; then
+          break
+        fi
+        ;;
+      status)
+        show_setup_status
+        ;;
+      shortcuts)
+        interactive_post_setup_menu
+        ;;
+      exit)
+        log "Exiting."
+        break
+        ;;
+    esac
+  done
+}
+
 print_summary() {
   local ws_display="${WORKSPACE_DIR}"
   [[ "${WORKSPACE_DIR}" == "${HOME}/workspace" ]] && ws_display="~/workspace"
@@ -1394,6 +1731,7 @@ EOF
 
 Tips:
   - Re-run this script anytime to install anything still missing.
+  - Interactive menu: bash ${SCRIPT_NAME}  (or curl ... | bash -s -- -i)
   - Keep repos under ${ws_display}, not on ~/storage/* (FAT limitations).
   - Use --verbose to show all "already installed" checks.
   - X11 logs: tail -f ~/termux-x11.log
@@ -1411,48 +1749,29 @@ EOF
 }
 
 main() {
+  local argc=$#
   parse_args "$@"
   require_termux
 
   log "setup-termux-x11-cursor.sh SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION}"
   mkdir -p "${HOME}/bin" "${CACHE_DIR}"
 
+  if [[ "${INTERACTIVE}" -eq 0 ]] && [[ "${argc}" -eq 0 ]] && is_tty; then
+    INTERACTIVE=1
+  fi
+
   if [[ "${REPAIR_CURSOR_ONLY}" -eq 1 ]]; then
-    require_termux
     repair_cursor_agent_only
     write_repair_cursor_agent
     exit 0
   fi
 
-  bootstrap_pkg
-  ensure_termux_external_apps
-  pkg_install_missing termux-api termux-tools
-
-  install_base_packages
-
-  if [[ "${INSTALL_X11}" -eq 1 ]]; then
-    ensure_termux_x11_app
-    install_desktop
+  if [[ "${INTERACTIVE}" -eq 1 ]]; then
+    run_interactive_menu
+    exit 0
   fi
 
-  setup_file_access
-
-  if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
-    install_cursor_agent_termux
-  fi
-
-  if [[ "${INSTALL_X11}" -eq 1 ]]; then
-    write_x11_launchers
-  fi
-
-  if [[ "${INSTALL_CURSOR}" -eq 1 ]]; then
-    write_cursor_launchers
-    write_repair_cursor_agent
-  fi
-
-  write_shell_profile
-  ensure_termux_api_ready || warn "Termux:API not detected; install from F-Droid if commands fail."
-  print_summary
+  run_setup
 }
 
 main "$@"
