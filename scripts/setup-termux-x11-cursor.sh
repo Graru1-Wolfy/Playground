@@ -42,10 +42,10 @@ TERMUX_X11_FORCE_BGRA=0
 TERMUX_API_APK_URL="https://github.com/termux/termux-api/releases/download/v0.53.0/termux-api-app_v0.53.0+github.debug.apk"
 TERMUX_X11_RELEASE_API="https://api.github.com/repos/termux/termux-x11/releases/tags/nightly"
 X11_LAUNCHER_VERSION="4"
-SETUP_SCRIPT_VERSION="9"
+SETUP_SCRIPT_VERSION="10"
 CURSOR_GLIBC_NODE_VERSION="24.17.0"
-CURSOR_GLIBC_RUNTIME_VERSION="2"
-CURSOR_LAUNCHER_VERSION="3"
+CURSOR_GLIBC_RUNTIME_VERSION="3"
+CURSOR_LAUNCHER_VERSION="4"
 
 log()  { printf '\033[0;34m▸\033[0m %s\n' "$*"; }
 ok()   { printf '\033[0;32m✓\033[0m %s\n' "$*"; }
@@ -672,15 +672,94 @@ restore_cursor_bundled_glibc_node() {
   tarball="${CACHE_DIR}/cursor-agent-${ver}-linux-${arch}.tar.gz"
   tmpdir="$(mktemp -d)"
 
-  if [[ ! -f "$tarball" ]]; then
-    log "Downloading Cursor Agent package to restore bundled glibc Node (${ver})..."
-    curl -fsSL "https://downloads.cursor.com/lab/${ver}/linux/${arch}/agent-cli-package.tar.gz" -o "$tarball"
-  fi
-
+  log "Downloading Cursor Agent package to restore bundled glibc Node (${ver})..."
+  rm -f "$tarball"
+  curl -fsSL "https://downloads.cursor.com/lab/${ver}/linux/${arch}/agent-cli-package.tar.gz" -o "$tarball"
   tar -xzf "$tarball" -C "$tmpdir" node
   install -m0755 "${tmpdir}/node" "$dest"
   rm -rf "$tmpdir"
+  cursor_glibc_node_valid "$dest" || die "Downloaded Cursor Node binary is invalid for ${ver}."
   ok "Restored bundled glibc Node for ${ver}"
+}
+
+ensure_cursor_glibc_node() {
+  local final_dir="$1"
+  local real_node="${final_dir}/node.glibc"
+
+  if cursor_glibc_node_valid "$real_node"; then
+    return 0
+  fi
+
+  rm -f "$real_node"
+  if [[ -x "${final_dir}/node.real" ]]; then
+    mv -f "${final_dir}/node.real" "$real_node"
+  fi
+
+  if cursor_glibc_node_valid "$real_node"; then
+    return 0
+  fi
+
+  if restore_cursor_bundled_glibc_node "$final_dir" "$real_node"; then
+    return 0
+  fi
+
+  ensure_official_glibc_node "$real_node"
+  cursor_glibc_node_valid "$real_node" || die "Could not install a valid glibc Node at ${real_node}"
+}
+
+write_cursor_glibc_node_wrapper() {
+  local final_dir="$1"
+  local ld_so real_node node_wrapper glibc_prefix
+
+  ld_so="$(cursor_glibc_ld_so)" || die "glibc dynamic linker not found. Run: pkg install glibc-repo && pkg update && pkg install glibc-runner"
+  glibc_prefix="${PREFIX}/glibc"
+  real_node="${final_dir}/node.glibc"
+  node_wrapper="${final_dir}/node"
+
+  ensure_cursor_glibc_node "$final_dir"
+
+  if cmd_exists patchelf; then
+    patchelf --set-interpreter "$ld_so" --set-rpath "${glibc_prefix}/lib" "$real_node" 2>/dev/null || true
+  fi
+
+  cat > "$node_wrapper" <<EOF
+#!/data/data/com.termux/files/usr/bin/bash
+# CURSOR_GLIBC_NODE_WRAPPER=v${CURSOR_GLIBC_RUNTIME_VERSION}
+GLIBC_PREFIX="${glibc_prefix}"
+LD_SO="${ld_so}"
+REAL_NODE="${real_node}"
+export PATH="\${GLIBC_PREFIX}/bin:\${PATH}"
+export LD_LIBRARY_PATH="\${GLIBC_PREFIX}/lib"
+export SSL_CERT_FILE="${PREFIX}/etc/tls/cert.pem"
+export SSL_CERT_DIR="${PREFIX}/etc/tls/certs"
+export NODE_EXTRA_CA_CERTS="${PREFIX}/etc/tls/cert.pem"
+export TMPDIR="\${TMPDIR:-${PREFIX}/tmp}"
+unset LD_PRELOAD
+if [[ ! -f "\$REAL_NODE" ]]; then
+  echo "Missing glibc Node binary: \$REAL_NODE" >&2
+  echo "Re-run setup: curl -fsSL https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-termux-x11-cursor.sh | bash" >&2
+  exit 1
+fi
+if command -v grun >/dev/null 2>&1; then
+  exec grun "\$REAL_NODE" "\$@"
+fi
+exec "\$LD_SO" --library-path "\${GLIBC_PREFIX}/lib" "\$REAL_NODE" "\$@"
+EOF
+  chmod +x "$node_wrapper"
+}
+
+verify_cursor_agent_runtime() {
+  local final_dir="$1"
+  local node_wrapper="${final_dir}/node"
+
+  cursor_node_wrapper_valid "$node_wrapper" || return 1
+  cursor_glibc_node_valid "${final_dir}/node.glibc" || return 1
+
+  (
+    cd "$final_dir"
+    "$node_wrapper" -e "require('./build/node_sqlite3.node');" >/dev/null 2>&1
+    "$node_wrapper" --use-system-ca "${final_dir}/index.js" --version >/dev/null 2>&1
+  )
 }
 
 write_cursor_agent_bin_wrappers() {
@@ -689,8 +768,11 @@ write_cursor_agent_bin_wrappers() {
 
   mkdir -p "${HOME}/.local/bin"
   marker_file="${HOME}/.local/bin/.cursor-agent-wrapper-version"
+
   if [[ -f "$marker_file" ]] && [[ "$(cat "$marker_file")" == "${CURSOR_LAUNCHER_VERSION}" ]] \
-    && [[ -x "${HOME}/.local/bin/agent" ]] && grep -q "CURSOR_AGENT_WRAPPER=v${CURSOR_LAUNCHER_VERSION}" "${HOME}/.local/bin/agent" 2>/dev/null; then
+    && [[ -x "${HOME}/.local/bin/agent" ]] \
+    && grep -q "CURSOR_AGENT_WRAPPER=v${CURSOR_LAUNCHER_VERSION}" "${HOME}/.local/bin/agent" 2>/dev/null \
+    && verify_cursor_agent_runtime "$agent_dir"; then
     ok_maybe "Cursor Agent launchers already up to date."
     return 0
   fi
@@ -727,16 +809,40 @@ cursor_node_platform() {
 }
 
 cursor_glibc_ld_so() {
-  local platform
-  platform="$(cursor_node_platform)"
-  case "$platform" in
-    linux-arm64) echo "${PREFIX}/glibc/lib/ld-linux-aarch64.so.1" ;;
-    linux-x64) echo "${PREFIX}/glibc/lib/ld-linux-x86-64.so.2" ;;
-  esac
+  local candidate
+  for candidate in \
+    "${PREFIX}/glibc/lib/ld-linux-aarch64.so.1" \
+    "${PREFIX}/glibc/lib/ld-linux-x86-64.so.2" \
+    "${PREFIX}/glibc/bin/ld.so"; do
+    if [[ -x "$candidate" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+cursor_elf_valid() {
+  local file="$1"
+  local magic
+  [[ -f "$file" && -s "$file" ]] || return 1
+  magic="$(od -An -tx1 -N4 "$file" 2>/dev/null | tr -d ' \n' || true)"
+  [[ "$magic" == "7f454c46" ]]
+}
+
+cursor_glibc_node_valid() {
+  cursor_elf_valid "$1"
+}
+
+cursor_node_wrapper_valid() {
+  local file="$1"
+  [[ -f "$file" ]] || return 1
+  head -n 1 "$file" 2>/dev/null | grep -q '^#!' || return 1
+  grep -q "CURSOR_GLIBC_NODE_WRAPPER=v${CURSOR_GLIBC_RUNTIME_VERSION}" "$file" 2>/dev/null
 }
 
 glibc_runtime_ready() {
-  [[ -x "$(cursor_glibc_ld_so)" ]]
+  cursor_glibc_ld_so >/dev/null
 }
 
 configure_glibc_dns() {
@@ -838,92 +944,42 @@ ensure_official_glibc_node() {
 
 patch_cursor_agent_glibc_runtime() {
   local final_dir="$1"
-  local ld_so real_node node_wrapper glibc_prefix
+  local node_wrapper
 
   [[ -d "$final_dir" ]] || return 0
 
   ensure_glibc_runner
+  pkg_install_missing patchelf 2>/dev/null || true
 
-  ld_so="$(cursor_glibc_ld_so)"
-  [[ -x "$ld_so" ]] || die "glibc dynamic linker not found at ${ld_so}. Run: pkg install glibc-repo glibc-runner"
-
-  glibc_prefix="${PREFIX}/glibc"
-  real_node="${final_dir}/node.glibc"
   node_wrapper="${final_dir}/node"
 
-  if [[ -f "$node_wrapper" ]]; then
-    if [[ -L "$node_wrapper" ]]; then
-      rm -f "$node_wrapper"
-    elif [[ -f "$node_wrapper" ]] && head -n 1 "$node_wrapper" 2>/dev/null | grep -q '^#!'; then
-      if grep -q "CURSOR_GLIBC_NODE_WRAPPER=v${CURSOR_GLIBC_RUNTIME_VERSION}" "$node_wrapper" 2>/dev/null \
-        && [[ -x "$real_node" ]]; then
-        ok_maybe "Cursor glibc Node wrapper already configured for $(basename "$final_dir")."
-        return 0
-      fi
-      rm -f "$node_wrapper"
-    elif file "$node_wrapper" 2>/dev/null | grep -q 'ELF'; then
-      mv -f "$node_wrapper" "$real_node"
-    fi
+  if [[ -L "$node_wrapper" ]]; then
+    rm -f "$node_wrapper"
+  elif [[ -f "$node_wrapper" ]] && cursor_elf_valid "$node_wrapper"; then
+    mv -f "$node_wrapper" "${final_dir}/node.glibc"
+  elif [[ -f "$node_wrapper" ]] && ! cursor_node_wrapper_valid "$node_wrapper"; then
+    rm -f "$node_wrapper"
   fi
 
-  if [[ ! -x "$real_node" ]]; then
-    if [[ -x "${final_dir}/node.real" ]]; then
-      mv -f "${final_dir}/node.real" "$real_node"
-    else
-      if ! restore_cursor_bundled_glibc_node "$final_dir" "$real_node" 2>/dev/null; then
-        ensure_official_glibc_node "$real_node"
-      fi
-    fi
+  if verify_cursor_agent_runtime "$final_dir"; then
+    ok_maybe "Cursor glibc runtime already OK for $(basename "$final_dir")."
+    return 0
   fi
 
-  cat > "$node_wrapper" <<EOF
-#!/data/data/com.termux/files/usr/bin/bash
-# CURSOR_GLIBC_NODE_WRAPPER=v${CURSOR_GLIBC_RUNTIME_VERSION}
-GLIBC_PREFIX="${glibc_prefix}"
-LD_SO="${ld_so}"
-REAL_NODE="${real_node}"
-export PATH="\${GLIBC_PREFIX}/bin:\${PATH}"
-export LD_LIBRARY_PATH="\${GLIBC_PREFIX}/lib"
-export SSL_CERT_FILE="${PREFIX}/etc/tls/cert.pem"
-export SSL_CERT_DIR="${PREFIX}/etc/tls/certs"
-export NODE_EXTRA_CA_CERTS="${PREFIX}/etc/tls/cert.pem"
-export TMPDIR="\${TMPDIR:-${PREFIX}/tmp}"
-unset LD_PRELOAD
-exec "\$LD_SO" --library-path "\${GLIBC_PREFIX}/lib" "\$REAL_NODE" "\$@"
-EOF
-  chmod +x "$node_wrapper"
+  log "Repairing Cursor Agent glibc runtime for $(basename "$final_dir")..."
+  write_cursor_glibc_node_wrapper "$final_dir"
 
   if [[ -e "${final_dir}/rg" ]] && cmd_exists rg; then
     rm -f "${final_dir}/rg"
     ln -sf "$(command -v rg)" "${final_dir}/rg"
   fi
 
-  log "Verifying Cursor Agent native modules in $(basename "$final_dir")..."
-  if (
-    cd "$final_dir"
-    "$node_wrapper" -e "
-      const fs = require('fs');
-      const path = require('path');
-      require('./build/node_sqlite3.node');
-      const findMerkle = (dir) => {
-        for (const name of fs.readdirSync(dir)) {
-          const p = path.join(dir, name);
-          if (name.startsWith('merkle-tree-napi.') && name.endsWith('.node')) return p;
-          if (fs.statSync(p).isDirectory()) {
-            const nested = findMerkle(p);
-            if (nested) return nested;
-          }
-        }
-        return null;
-      };
-      const merkle = findMerkle('.');
-      if (merkle) require(path.resolve(merkle));
-    " && "$node_wrapper" --use-system-ca "${final_dir}/index.js" --version >/dev/null 2>&1
-  ); then
+  if verify_cursor_agent_runtime "$final_dir"; then
     ok "Cursor Agent glibc runtime ready for $(basename "$final_dir")."
   else
-    warn "Native module self-test failed for $(basename "$final_dir")."
-    warn "If cursor-agent still errors, re-run with --force-cursor."
+    warn "Cursor Agent self-test failed for $(basename "$final_dir")."
+    warn "Check: ls -la ${final_dir}/node ${final_dir}/node.glibc"
+    warn "Then re-run setup or: pkg install glibc-repo && pkg update && pkg install glibc-runner"
   fi
 }
 
@@ -946,9 +1002,6 @@ install_cursor_agent_termux() {
   ensure_glibc_runner
 
   if cursor_agent_installed && [[ "${FORCE_CURSOR}" -eq 0 ]]; then
-    if [[ ! -x "${HOME}/.local/bin/agent" ]] && [[ -x "${HOME}/.local/bin/cursor-agent" ]]; then
-      ln -sf "${HOME}/.local/bin/cursor-agent" "${HOME}/.local/bin/agent"
-    fi
     patch_installed_cursor_agents
     write_cursor_agent_bin_wrappers
     return 0
@@ -1273,7 +1326,8 @@ Tips:
   - Android 12+: disable phantom process killer / battery optimization for Termux
   - If the X11 screen is black: re-run with --legacy-drawing
   - If colors look wrong: re-run with --force-bgra
-  - Cursor Agent libdl.so.2 error: re-run setup (uses glibc Node wrapper)
+  - X11 dbus/ConsoleKit warnings in the log are harmless on Termux
+  - agent node.glibc error: re-run setup (repairs node wrapper + re-downloads Node)
   - glibc-runner not found: pkg install glibc-repo && pkg update && pkg install glibc-runner
   - Run agent from Termux or XFCE terminal after setup (PATH includes ~/.local/bin)
 
