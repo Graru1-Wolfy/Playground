@@ -1626,6 +1626,8 @@ Setup status (SETUP_SCRIPT_VERSION=${SETUP_SCRIPT_VERSION})
 ============================================================
   Termux PREFIX:       ${PREFIX}
   Workspace:           ${WORKSPACE_DIR}
+  Workspace mode:      ${WORKSPACE_MODE}
+  Android Files path:  $(if [[ -L "$(android_visible_workspace_dir)" ]]; then echo "$(android_visible_workspace_dir) (broken symlink — re-run setup)"; elif [[ -d "$(android_visible_workspace_dir)" ]]; then echo "$(android_visible_workspace_dir) (real folder)"; else echo "not created"; fi)
   x11-repo:            $(pkg_installed x11-repo && echo "installed" || echo "not installed")
   Termux:X11 app:      $(apk_installed com.termux.x11 && echo "installed" || echo "not installed")
   Desktop (${DESKTOP_ENV}): $(desktop_installed && echo "ready" || echo "not installed")
