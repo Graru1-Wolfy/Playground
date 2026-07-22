@@ -13,7 +13,7 @@ not require NetHunter, Ubuntu PRoot, Termux:X11, AcodeX, or a second computer.
 The repository includes one setup and synchronization script:
 
 - [Download `setup-cursor-cloud-acode.sh`](../scripts/setup-cursor-cloud-acode.sh)
-- [Pinned raw download](https://raw.githubusercontent.com/Graru1-Wolfy/Playground/b23291ac14db8b32597ddc39668aaad9cedd61c0/scripts/setup-cursor-cloud-acode.sh)
+- [Pinned raw download](https://raw.githubusercontent.com/Graru1-Wolfy/Playground/cda6245075eb5e8a9fcdd337b37682f283085f55/scripts/setup-cursor-cloud-acode.sh)
 
 ## Requirements
 
@@ -78,7 +78,7 @@ Run these commands in native Termux:
 pkg install -y curl
 curl --fail --show-error --location --remove-on-error \
   --output "$HOME/setup-cursor-cloud-acode.sh" \
-  "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/b23291ac14db8b32597ddc39668aaad9cedd61c0/scripts/setup-cursor-cloud-acode.sh" &&
+  "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/cda6245075eb5e8a9fcdd337b37682f283085f55/scripts/setup-cursor-cloud-acode.sh" &&
   less "$HOME/setup-cursor-cloud-acode.sh" &&
   chmod 700 "$HOME/setup-cursor-cloud-acode.sh" &&
   "$HOME/setup-cursor-cloud-acode.sh"
@@ -127,7 +127,7 @@ commit and downloads the complete file before executing it:
   tmp="$(mktemp)"
   trap 'rm -f "$tmp"' EXIT
   curl -fsSL \
-    "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/b23291ac14db8b32597ddc39668aaad9cedd61c0/scripts/setup-cursor-cloud-acode.sh" \
+    "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/cda6245075eb5e8a9fcdd337b37682f283085f55/scripts/setup-cursor-cloud-acode.sh" \
     -o "$tmp" &&
     bash "$tmp" \
     --non-interactive \
