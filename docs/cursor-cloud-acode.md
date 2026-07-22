@@ -13,7 +13,7 @@ not require NetHunter, Ubuntu PRoot, Termux:X11, AcodeX, or a second computer.
 The repository includes one setup and synchronization script:
 
 - [Download `setup-cursor-cloud-acode.sh`](../scripts/setup-cursor-cloud-acode.sh)
-- [Direct raw download](https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-cursor-cloud-acode.sh)
+- [Pinned raw download](https://raw.githubusercontent.com/Graru1-Wolfy/Playground/b23291ac14db8b32597ddc39668aaad9cedd61c0/scripts/setup-cursor-cloud-acode.sh)
 
 ## Requirements
 
@@ -75,7 +75,7 @@ Run these commands in native Termux:
 ```bash
 pkg install -y curl
 curl -fsSLo "$HOME/setup-cursor-cloud-acode.sh" \
-  "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-cursor-cloud-acode.sh"
+  "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/b23291ac14db8b32597ddc39668aaad9cedd61c0/scripts/setup-cursor-cloud-acode.sh"
 less "$HOME/setup-cursor-cloud-acode.sh"
 chmod 700 "$HOME/setup-cursor-cloud-acode.sh"
 "$HOME/setup-cursor-cloud-acode.sh"
@@ -112,9 +112,8 @@ The agent URL is optional. The script only opens HTTPS URLs on
 
 ### Download-and-run convenience command
 
-Inspect-before-run is safer. If you have reviewed the repository version and
-accept that `main` can change, this command downloads the complete file before
-executing it:
+Inspect-before-run is safer. This command uses the reviewed, immutable script
+commit and downloads the complete file before executing it:
 
 <!-- markdownlint-disable MD013 -->
 
@@ -123,7 +122,7 @@ executing it:
   tmp="$(mktemp)"
   trap 'rm -f "$tmp"' EXIT
   curl -fsSL \
-    "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-cursor-cloud-acode.sh" \
+    "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/b23291ac14db8b32597ddc39668aaad9cedd61c0/scripts/setup-cursor-cloud-acode.sh" \
     -o "$tmp"
   bash "$tmp" \
     --non-interactive \
@@ -135,8 +134,8 @@ executing it:
 
 <!-- markdownlint-enable MD013 -->
 
-For reproducible automation, replace `main` in the raw URL with a reviewed
-commit SHA.
+The raw URL is pinned to a reviewed commit. Recheck the repository guide before
+updating it to a newer script revision.
 
 ## Options
 
