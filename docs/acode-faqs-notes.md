@@ -57,8 +57,12 @@ References:
   **Add path → Termux → home**.
 - Play Store Acode: the terminal may run from a sandbox temporary directory.
   Use **F-Droid** plus All Files Access if paths break.
-- Prefer **F-Droid Acode**, `termux-setup-storage`, and the shared workspace
-  (`Documents/cursor-workspace`).
+- The Cloud Agent + Acode guide defaults to
+  `Internal storage/Cursor_Space/<repository>`.
+- The separate native Agent/X11 installer defaults to
+  `Documents/cursor-workspace`.
+- Prefer private Termux storage for repositories that need Unix permissions,
+  symlinks, executable bits, or reliable dependency tooling.
 
 ### AI on Acode (official positioning)
 
@@ -86,7 +90,7 @@ References:
 1. Document **F-Droid Acode** in prerequisites.
 2. This repository's Cursor Agent commands must run in **Termux** (or
    AcodeX → Termux), not Acode's Alpine terminal.
-3. Workspace **shared mode** aligns with Acode/Files access to
-   `Documents/cursor-workspace`.
+3. Shared workspaces align with Acode/Files access, but private Termux storage
+   is safer for Unix-dependent repositories.
 4. A future **acode-cursor plugin** should depend on **AcodeX** or a small
    Termux server, not built-in Executor alone.

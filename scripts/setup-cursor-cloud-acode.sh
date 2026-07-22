@@ -54,8 +54,9 @@ Options:
   --destination PATH   Exact checkout directory. For an existing checkout this
                        can be used without --repo; its origin URL is reused.
   --no-open            Do not open --agent-url in Android.
-  --non-interactive    Never prompt. --repo is required unless --destination
-                       is an existing Git checkout.
+  --non-interactive    Disable script, Git credential, SSH passphrase, and
+                       Android permission prompts. Shared-storage permission
+                       must already be granted.
   --verbose            Show Git commands and additional status.
   -h, --help           Show this help.
 
@@ -72,7 +73,7 @@ Examples:
 
 Safety:
   - Existing local changes are never reset, stashed, committed, or overwritten.
-  - Updates use git pull --ff-only and never force-push.
+  - Updates fast-forward only from the matching origin branch.
   - Keep SSH private keys and secrets in Termux private storage, never in
     Android shared storage.
 EOF
@@ -199,9 +200,19 @@ prompt_value() {
   fi
 
   if [[ -r /dev/tty && -w /dev/tty ]]; then
-    IFS= read -r -p "$prompt" reply </dev/tty
+    if ! IFS= read -r -p "$prompt" reply </dev/tty; then
+      [[ "$required" -eq 1 ]] &&
+        die "Input ended before a required value was provided."
+      warn "Input ended; leaving the optional value empty."
+      return 0
+    fi
   elif [[ -t 0 ]]; then
-    IFS= read -r -p "$prompt" reply
+    if ! IFS= read -r -p "$prompt" reply; then
+      [[ "$required" -eq 1 ]] &&
+        die "Input ended before a required value was provided."
+      warn "Input ended; leaving the optional value empty."
+      return 0
+    fi
   elif [[ "$required" -eq 1 ]]; then
     die "Interactive input is unavailable. Pass the required value as an option."
   else
@@ -215,10 +226,28 @@ prompt_value() {
   printf -v "$variable_name" '%s' "$reply"
 }
 
+canonical_directory() {
+  local directory="$1"
+  (cd "$directory" 2>/dev/null && pwd -P)
+}
+
+git_top_level() {
+  local directory="$1"
+  local top_level
+
+  top_level="$(git -C "$directory" rev-parse --show-toplevel 2>/dev/null)" ||
+    return 1
+  canonical_directory "$top_level"
+}
+
 is_git_checkout() {
   local directory="$1"
-  [[ -d "$directory" ]] &&
-    git -C "$directory" rev-parse --is-inside-work-tree >/dev/null 2>&1
+  local canonical top_level
+
+  [[ -d "$directory" ]] || return 1
+  canonical="$(canonical_directory "$directory")" || return 1
+  top_level="$(git_top_level "$directory")" || return 1
+  [[ "$canonical" == "$top_level" ]]
 }
 
 repo_name_from_url() {
@@ -237,6 +266,38 @@ repo_name_from_url() {
   printf '%s\n' "$name"
 }
 
+validate_repo_url() {
+  local rest authority
+
+  [[ -n "$REPO_URL" ]] || die "Repository URL cannot be empty."
+  if [[ "$REPO_URL" == -* || "$REPO_URL" == *$'\n'* ||
+    "$REPO_URL" == *$'\r'* || "$REPO_URL" == *$'\t'* ]]; then
+    die "Repository URL contains unsafe option or control characters."
+  fi
+
+  case "$REPO_URL" in
+    https://*)
+      rest="${REPO_URL#https://}"
+      authority="${rest%%/*}"
+      [[ "$rest" == */* && -n "$authority" && "$authority" != *"@"* ]] ||
+        die "HTTPS repository URL must include a host and path without credentials."
+      [[ "$REPO_URL" != *"?"* && "$REPO_URL" != *"#"* ]] ||
+        die "HTTPS repository URL must not contain a query or fragment."
+      ;;
+    ssh://*)
+      [[ "$REPO_URL" =~ ^ssh://[A-Za-z0-9._-]+@[A-Za-z0-9.-]+(:[0-9]+)?/.+ ]] ||
+        die "SSH repository URL must use ssh://user@host/path."
+      ;;
+    /*|./*|../*)
+      ;;
+    *)
+      if [[ ! "$REPO_URL" =~ ^[A-Za-z0-9._-]+@[A-Za-z0-9.-]+:.+ ]]; then
+        die "Unsupported repository URL. Use HTTPS, SSH, SCP-style SSH, or a local path."
+      fi
+      ;;
+  esac
+}
+
 validate_agent_url() {
   [[ -z "$AGENT_URL" ]] && return 0
 
@@ -246,9 +307,12 @@ validate_agent_url() {
 }
 
 validate_branch() {
+  local normalized
   [[ -z "$BRANCH" ]] && return 0
-  git check-ref-format --branch "$BRANCH" >/dev/null 2>&1 ||
+  normalized="$(git check-ref-format --branch "$BRANCH" 2>/dev/null)" ||
     die "Invalid Git branch name: $BRANCH"
+  [[ "$normalized" == "$BRANCH" ]] ||
+    die "Branch name must not use Git shorthand: $BRANCH"
 }
 
 resolve_inputs() {
@@ -272,6 +336,7 @@ resolve_inputs() {
   if [[ -z "$REPO_URL" ]]; then
     prompt_value REPO_URL "Repository clone URL: " 1
   fi
+  validate_repo_url
 
   if [[ -z "$DESTINATION" ]]; then
     DESTINATION="${WORKSPACE_ROOT}/$(repo_name_from_url "$REPO_URL")"
@@ -290,7 +355,7 @@ resolve_inputs() {
 
 is_ssh_repo_url() {
   case "$REPO_URL" in
-    git@*:*|ssh://*)
+    *@*:*|ssh://*)
       return 0
       ;;
     *)
@@ -300,8 +365,21 @@ is_ssh_repo_url() {
 }
 
 is_shared_storage_path() {
+  local existing canonical
+
   case "$DESTINATION" in
     "${HOME}/storage/"*|/storage/emulated/0/*|/sdcard/*)
+      return 0
+      ;;
+  esac
+
+  existing="$DESTINATION"
+  while [[ ! -e "$existing" && "$existing" != "/" ]]; do
+    existing="$(dirname "$existing")"
+  done
+  canonical="$(canonical_directory "$existing" 2>/dev/null || true)"
+  case "$canonical" in
+    /storage/emulated/0|/storage/emulated/0/*|/sdcard|/sdcard/*)
       return 0
       ;;
     *)
@@ -320,10 +398,20 @@ append_package() {
   MISSING_PACKAGES+=("$candidate")
 }
 
+bootstrap_git() {
+  if command -v git >/dev/null 2>&1; then
+    return 0
+  fi
+
+  log "Installing missing Termux package: git"
+  pkg install -y git
+  command -v git >/dev/null 2>&1 ||
+    die "Git is unavailable after package installation."
+}
+
 install_prerequisites() {
   MISSING_PACKAGES=()
 
-  command -v git >/dev/null 2>&1 || append_package git
   if is_ssh_repo_url && ! command -v ssh >/dev/null 2>&1; then
     append_package openssh
   fi
@@ -340,8 +428,15 @@ install_prerequisites() {
     pkg install -y "${MISSING_PACKAGES[@]}"
   fi
 
-  command -v git >/dev/null 2>&1 ||
-    die "Git is unavailable after package installation."
+}
+
+configure_noninteractive_git() {
+  [[ "$NON_INTERACTIVE" -eq 1 ]] || return 0
+
+  export GIT_TERMINAL_PROMPT=0
+  if is_ssh_repo_url; then
+    export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o BatchMode=yes}"
+  fi
 }
 
 ensure_shared_storage() {
@@ -354,7 +449,12 @@ ensure_shared_storage() {
   warn "normal Unix permissions, executable bits, or symlink behavior."
   warn "Keep SSH keys, tokens, .env files, and other secrets under \$HOME."
 
-  if [[ "$DESTINATION" == "${HOME}/storage/"* && ! -d "${HOME}/storage/shared" ]]; then
+  if [[ ! -d "${HOME}/storage/shared" ]]; then
+    if [[ "$NON_INTERACTIVE" -eq 1 ]]; then
+      die "Shared-storage permission is not ready.
+Run termux-setup-storage once, approve Android's prompt, then rerun."
+    fi
+
     command -v termux-setup-storage >/dev/null 2>&1 ||
       die "termux-setup-storage is unavailable."
 
@@ -406,6 +506,12 @@ Use the existing origin URL or choose another --destination."
     return 0
   fi
 
+  if [[ -d "$DESTINATION" ]] &&
+    git -C "$DESTINATION" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    die "Destination is inside a larger Git checkout, not its root: $DESTINATION
+Use the repository root reported by: git -C \"$DESTINATION\" rev-parse --show-toplevel"
+  fi
+
   if [[ -e "$DESTINATION" ]]; then
     if [[ ! -d "$DESTINATION" ]]; then
       die "Destination exists and is not a directory: $DESTINATION"
@@ -416,7 +522,7 @@ Use the existing origin URL or choose another --destination."
   fi
 
   log "Cloning repository..."
-  run_git clone "$REPO_URL" "$DESTINATION"
+  run_git clone -- "$REPO_URL" "$DESTINATION"
   ok "Cloned repository into: $DESTINATION"
 }
 
@@ -446,6 +552,11 @@ checkout_requested_branch() {
   local current_branch
   current_branch="$(git -C "$DESTINATION" symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
 
+  if ! remote_branch_exists "$BRANCH"; then
+    die "Branch was not found on origin: $BRANCH
+Copy the exact branch name from Cursor Cloud Agents and rerun."
+  fi
+
   if [[ "$current_branch" == "$BRANCH" ]]; then
     return 0
   fi
@@ -453,27 +564,30 @@ checkout_requested_branch() {
   require_clean_worktree
 
   if local_branch_exists "$BRANCH"; then
-    run_git -C "$DESTINATION" switch "$BRANCH"
-  elif remote_branch_exists "$BRANCH"; then
-    run_git -C "$DESTINATION" switch --track -c "$BRANCH" "origin/$BRANCH"
+    run_git -C "$DESTINATION" switch --no-overwrite-ignore "$BRANCH"
   else
-    die "Branch was not found locally or on origin: $BRANCH
-Copy the exact branch name from Cursor Cloud Agents and rerun."
+    run_git -C "$DESTINATION" switch --no-overwrite-ignore \
+      --track -c "$BRANCH" "origin/$BRANCH"
   fi
 }
 
-set_upstream_if_available() {
+set_origin_upstream() {
   local current_branch="$1"
+  local upstream expected
   [[ -n "$current_branch" ]] || return 0
+  expected="origin/${current_branch}"
 
-  if git -C "$DESTINATION" rev-parse --abbrev-ref --symbolic-full-name \
-    '@{upstream}' >/dev/null 2>&1; then
+  if ! remote_branch_exists "$current_branch"; then
     return 0
   fi
 
-  if remote_branch_exists "$current_branch"; then
+  upstream="$(git -C "$DESTINATION" rev-parse --abbrev-ref \
+    --symbolic-full-name '@{upstream}' 2>/dev/null || true)"
+  if [[ "$upstream" != "$expected" ]]; then
+    [[ -n "$upstream" ]] &&
+      warn "Replacing non-origin upstream '$upstream' with '$expected'."
     run_git -C "$DESTINATION" branch \
-      --set-upstream-to="origin/${current_branch}" "$current_branch"
+      --set-upstream-to="$expected" "$current_branch"
   fi
 }
 
@@ -481,23 +595,24 @@ synchronize_checkout() {
   log "Fetching origin..."
   run_git -C "$DESTINATION" fetch origin --prune
 
-  validate_branch
   checkout_requested_branch
 
-  local current_branch upstream
+  local current_branch remote_ref
   current_branch="$(git -C "$DESTINATION" symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
-  set_upstream_if_available "$current_branch"
-  upstream="$(git -C "$DESTINATION" rev-parse --abbrev-ref --symbolic-full-name \
-    '@{upstream}' 2>/dev/null || true)"
-
-  if [[ -z "$upstream" ]]; then
-    warn "Current branch has no upstream; fetch completed without pulling."
+  if [[ -z "$current_branch" ]]; then
+    warn "Checkout is detached; fetch completed without merging."
+    return 0
+  fi
+  if ! remote_branch_exists "$current_branch"; then
+    warn "origin has no '$current_branch' branch; fetch completed without merging."
     return 0
   fi
 
+  set_origin_upstream "$current_branch"
+  remote_ref="refs/remotes/origin/${current_branch}"
   require_clean_worktree
-  log "Fast-forwarding from ${upstream}..."
-  run_git -C "$DESTINATION" pull --ff-only
+  log "Fast-forwarding from origin/${current_branch}..."
+  run_git -C "$DESTINATION" merge --ff-only --no-overwrite-ignore "$remote_ref"
   ok "Repository synchronized."
 }
 
@@ -511,7 +626,10 @@ open_cloud_agent() {
   fi
 
   log "Opening Cursor Cloud Agents in Android..."
-  termux-open-url "$AGENT_URL"
+  if ! termux-open-url "$AGENT_URL"; then
+    warn "Android could not open the Cloud Agent URL. Open it manually:"
+    warn "  $AGENT_URL"
+  fi
 }
 
 print_summary() {
@@ -527,6 +645,7 @@ print_summary() {
 ============================================================
 Cursor Cloud Agent + Acode workspace ready
 ============================================================
+Script version: v${SCRIPT_VERSION}
 Repository:    $DESTINATION
 Branch:        ${current_branch:-detached HEAD}
 Acode folder:  $android_path
@@ -540,7 +659,7 @@ Daily synchronization:
   cd $(printf '%q' "$DESTINATION")
   git status
   git fetch origin --prune
-  git pull --ff-only
+  git merge --ff-only --no-overwrite-ignore origin/${current_branch:-BRANCH}
 
 Before sending local edits:
   git status
@@ -557,8 +676,11 @@ EOF
 main() {
   parse_args "$@"
   require_termux
+  bootstrap_git
   resolve_inputs
+  configure_noninteractive_git
   install_prerequisites
+  validate_branch
   ensure_shared_storage
   clone_or_verify_checkout
   synchronize_checkout

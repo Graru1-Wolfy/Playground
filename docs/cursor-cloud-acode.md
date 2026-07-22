@@ -50,11 +50,14 @@ That makes the checkout visible in Android's file picker and Acode as:
 Internal storage/Cursor_Space/<repository>
 ```
 
+Termux officially recommends keeping Git repositories in private `$HOME`.
 Android shared storage does not provide normal Unix permissions, executable
-bits, or symlink behavior. It is suitable for ordinary source editing, but
-some build tools and repositories will not work correctly there.
+bits, symlinks, or fully reliable Git filesystem behavior. The shared default
+exists to satisfy the Android-visible Acode workflow and is best-effort for
+ordinary text-only repositories. Builds and some Git operations can fail.
 
-For a Unix-capable private checkout, use:
+Prefer a Unix-capable private checkout when the project contains symlinks,
+scripts, native dependencies, or large dependency trees:
 
 ```bash
 --workspace "$HOME/Cursor_Space"
@@ -84,9 +87,13 @@ The interactive prompts request:
 2. The Cloud Agent branch, if one already exists.
 3. The Cursor Cloud Agent URL, if it should open automatically.
 
-The script requests Android storage permission on first use, installs only
-missing Termux command packages, clones or updates the repository, checks out
-the selected remote branch, and opens the validated Cursor URL.
+In interactive mode, the script requests Android storage permission on first
+use. It installs only missing Termux command packages, clones or updates the
+repository, checks out the selected remote branch, and opens the validated
+Cursor URL.
+
+For `--non-interactive` use, run `termux-setup-storage` and approve Android's
+prompt before starting the script.
 
 ## Non-interactive example
 
@@ -103,21 +110,27 @@ Replace all placeholders with values from your Git provider and Cursor:
 The agent URL is optional. The script only opens HTTPS URLs on
 `cursor.com/agents`; it will not open an arbitrary supplied site.
 
-### One-line convenience command
+### Download-and-run convenience command
 
 Inspect-before-run is safer. If you have reviewed the repository version and
-accept that `main` can change, the equivalent one-line command is:
+accept that `main` can change, this command downloads the complete file before
+executing it:
 
 <!-- markdownlint-disable MD013 -->
 
 ```bash
-curl -fsSL \
-  "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-cursor-cloud-acode.sh" \
-  | bash -s -- \
-      --non-interactive \
-      --repo "git@github.com:OWNER/REPOSITORY.git" \
-      --branch "cursor/AGENT-BRANCH" \
-      --agent-url "https://cursor.com/agents?selectedBcId=AGENT_ID"
+(
+  tmp="$(mktemp)"
+  trap 'rm -f "$tmp"' EXIT
+  curl -fsSL \
+    "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-cursor-cloud-acode.sh" \
+    -o "$tmp"
+  bash "$tmp" \
+    --non-interactive \
+    --repo "git@github.com:OWNER/REPOSITORY.git" \
+    --branch "cursor/AGENT-BRANCH" \
+    --agent-url "https://cursor.com/agents?selectedBcId=AGENT_ID"
+)
 ```
 
 <!-- markdownlint-enable MD013 -->
@@ -137,7 +150,7 @@ commit SHA.
 | `--workspace PATH` | Repository parent; defaults to `~/storage/shared/Cursor_Space`. |
 | `--destination PATH` | Exact checkout directory. Reuses its `origin` when it already exists. |
 | `--no-open` | Do not open the Cloud Agent URL. |
-| `--non-interactive` | Disable prompts. |
+| `--non-interactive` | Disable script, Git/SSH, and Android permission prompts. |
 | `--verbose` | Print Git commands and extra status. |
 | `-h`, `--help` | Show built-in help. |
 
@@ -150,10 +163,13 @@ checkout's current branch remains active.
 
 The script is intentionally conservative:
 
-- It fetches from `origin` and pulls with `--ff-only`.
+- It fetches from `origin` and explicitly fast-forwards only from the matching
+  `origin/<current-branch>`.
 - It never resets, force-pulls, auto-stashes, commits, pushes, or deletes work.
 - It stops when local changes could be overwritten or switched away from.
+- Git switch/merge operations refuse to overwrite ignored files.
 - It refuses a non-empty destination that is not a Git checkout.
+- It refuses a destination nested inside a larger Git checkout.
 - It refuses to reuse a checkout when its `origin` differs from `--repo`.
 - It validates branch syntax and confirms the branch exists before switching.
 - It accepts only a Cursor Agents URL for automatic browser opening.
@@ -216,8 +232,10 @@ git commit -m "Describe the change"
 git push
 ```
 
-The Cloud Agent can see the pushed commit after its branch or task refreshes.
-Avoid editing the same lines concurrently on Android and in the Cloud Agent.
+Start a new Cloud Agent task from the pushed branch, or explicitly fetch the
+commit in an environment where that is appropriate. Do not assume an already
+running Cloud Agent automatically ingests new remote commits. Avoid editing
+the same lines concurrently on Android and in the Cloud Agent.
 
 ## Git authentication
 
