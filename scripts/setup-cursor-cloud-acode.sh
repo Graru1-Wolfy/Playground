@@ -85,7 +85,7 @@ expand_path() {
     "~")
       printf '%s\n' "$HOME"
       ;;
-    "~/"*)
+    \~/*)
       printf '%s/%s\n' "$HOME" "${value#\~/}"
       ;;
     *)
