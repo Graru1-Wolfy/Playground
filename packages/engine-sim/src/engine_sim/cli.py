@@ -7,7 +7,15 @@ import argparse
 from concurrent.futures import ProcessPoolExecutor
 
 from engine_sim.generate_setups import find_bounce_setups_for_height
-from engine_sim.paths import DEFAULT_DATA_ROOT, DEFAULT_PRECOMPUTE_ROOT
+from engine_sim.paths import DEFAULT_DATA_ROOT, DEFAULT_PRECOMPUTE_ROOT, setup_data_path
+
+# Height at which a fall from rest first reaches max fall speed (terminal velocity).
+# Max fall speed is the Source vertical-velocity clamp sv_maxvelocity = 3500 u/s
+# (tf2sim.max_vel). Under sv_gravity = 800 (12 u/s per 0.015 s tick) the clamp is first
+# hit at tick 292 after dropping ~7673.8 u. Heights above this land at max fall speed and
+# repeat periodically, so generating 0..MAX_FALLSPEED_HEIGHT covers every distinct landing
+# case. Cross-checked against tf2sim physics in tests/test_cli_range.py.
+MAX_FALLSPEED_HEIGHT = 7674
 
 
 def _generate_height(args: tuple[int, str, str]) -> None:
@@ -45,6 +53,19 @@ def main(argv: list[str] | None = None) -> int:
         help="Height range inclusive, e.g. 0-99 or 100:199",
     )
     parser.add_argument(
+        "--to-max-fallspeed",
+        action="store_true",
+        help=(
+            "Generate all heights up to max fall speed (0-%d), overriding "
+            "--height/--range" % MAX_FALLSPEED_HEIGHT
+        ),
+    )
+    parser.add_argument(
+        "--skip-existing",
+        action="store_true",
+        help="Skip heights whose output .bin.gz already exists (resumable runs)",
+    )
+    parser.add_argument(
         "--workers",
         type=int,
         default=1,
@@ -64,7 +85,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if args.height is not None:
+    if args.to_max_fallspeed:
+        start, end = 0, MAX_FALLSPEED_HEIGHT
+    elif args.height is not None:
         start = end = args.height
     else:
         start, end = _parse_range(args.range)
@@ -72,6 +95,16 @@ def main(argv: list[str] | None = None) -> int:
     heights = list(range(start, end + 1))
     if not heights:
         parser.error("empty height range")
+
+    if args.skip_existing:
+        pending = [h for h in heights if not setup_data_path(h, args.data_root).is_file()]
+        skipped = len(heights) - len(pending)
+        if skipped:
+            print(f"Skipping {skipped} already-generated height(s)")
+        heights = pending
+        if not heights:
+            print("All heights in range already generated; nothing to do.")
+            return 0
 
     data_root_s = str(args.data_root)
     precompute_root_s = str(args.precompute_root)
