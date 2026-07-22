@@ -1,6 +1,17 @@
 import { bindBounceEnvControls, readBounceContextFromDom } from "./bounceEnvUi.js";
-import { formatDefaultGrid, runDefaultChecks } from "./defaultCheck.js";
-import { formatSetupCard, setupMatchesFilter } from "./formatSetup.js";
+import { syncEnvCompactSummary } from "./envSummary.js";
+import {
+  formatDefaultSetupCard,
+  type DefaultCheckRow,
+  type DefaultDetailContext,
+  defaultSetupId,
+} from "./defaultCheck.js";
+import { runDefaultChecks } from "@playground/schema";
+import { formatSetupCard } from "./formatSetup.js";
+import {
+  renderSetupFilterGroups,
+  setupMatchesActiveFilters,
+} from "./setupFilters.js";
 import { guardComputeInput } from "./inputGuard.js";
 import { loadSetupsWithSource } from "./lookup.js";
 import {
@@ -14,17 +25,33 @@ import {
   weightFromToggle,
   type PreferenceDefinition,
 } from "./preferences.js";
+import { bindSetupCards } from "./setupDetail.js";
+import type { SetupLookupEntry } from "./setupDetail.js";
 import { renderSurfaceDiagram } from "./surfaceDiagram.js";
 import { formatSlopeWallGrid, runSlopeWallChecks } from "./slopeWallCheck.js";
 import { slopeWallSummary } from "./slopeWall.js";
 import { copyToClipboard, debounce, el, setLiveStatus, showElement } from "./ui.js";
+import {
+  TRAJECTORY_WEIGHT_MAX,
+  TRAJECTORY_WEIGHT_MIN,
+  TRAJECTORY_WEIGHT_STEP,
+  bindRigidSlider,
+} from "./sliderSnap.js";
+import { bindStepper, createStepperElement } from "./stepper.js";
 
 import type { DecodedSetup } from "@playground/schema";
 
 let currentSetups: DecodedSetup[] = [];
+let currentDefaultRows: DefaultCheckRow[] = [];
+let defaultDetailContext: DefaultDetailContext = {
+  rank: 0,
+  height: 64,
+  teleheight: 1,
+  ceilingGap: null,
+};
 let setupDataSource: "generated" | "sample" | "none" = "none";
 let maxDisplayed = 20;
-let filterQuery = "";
+let activeFilterIds = new Set<string>();
 let checkGeneration = 0;
 let lastComputedHeight: number | null = null;
 
@@ -59,22 +86,22 @@ function previewHeightFromControls(): void {
 
 function syncHeightControls(height: number): void {
   const input = el<HTMLInputElement>("height-input");
-  const slider = el<HTMLInputElement>("height-slider");
+  const slider = el<HTMLInputElement>("height-slider-visible");
   const display = el<HTMLSpanElement>("height-display");
+  const floorDisplay = el<HTMLOutputElement>("floor-slider-display");
 
   input.value = String(height);
   display.textContent = String(height);
+  floorDisplay.textContent = String(height);
 
   const sliderMax = Number(slider.max);
-  if (height <= sliderMax) {
-    slider.value = String(height);
-  } else {
-    slider.value = String(sliderMax);
-  }
+  slider.value = String(Math.min(height, sliderMax));
 
-  for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
+  for (const chip of document.querySelectorAll<HTMLButtonElement>(".height-preset[data-height]")) {
     chip.classList.toggle("chip-active", Number(chip.dataset.height) === height);
   }
+
+  syncEnvCompactSummary(height, readBounceContextFromDom());
 }
 
 function renderPreferenceControl(
@@ -86,28 +113,44 @@ function renderPreferenceControl(
   inputWrap.className = "pref-input-wrap";
 
   if (isSliderPreference(pref)) {
-    const input = document.createElement("input");
-    input.id = `pref-${pref.id}`;
-    input.type = "range";
-    input.min = "-1000";
-    input.max = "255";
-    input.step = "1";
-    input.value = String(weight);
-    input.className = "pref-slider";
-    input.setAttribute("aria-label", `${pref.label} weight`);
-
-    const value = document.createElement("output");
-    value.className = "pref-value mono";
-    value.htmlFor = input.id;
-    value.textContent = input.value;
-
-    input.addEventListener("input", () => {
-      value.textContent = input.value;
-      saveWeight(pref.id, Number(input.value));
-      onChange();
+    const { root, input, decBtn, incBtn } = createStepperElement({
+      className: "stepper-pref",
+      min: TRAJECTORY_WEIGHT_MIN,
+      max: TRAJECTORY_WEIGHT_MAX,
+      step: TRAJECTORY_WEIGHT_STEP,
+      value: Math.min(TRAJECTORY_WEIGHT_MAX, Math.max(TRAJECTORY_WEIGHT_MIN, weight)),
+      inputId: `pref-${pref.id}`,
+      decLabel: `Decrease ${pref.label} weight`,
+      incLabel: `Increase ${pref.label} weight`,
     });
 
-    inputWrap.append(input, value);
+    const valueSlot = document.createElement("span");
+    valueSlot.className = "stepper-body";
+    const value = document.createElement("output");
+    value.className = "stepper-value pref-value mono";
+    value.htmlFor = input.id;
+    value.textContent = input.value;
+    valueSlot.append(value);
+    root.insertBefore(valueSlot, incBtn);
+
+    bindStepper({
+      input,
+      decBtn,
+      incBtn,
+      min: TRAJECTORY_WEIGHT_MIN,
+      max: TRAJECTORY_WEIGHT_MAX,
+      step: TRAJECTORY_WEIGHT_STEP,
+      onInput: (snapped) => {
+        value.textContent = String(snapped);
+      },
+      onChange: (snapped) => {
+        value.textContent = String(snapped);
+        saveWeight(pref.id, snapped);
+        onChange();
+      },
+    });
+
+    inputWrap.append(root);
     return inputWrap;
   }
 
@@ -181,11 +224,32 @@ function renderPreferences(): void {
   }
 }
 
+function renderSetupFilters(): void {
+  const container = el<HTMLDivElement>("setup-filters");
+  container.innerHTML = renderSetupFilterGroups(activeFilterIds);
+
+  for (const chip of container.querySelectorAll<HTMLButtonElement>(".setup-filter-chip")) {
+    chip.addEventListener("click", () => {
+      const id = chip.dataset.filterId;
+      if (!id) return;
+
+      if (activeFilterIds.has(id)) {
+        activeFilterIds.delete(id);
+      } else {
+        activeFilterIds.add(id);
+      }
+
+      renderSetupFilters();
+      void rerankAndDisplay();
+    });
+  }
+}
+
 async function rerankAndDisplay(): Promise<void> {
   const weights = loadWeights();
   const scored = [...currentSetups]
     .map((setup) => ({ setup, score: scoreSetup(setup, weights) }))
-    .filter(({ setup }) => setupMatchesFilter(setup, filterQuery))
+    .filter(({ setup }) => setupMatchesActiveFilters(setup, activeFilterIds))
     .sort((a, b) => b.score - a.score);
 
   const maxScore = scored.length > 0 ? scored[0]!.score : 1;
@@ -194,10 +258,21 @@ async function rerankAndDisplay(): Promise<void> {
 
   const limit = maxDisplayed;
   const slice = scored.slice(0, limit);
+  const defaultCount = currentDefaultRows.length;
+  const showDefaults = activeFilterIds.size === 0;
+
+  if (showDefaults) {
+    currentDefaultRows.forEach((row, index) => {
+      const li = document.createElement("li");
+      li.innerHTML = formatDefaultSetupCard(row, index + 1);
+      list.appendChild(li);
+    });
+  }
+
   slice.forEach((item, index) => {
     const li = document.createElement("li");
     li.innerHTML = formatSetupCard(item.setup, {
-      rank: index + 1,
+      rank: defaultCount + index + 1,
       score: item.score,
       maxScore,
     });
@@ -205,24 +280,63 @@ async function rerankAndDisplay(): Promise<void> {
   });
 
   bindCopyButtons(list);
+  bindSetupCards(list, buildSetupLookup(slice, showDefaults ? currentDefaultRows : []));
 
   const status = el<HTMLParagraphElement>("setup-status");
   const total = currentSetups.length;
   const filtered = scored.length;
+  const shownSim = Math.min(limit, filtered);
+  const shownDefaults = showDefaults ? defaultCount : 0;
 
-  if (total === 0) {
-    status.textContent = "No precomputed data for this height";
+  if (total === 0 && shownDefaults === 0) {
+    status.textContent = "No simulation data for this height";
+    el<HTMLElement>("setup-summary-compact").textContent = "No setups for this height";
     showElement(el<HTMLDivElement>("setup-empty"), true);
     showElement(el<HTMLDivElement>("setup-loading"), false);
     showElement(el<HTMLDivElement>("setup-list-header"), false);
   } else {
     showElement(el<HTMLDivElement>("setup-empty"), false);
     showElement(el<HTMLDivElement>("setup-list-header"), true);
-    const filterNote = filterQuery.trim() ? ` · ${filtered} match` : "";
+    const filterNote = activeFilterIds.size > 0 ? ` · ${filtered} match` : "";
     const sourceNote =
       setupDataSource === "sample" ? " · sample data" : setupDataSource === "generated" ? "" : "";
-    status.textContent = `${Math.min(limit, filtered)}/${filtered}${filterNote} · ${total} setups${sourceNote}`;
+    const defaultNote = shownDefaults > 0 ? `${shownDefaults} DEFAULT · ` : "";
+    const statusText = `${defaultNote}${shownSim}/${filtered}${filterNote} · ${total} simulation setups${sourceNote}`;
+    status.textContent = statusText;
+    el<HTMLElement>("setup-summary-compact").textContent = statusText;
   }
+}
+
+function buildSetupLookup(
+  slice: { setup: DecodedSetup; score: number }[],
+  defaultRows: DefaultCheckRow[],
+): Map<string, SetupLookupEntry> {
+  const maxScore = slice.length > 0 ? slice[0]!.score : 1;
+  const lookup = new Map<string, SetupLookupEntry>();
+
+  defaultRows.forEach((row, index) => {
+    lookup.set(defaultSetupId(row.label), {
+      kind: "default",
+      row,
+      context: {
+        ...defaultDetailContext,
+        rank: index + 1,
+      },
+    });
+  });
+
+  slice.forEach((item, index) => {
+    lookup.set(item.setup.ID.toString(), {
+      kind: "sim",
+      setup: item.setup,
+      context: {
+        rank: defaultRows.length + index + 1,
+        score: item.score,
+        maxScore,
+      },
+    });
+  });
+  return lookup;
 }
 
 function bindCopyButtons(container: HTMLElement): void {
@@ -260,7 +374,7 @@ function renderSlopeWallChecks(height: number, ctx = readBounceContextFromDom())
   diagram.innerHTML = renderSurfaceDiagram(input);
 
   if (slopeDeg <= 0 && !hasWall) {
-    note.textContent = "Flat ground — use Instant DEFAULT";
+    note.textContent = "Flat ground — open DEFAULT starts in the setup list";
     results.innerHTML = `<p class="hint slope-wall-empty">Set ground slope or enable wall for angled bounce intervals.</p>`;
     return;
   }
@@ -285,6 +399,7 @@ async function runCompute(): Promise<void> {
   setLiveStatus("loading");
   showElement(el<HTMLDivElement>("setup-loading"), true);
   showElement(el<HTMLDivElement>("setup-empty"), false);
+  el<HTMLElement>("setup-summary-compact").textContent = "Loading setups…";
 
   const raw = guard.rawHeight ?? guard.height;
   const height = guard.height;
@@ -304,10 +419,16 @@ async function runCompute(): Promise<void> {
       ? `Terminal velocity remap: ${raw} → ${height}${envNote}`
       : `Lookup height: ${height} · bucket ${Math.floor(height / 100) * 100}–${Math.floor(height / 100) * 100 + 99}${envNote}`;
 
-  el<HTMLDivElement>("default-results").innerHTML = formatDefaultGrid(runDefaultChecks(height, {
+  currentDefaultRows = runDefaultChecks(height, {
     teleheight: ctx.teleheight,
     ceilingGap: ctx.ceilingGap,
-  }));
+  });
+  defaultDetailContext = {
+    rank: 0,
+    height,
+    teleheight: ctx.teleheight,
+    ceilingGap: ctx.ceilingGap,
+  };
 
   renderSlopeWallChecks(height, ctx);
 
@@ -352,11 +473,16 @@ export function initApp(): void {
   renderPreferences();
 
   const heightInput = el<HTMLInputElement>("height-input");
-  const heightSlider = el<HTMLInputElement>("height-slider");
+  const heightSlider = el<HTMLInputElement>("height-slider-visible");
 
   updateComputeGuard();
 
-  el<HTMLButtonElement>("compute-btn").addEventListener("click", () => void runCompute());
+  el<HTMLButtonElement>("compute-btn").addEventListener("click", (event) => {
+    event.stopPropagation();
+    void runCompute().then(() => {
+      el<HTMLDetailsElement>("simulation-panel").open = true;
+    });
+  });
 
   heightInput.addEventListener("input", () => {
     debouncedPreview();
@@ -369,22 +495,65 @@ export function initApp(): void {
     }
   });
 
-  heightSlider.addEventListener("input", () => {
-    heightInput.value = heightSlider.value;
-    debouncedPreview();
+  bindRigidSlider(heightSlider, {
+    min: 0,
+    max: 9999,
+    step: 1,
+    onInput: (height) => {
+      heightInput.value = String(height);
+      el<HTMLOutputElement>("floor-slider-display").textContent = String(height);
+      el<HTMLSpanElement>("height-display").textContent = String(height);
+      updateComputeGuard();
+    },
+    onSnap: (height) => {
+      syncHeightControls(height);
+      debouncedPreview();
+    },
   });
 
-  for (const chip of document.querySelectorAll<HTMLButtonElement>(".chip[data-height]")) {
+  bindStepper({
+    input: heightSlider,
+    decBtn: el<HTMLButtonElement>("height-dec"),
+    incBtn: el<HTMLButtonElement>("height-inc"),
+    min: 0,
+    max: 9999,
+    step: 1,
+    readValue: () => Number(heightInput.value) || 0,
+    writeValue: (height) => {
+      syncHeightControls(height);
+    },
+    onInput: () => {
+      updateComputeGuard();
+    },
+    onChange: () => {
+      debouncedPreview();
+    },
+  });
+
+  bindStepper({
+    input: el<HTMLInputElement>("slope-slider"),
+    decBtn: el<HTMLButtonElement>("slope-dec"),
+    incBtn: el<HTMLButtonElement>("slope-inc"),
+    min: 0,
+    max: 45,
+    step: 1,
+    format: (deg) => String(deg),
+    onInput: (deg) => {
+      el<HTMLOutputElement>("slope-display").textContent = `${deg}°`;
+    },
+    onChange: (deg) => {
+      el<HTMLOutputElement>("slope-display").textContent = `${deg}°`;
+      renderSlopeWallChecks(slopeWallHeight());
+    },
+  });
+
+  for (const chip of document.querySelectorAll<HTMLButtonElement>(".height-preset[data-height]")) {
     chip.addEventListener("click", () => {
       heightInput.value = chip.dataset.height ?? "64";
       updateComputeGuard();
       void runCompute();
     });
   }
-
-  el<HTMLInputElement>("slope-slider").addEventListener("input", () => {
-    renderSlopeWallChecks(slopeWallHeight());
-  });
 
   el<HTMLInputElement>("wall-toggle").addEventListener("change", () => {
     renderSlopeWallChecks(slopeWallHeight());
@@ -397,15 +566,24 @@ export function initApp(): void {
     }
   });
 
+  for (const btn of document.querySelectorAll<HTMLButtonElement>("#height-env-panel summary button")) {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+  }
+
+  for (const ctrl of document.querySelectorAll<HTMLElement>("#simulation-panel summary select, #simulation-panel summary button")) {
+    ctrl.addEventListener("click", (event) => {
+      event.stopPropagation();
+    });
+  }
+
   el<HTMLSelectElement>("page-size").addEventListener("change", (e) => {
     maxDisplayed = Number((e.target as HTMLSelectElement).value);
     void rerankAndDisplay();
   });
 
-  el<HTMLInputElement>("setup-filter").addEventListener("input", (e) => {
-    filterQuery = (e.target as HTMLInputElement).value;
-    void rerankAndDisplay();
-  });
+  renderSetupFilters();
 
   el<HTMLButtonElement>("reset-prefs").addEventListener("click", () => {
     resetWeights();
@@ -418,7 +596,9 @@ export function initApp(): void {
   el<HTMLDivElement>("prefs-backdrop").addEventListener("click", closePrefs);
 
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closePrefs();
+    if (e.key === "Escape") {
+      closePrefs();
+    }
   });
 
   void runCompute();

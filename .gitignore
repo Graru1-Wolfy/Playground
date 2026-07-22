@@ -16,6 +16,7 @@ dist-release/
 apps/web/android/.gradle/
 apps/web/android/app/build/
 apps/web/android/build/
+apps/web/release/
 apps/web/android/local.properties
 *.apk
 

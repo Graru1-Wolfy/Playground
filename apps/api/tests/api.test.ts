@@ -29,14 +29,27 @@ describe("bounce-check-api", () => {
     expect(body.defaults[0].label).toBe("Walk");
   });
 
-  it("GET /v1/setups/64 returns setups", async () => {
+  it("GET /v1/setups/64 returns ranked setups", async () => {
     const res = await app.request("/v1/setups/64?limit=5");
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(["generated", "sample"]).toContain(body.source);
+    expect(body.ranked).toBe(true);
     expect(body.count).toBeGreaterThan(0);
     expect(body.count).toBeLessThanOrEqual(5);
     expect(typeof body.setups[0].ID).toBe("string");
+    expect(typeof body.setups[0].rank).toBe("number");
+    expect(typeof body.setups[0].score).toBe("number");
+    expect(body.setups[0].rank).toBe(1);
+  });
+
+  it("GET /v1/setups/64?ranked=false returns raw order", async () => {
+    const res = await app.request("/v1/setups/64?limit=3&ranked=false");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ranked).toBe(false);
+    expect(body.setups[0].rank).toBeUndefined();
+    expect(body.setups[0].score).toBeUndefined();
   });
 
   it("GET /v1/bounce/default/-1 returns 400", async () => {

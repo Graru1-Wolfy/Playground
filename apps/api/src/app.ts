@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 import { runDefaultChecks } from "./defaultCheck.js";
 import { normalizeHeight } from "./height.js";
-import { loadSetupsForHeight, resolveApiPaths, serializeSetup } from "./setups.js";
+import { loadSetupsForHeight, prepareSetupResults, resolveApiPaths } from "./setups.js";
 
 export const API_VERSION = "0.6.0";
 
@@ -106,17 +106,20 @@ export function createApp(options: ApiAppOptions = {}): Hono {
     const height = parseHeightParam(String(rawHeight));
     const limitRaw = c.req.query("limit");
     const limit = limitRaw ? parseOptionalNumber(limitRaw, 20) : undefined;
+    const rankedRaw = c.req.query("ranked");
+    const ranked = rankedRaw === undefined || rankedRaw === "" || rankedRaw === "1" || rankedRaw === "true";
 
     const { setups, source } = await loadSetupsForHeight(height, paths);
-    const slice = limit !== undefined ? setups.slice(0, Math.max(0, Math.floor(limit))) : setups;
+    const { results } = prepareSetupResults(setups, { ranked, limit });
 
     return c.json({
       height,
       rawHeight,
       source,
-      count: slice.length,
+      ranked,
+      count: results.length,
       total: setups.length,
-      setups: slice.map(serializeSetup),
+      setups: results,
     });
   });
 

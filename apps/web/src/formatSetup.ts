@@ -1,4 +1,5 @@
 import type { DecodedSetup } from "@playground/schema";
+import { getSetupTags, resolveSetupPatterns } from "@playground/schema";
 import { escapeHtml } from "./ui.js";
 
 const LAUNCHERS = ["Stock", "Original", "Mangler"] as const;
@@ -15,15 +16,8 @@ export function launcherName(code: number, numRockets: number): string {
   return LAUNCHERS[code] ?? `Launcher ${code}`;
 }
 
-function flagSummary(flag: number): { label: string; tone: string }[] {
-  const tags: { label: string; tone: string }[] = [];
-  if (flag & 1) tags.push({ label: "bounce", tone: "tag-bounce" });
-  if (flag & 2) tags.push({ label: "auto", tone: "tag-auto" });
-  if (flag & 4) tags.push({ label: "full-auto↓", tone: "tag-fullauto" });
-  if (flag & 8) tags.push({ label: "stand-auto", tone: "tag-stand" });
-  if (flag & 16) tags.push({ label: "sync", tone: "tag-sync" });
-  if (flag & 32) tags.push({ label: "sync-auto", tone: "tag-sync" });
-  return tags;
+export function launcherClass(code: number, numRockets: number): string {
+  return LAUNCHER_COLORS[launcherName(code, numRockets)] ?? "launcher-any";
 }
 
 function renderTags(tags: { label: string; tone: string }[]): string {
@@ -39,51 +33,54 @@ export interface SetupCardOptions {
 
 export function formatSetupCard(setup: DecodedSetup, options: SetupCardOptions): string {
   const launcher = launcherName(setup.launcher, setup.num_rockets);
-  const launcherClass = LAUNCHER_COLORS[launcher] ?? "launcher-any";
+  const pillClass = launcherClass(setup.launcher, setup.num_rockets);
   const rockets = setup.num_rockets;
-  const speeds = setup.speeds.filter((s) => Number.isFinite(s)).map((s) => `${s.toFixed(0)}`);
-  const allTags = [...flagSummary(setup.bounce_flag), ...flagSummary(setup.standing_bounce_flag)];
+  const speeds = setup.speeds.filter((s) => Number.isFinite(s)).sort((a, b) => b - a);
+  const speedMarkup =
+    speeds.length > 0
+      ? `<span class="setup-meta mono setup-speeds" title="Rocket speeds max → min (u/s)">${speeds
+          .map((s, index) =>
+            index === 0
+              ? `<span>${s.toFixed(0)}</span>`
+              : `<span class="speed-fall" aria-hidden="true">↓</span><span>${s.toFixed(0)}</span>`,
+          )
+          .join("")}<span class="setup-speed-unit"> u/s</span></span>`
+      : "";
+  const tags = getSetupTags(setup);
+  const patterns = resolveSetupPatterns(setup);
   const scorePct = options.maxScore > 0 ? Math.round((options.score / options.maxScore) * 100) : 0;
   const idStr = setup.ID.toString();
 
   const metaParts = [
-    speeds.length ? `<span class="setup-meta mono">${speeds.join("/")} u/s</span>` : "",
-    allTags.length ? `<span class="setup-tags">${renderTags(allTags)}</span>` : "",
+    patterns
+      ? `<span class="setup-pattern hint" title="${escapeHtml(`${patterns.movementDetail} · ${patterns.actionDetail}`)}">${escapeHtml(patterns.movementLabel)} · ${escapeHtml(patterns.actionLabel)}</span>`
+      : "",
+    speedMarkup,
+    tags.length ? `<span class="setup-tags">${renderTags(tags)}</span>` : "",
   ].filter(Boolean);
 
   return `
-    <article class="setup-card" data-setup-id="${escapeHtml(idStr)}">
-      <span class="setup-rank" aria-label="Rank ${options.rank}">#${options.rank}</span>
-      <span class="launcher-pill ${launcherClass}">${escapeHtml(launcher)}</span>
-      <span class="setup-rockets">${rockets}r</span>
-      <div class="setup-meta-wrap">${metaParts.join("")}</div>
-      <div class="setup-score-wrap">
-        <span class="setup-score mono">${Math.round(options.score)}</span>
-        <div class="score-bar" role="presentation"><div class="score-bar-fill" style="width: ${scorePct}%"></div></div>
-      </div>
-      <span class="setup-id mono" title="${escapeHtml(idStr)}">${escapeHtml(idStr.slice(0, 8))}…</span>
-      <button type="button" class="btn btn-ghost btn-sm copy-id-btn" data-copy="${escapeHtml(idStr)}" aria-label="Copy setup ID">⧉</button>
-    </article>`;
+    <details class="setup-card setup-card-collapsible" data-setup-id="${escapeHtml(idStr)}">
+      <summary class="setup-card-summary">
+        <span class="setup-rank" data-rank="${options.rank}" aria-label="Rank ${options.rank}">#${options.rank}</span>
+        <span class="launcher-pill ${pillClass}">${escapeHtml(launcher)}</span>
+        <span class="setup-rockets">${rockets}r</span>
+        <div class="setup-meta-wrap">${metaParts.join("")}</div>
+        <div class="setup-score-wrap">
+          <span class="setup-score mono">${Math.round(options.score)}</span>
+          <div class="score-bar" role="presentation"><div class="score-bar-fill" style="width: ${scorePct}%"></div></div>
+        </div>
+        <span class="setup-id mono" title="${escapeHtml(idStr)}">${escapeHtml(idStr.slice(0, 8))}…</span>
+        <span class="setup-card-chevron" aria-hidden="true">
+          <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <button type="button" class="btn btn-ghost btn-sm copy-id-btn" data-copy="${escapeHtml(idStr)}" aria-label="Copy setup ID">⧉</button>
+      </summary>
+      <div class="setup-card-expand setup-detail-dense" data-setup-expand></div>
+    </details>`;
 }
 
 /** @deprecated Use formatSetupCard */
 export function formatSetupSummary(setup: DecodedSetup, score: number): string {
   return formatSetupCard(setup, { rank: 0, score, maxScore: score || 1 });
-}
-
-export function setupMatchesFilter(setup: DecodedSetup, query: string): boolean {
-  if (!query.trim()) return true;
-  const q = query.trim().toLowerCase();
-  const launcher = launcherName(setup.launcher, setup.num_rockets).toLowerCase();
-  const bounceTags = flagSummary(setup.bounce_flag).map((t) => t.label);
-  const standTags = flagSummary(setup.standing_bounce_flag).map((t) => t.label);
-  const haystack = [
-    launcher,
-    String(setup.num_rockets),
-    setup.ID.toString(),
-    ...bounceTags,
-    ...standTags,
-    ...setup.speeds.map((s) => String(Math.round(s))),
-  ].join(" ");
-  return haystack.toLowerCase().includes(q);
 }

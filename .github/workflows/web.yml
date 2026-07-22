@@ -1,0 +1,33 @@
+name: Web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/web/**"
+      - "packages/engine-fast/**"
+      - "packages/schema/**"
+      - ".github/workflows/web.yml"
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "packages/engine-fast/**"
+      - "packages/schema/**"
+      - ".github/workflows/web.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install and test web
+        run: |
+          npm ci
+          npm run build:packages
+          npm run test -w @playground/web
