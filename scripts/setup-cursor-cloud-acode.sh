@@ -255,6 +255,9 @@ repo_name_from_url() {
   local name
 
   value="${value%/}"
+  if [[ "$value" =~ ^[A-Za-z0-9._-]+@[A-Za-z0-9.-]+:.+ ]]; then
+    value="${value#*:}"
+  fi
   name="${value##*/}"
   name="${name%.git}"
 
@@ -270,8 +273,7 @@ validate_repo_url() {
   local rest authority
 
   [[ -n "$REPO_URL" ]] || die "Repository URL cannot be empty."
-  if [[ "$REPO_URL" == -* || "$REPO_URL" == *$'\n'* ||
-    "$REPO_URL" == *$'\r'* || "$REPO_URL" == *$'\t'* ]]; then
+  if [[ "$REPO_URL" == -* || "$REPO_URL" =~ [[:cntrl:]] ]]; then
     die "Repository URL contains unsafe option or control characters."
   fi
 
@@ -435,7 +437,28 @@ configure_noninteractive_git() {
 
   export GIT_TERMINAL_PROMPT=0
   if is_ssh_repo_url; then
-    export GIT_SSH_COMMAND="${GIT_SSH_COMMAND:-ssh -o BatchMode=yes}"
+    if [[ -n "${GIT_SSH_COMMAND:-}" ]]; then
+      warn "Ignoring GIT_SSH_COMMAND in --non-interactive mode."
+    fi
+    export GIT_SSH_COMMAND="ssh -o BatchMode=yes"
+  fi
+}
+
+reject_nested_destination() {
+  local existing top_level
+
+  is_git_checkout "$DESTINATION" && return 0
+
+  existing="$DESTINATION"
+  while [[ ! -e "$existing" && "$existing" != "/" ]]; do
+    existing="$(dirname "$existing")"
+  done
+
+  top_level="$(git_top_level "$existing" 2>/dev/null || true)"
+  if [[ -n "$top_level" ]]; then
+    die "Destination is inside a larger Git checkout: $DESTINATION
+Existing checkout root: $top_level
+Choose a destination outside that repository."
   fi
 }
 
@@ -633,12 +656,14 @@ open_cloud_agent() {
 }
 
 print_summary() {
-  local current_branch android_path
+  local current_branch android_path quoted_destination quoted_remote_ref
   current_branch="$(git -C "$DESTINATION" symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
   android_path="$DESTINATION"
   if [[ "$DESTINATION" == "${HOME}/storage/shared/"* ]]; then
     android_path="Internal storage/${DESTINATION#"${HOME}/storage/shared/"}"
   fi
+  printf -v quoted_destination '%q' "$DESTINATION"
+  printf -v quoted_remote_ref '%q' "origin/${current_branch:-BRANCH}"
 
   cat <<EOF
 
@@ -656,10 +681,10 @@ In Acode:
   3. Edit files in Acode. Run Git commands in native Termux.
 
 Daily synchronization:
-  cd $(printf '%q' "$DESTINATION")
+  cd $quoted_destination
   git status
   git fetch origin --prune
-  git merge --ff-only --no-overwrite-ignore origin/${current_branch:-BRANCH}
+  git merge --ff-only --no-overwrite-ignore $quoted_remote_ref
 
 Before sending local edits:
   git status
@@ -681,6 +706,7 @@ main() {
   configure_noninteractive_git
   install_prerequisites
   validate_branch
+  reject_nested_destination
   ensure_shared_storage
   clone_or_verify_checkout
   synchronize_checkout

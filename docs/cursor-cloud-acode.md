@@ -72,14 +72,19 @@ them in shared storage or commit them.
 
 Run these commands in native Termux:
 
+<!-- markdownlint-disable MD013 -->
+
 ```bash
 pkg install -y curl
-curl -fsSLo "$HOME/setup-cursor-cloud-acode.sh" \
-  "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/b23291ac14db8b32597ddc39668aaad9cedd61c0/scripts/setup-cursor-cloud-acode.sh"
-less "$HOME/setup-cursor-cloud-acode.sh"
-chmod 700 "$HOME/setup-cursor-cloud-acode.sh"
-"$HOME/setup-cursor-cloud-acode.sh"
+curl --fail --show-error --location --remove-on-error \
+  --output "$HOME/setup-cursor-cloud-acode.sh" \
+  "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/b23291ac14db8b32597ddc39668aaad9cedd61c0/scripts/setup-cursor-cloud-acode.sh" &&
+  less "$HOME/setup-cursor-cloud-acode.sh" &&
+  chmod 700 "$HOME/setup-cursor-cloud-acode.sh" &&
+  "$HOME/setup-cursor-cloud-acode.sh"
 ```
+
+<!-- markdownlint-enable MD013 -->
 
 The interactive prompts request:
 
@@ -123,8 +128,8 @@ commit and downloads the complete file before executing it:
   trap 'rm -f "$tmp"' EXIT
   curl -fsSL \
     "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/b23291ac14db8b32597ddc39668aaad9cedd61c0/scripts/setup-cursor-cloud-acode.sh" \
-    -o "$tmp"
-  bash "$tmp" \
+    -o "$tmp" &&
+    bash "$tmp" \
     --non-interactive \
     --repo "git@github.com:OWNER/REPOSITORY.git" \
     --branch "cursor/AGENT-BRANCH" \
@@ -144,7 +149,7 @@ updating it to a newer script revision.
 | Option | Purpose |
 | ------ | ------- |
 | `--repo URL` | Git clone URL. Required for a new checkout. |
-| `--branch NAME` | Local/remote Cloud Agent branch to track. |
+| `--branch NAME` | Cloud Agent branch on `origin` to track. |
 | `--agent-url URL` | Cursor Cloud Agent URL to open after synchronization. |
 | `--workspace PATH` | Repository parent; defaults to `~/storage/shared/Cursor_Space`. |
 | `--destination PATH` | Exact checkout directory. Reuses its `origin` when it already exists. |
