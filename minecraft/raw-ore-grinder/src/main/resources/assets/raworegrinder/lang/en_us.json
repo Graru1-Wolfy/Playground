@@ -1,0 +1,5 @@
+{
+  "block.raworegrinder.raw_ore_grinder": "Raw Ore Grinder",
+  "item.raworegrinder.raw_dust": "Raw Dust",
+  "advancements.raworegrinder.grind.description": "Grind raw ore into 2-4 raw dust."
+}
