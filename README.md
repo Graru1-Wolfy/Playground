@@ -6,7 +6,7 @@
   Android-only Git workflow and recommended setup for editing Cloud Agent work
   in Acode.
   - [Download the self-contained Termux script](./scripts/setup-cursor-cloud-acode.sh)
-  - [Pinned raw download](https://raw.githubusercontent.com/Graru1-Wolfy/Playground/cda6245075eb5e8a9fcdd337b37682f283085f55/scripts/setup-cursor-cloud-acode.sh)
+  - [Pinned raw download](https://raw.githubusercontent.com/Graru1-Wolfy/Playground/f6c018317f996f8c92c5550765187391dcc28e24/scripts/setup-cursor-cloud-acode.sh)
 - **[Termux + Acode technical notes](./docs/acode-faqs-notes.md)** — environment,
   storage, AcodeX, and plugin-development references.
 - **[Experimental native Cursor Agent + Termux:X11 installer](./scripts/setup-termux-x11-cursor.sh)**
