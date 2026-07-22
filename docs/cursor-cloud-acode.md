@@ -108,6 +108,8 @@ The agent URL is optional. The script only opens HTTPS URLs on
 Inspect-before-run is safer. If you have reviewed the repository version and
 accept that `main` can change, the equivalent one-line command is:
 
+<!-- markdownlint-disable MD013 -->
+
 ```bash
 curl -fsSL \
   "https://raw.githubusercontent.com/Graru1-Wolfy/Playground/main/scripts/setup-cursor-cloud-acode.sh" \
@@ -118,13 +120,17 @@ curl -fsSL \
       --agent-url "https://cursor.com/agents?selectedBcId=AGENT_ID"
 ```
 
+<!-- markdownlint-enable MD013 -->
+
 For reproducible automation, replace `main` in the raw URL with a reviewed
 commit SHA.
 
 ## Options
 
+<!-- markdownlint-disable MD013 -->
+
 | Option | Purpose |
-|---|---|
+| ------ | ------- |
 | `--repo URL` | Git clone URL. Required for a new checkout. |
 | `--branch NAME` | Local/remote Cloud Agent branch to track. |
 | `--agent-url URL` | Cursor Cloud Agent URL to open after synchronization. |
@@ -134,6 +140,8 @@ commit SHA.
 | `--non-interactive` | Disable prompts. |
 | `--verbose` | Print Git commands and extra status. |
 | `-h`, `--help` | Show built-in help. |
+
+<!-- markdownlint-enable MD013 -->
 
 When `--branch` is omitted, the clone's default branch or the existing
 checkout's current branch remains active.
