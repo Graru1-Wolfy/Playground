@@ -1,8 +1,12 @@
 # Acode FAQ notes (for Termux + Cursor Agent setup)
 
-Source: https://acode.app/faqs (and official Acode docs / marketing pages)
+Sources: https://acode.app/faqs, official Acode documentation, and the
+community AcodeX repositories linked below.
 
-Last reviewed: 2026-07-21
+Last reviewed: 2026-07-22
+
+User-facing workflow:
+[Cursor Cloud Agents + Acode on Android](./cursor-cloud-acode.md)
 
 ## Key points for this project
 
@@ -16,21 +20,30 @@ Last reviewed: 2026-07-21
 
 | | Acode built-in terminal | Termux |
 |--|-------------------------|--------|
-| Linux | Alpine (proot) | Debian/Bionic userspace, `pkg` |
-| Cursor Agent CLI | **Does not work** (needs Termux + glibc) | **Works** (our setup) |
+| Environment | Alpine (PRoot), `apk` | Android/bionic with Termux packages, `pkg` |
+| Cursor Agent CLI | Not documented or supported by Cursor | Experimental compatibility setup in this repository |
 | Claude Code / Codex / OpenCode | Supported in Acode terminal | Can run in Termux too |
 | Link to editor | Native (`acode .`) | Via **AcodeX** plugin + `acodex-server` |
 
-**Conclusion:** Keep Termux for Cursor Agent; use Acode for editing. Do not expect `agent` in Acode’s built-in Alpine terminal.
+**Conclusion:** Run this repository's Cursor tooling in native Termux and use
+Acode for editing. Do not treat Acode's built-in Alpine terminal as Termux or
+assume Cursor supports it.
 
-### Termux + Acode integration (official pattern)
+### Termux + AcodeX integration (community bridge)
 
 1. Install **AcodeX** plugin in Acode.
 2. In Termux: `curl -sL .../acode-plugin-acodex/main/installServer.sh | bash`
 3. Run `acodex-server` (alias `axs`) in Termux before using terminal in Acode.
 4. Acode: `Ctrl+K` or command palette → Open Terminal.
 
-Docs: https://docs.acode.app/tutorials/how-to-run-java (same AcodeX flow)
+Acode's documentation demonstrates this flow, but AcodeX and `axs` are
+community projects. Review and pin third-party installers before running them.
+
+References:
+
+- https://docs.acode.app/tutorials/how-to-run-java
+- https://github.com/bajrangCoder/acode-plugin-acodex
+- https://github.com/bajrangCoder/acodex_server
 
 ### Storage / project folders
 
@@ -59,6 +72,6 @@ Docs: https://docs.acode.app/tutorials/how-to-run-java (same AcodeX flow)
 ## Implications for setup-termux-x11-cursor.sh
 
 1. Document **F-Droid Acode** in prerequisites.
-2. Cursor Agent commands must run in **Termux** (or AcodeX → Termux), not Acode Alpine terminal.
+2. This repository's Cursor Agent commands must run in **Termux** (or AcodeX → Termux), not Acode's Alpine terminal.
 3. Workspace **shared mode** aligns with Acode/Files access to `Documents/cursor-workspace`.
 4. Future **acode-cursor plugin** should depend on **AcodeX** or a small Termux server, not built-in Executor alone.
