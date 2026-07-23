@@ -2,174 +2,45 @@ import type {
   DatabaseConfig,
   DatabaseConnection,
   DatabaseService,
-  DatabaseTransaction,
-  QueryResult,
 } from './types.js';
+import { InMemoryDatabaseConnection } from './in-memory.js';
+import { SCHEMA_STATEMENTS } from './schema.js';
 
-const SCHEMA_STATEMENTS = [
-  `CREATE TABLE IF NOT EXISTS metadata_store (
-    uuid TEXT PRIMARY KEY,
-    type TEXT NOT NULL,
-    name TEXT NOT NULL,
-    data TEXT NOT NULL,
-    scope TEXT NOT NULL DEFAULT 'global',
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS commands (
-    uuid TEXT PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
-    data TEXT NOT NULL,
-    enabled INTEGER NOT NULL DEFAULT 1,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS aliases (
-    uuid TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    scope TEXT NOT NULL DEFAULT 'global',
-    data TEXT NOT NULL,
-    priority INTEGER NOT NULL DEFAULT 0,
-    enabled INTEGER NOT NULL DEFAULT 1,
-    updated_at INTEGER NOT NULL,
-    UNIQUE(name, scope)
-  )`,
-  `CREATE TABLE IF NOT EXISTS scripts (
-    uuid TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    language TEXT NOT NULL,
-    data TEXT NOT NULL,
-    enabled INTEGER NOT NULL DEFAULT 1,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS plugins (
-    uuid TEXT PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
-    version TEXT NOT NULL,
-    data TEXT NOT NULL,
-    enabled INTEGER NOT NULL DEFAULT 1,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS search_index (
-    uuid TEXT PRIMARY KEY,
-    type TEXT NOT NULL,
-    name TEXT NOT NULL,
-    content TEXT NOT NULL,
-    score_boost REAL NOT NULL DEFAULT 1.0,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS bookmarks (
-    uuid TEXT PRIMARY KEY,
-    path TEXT NOT NULL,
-    label TEXT,
-    data TEXT,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS history (
-    uuid TEXT PRIMARY KEY,
-    type TEXT NOT NULL,
-    reference TEXT NOT NULL,
-    data TEXT,
-    created_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    scope TEXT NOT NULL DEFAULT 'global',
-    value TEXT NOT NULL,
-    updated_at INTEGER NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS diagnostics (
-    uuid TEXT PRIMARY KEY,
-    level TEXT NOT NULL,
-    source TEXT NOT NULL,
-    message TEXT NOT NULL,
-    data TEXT,
-    created_at INTEGER NOT NULL
-  )`,
-  `CREATE INDEX IF NOT EXISTS idx_search_index_type ON search_index(type)`,
-  `CREATE INDEX IF NOT EXISTS idx_search_index_name ON search_index(name)`,
-  `CREATE INDEX IF NOT EXISTS idx_history_type ON history(type)`,
-  `CREATE INDEX IF NOT EXISTS idx_aliases_scope ON aliases(scope)`,
-];
-
-/** In-memory SQLite-compatible store for tests and browser bootstrap. */
-class InMemoryDatabaseConnection implements DatabaseConnection {
-  readonly provider = 'sqlite' as const;
-  private readonly tables = new Map<string, Array<Record<string, unknown>>>();
-  private closed = false;
-
-  execute(sql: string, params: readonly unknown[] = []): QueryResult {
-    this.assertOpen();
-    const normalized = sql.trim().toLowerCase();
-
-    if (normalized.startsWith('create table') || normalized.startsWith('create index')) {
-      const tableMatch = sql.match(/(?:TABLE|INDEX)\s+(?:IF\s+NOT\s+EXISTS\s+)?(\w+)/i);
-      const name = tableMatch?.[1];
-      if (name && !this.tables.has(name)) {
-        this.tables.set(name, []);
-      }
-      return { rows: [], changes: 0 };
+async function createNativeConnection(filePath?: string): Promise<DatabaseConnection | null> {
+  try {
+    const { mkdir } = await import('node:fs/promises');
+    const { dirname } = await import('node:path');
+    const BetterSqlite3 = (await import('better-sqlite3')).default;
+    const { SqliteDatabaseConnection } = await import('./sqlite-connection.js');
+    if (filePath) {
+      await mkdir(dirname(filePath), { recursive: true });
     }
-
-    if (normalized.startsWith('insert')) {
-      const tableMatch = sql.match(/INTO\s+(\w+)/i);
-      const table = tableMatch?.[1];
-      if (!table) throw new Error(`Invalid INSERT: ${sql}`);
-      const rows = this.tables.get(table) ?? [];
-      const row: Record<string, unknown> = {};
-      const colMatch = sql.match(/\(([^)]+)\)\s*VALUES/i);
-      const cols = colMatch?.[1].split(',').map((c) => c.trim()) ?? [];
-      cols.forEach((col, i) => {
-        row[col] = params[i];
-      });
-      rows.push(row);
-      this.tables.set(table, rows);
-      return { rows: [], changes: 1, lastInsertId: rows.length };
-    }
-
-    if (normalized.startsWith('select')) {
-      const tableMatch = sql.match(/FROM\s+(\w+)/i);
-      const table = tableMatch?.[1];
-      const rows = table ? [...(this.tables.get(table) ?? [])] : [];
-      return { rows, changes: 0 };
-    }
-
-    if (normalized.startsWith('update') || normalized.startsWith('delete')) {
-      return { rows: [], changes: 0 };
-    }
-
-    return { rows: [], changes: 0 };
-  }
-
-  query<T = Record<string, unknown>>(sql: string, params?: readonly unknown[]): readonly T[] {
-    return this.execute(sql, params).rows as T[];
-  }
-
-  transaction<T>(fn: (tx: DatabaseTransaction) => T): T {
-    const tx: DatabaseTransaction = {
-      execute: (sql, params) => this.execute(sql, params),
-      commit: () => {},
-      rollback: () => {},
-    };
-    return fn(tx);
-  }
-
-  close(): void {
-    this.closed = true;
-    this.tables.clear();
-  }
-
-  private assertOpen(): void {
-    if (this.closed) throw new Error('Database connection is closed');
+    const db = new BetterSqlite3(filePath ?? ':memory:');
+    return new SqliteDatabaseConnection(db);
+  } catch {
+    return null;
   }
 }
 
 export class DefaultDatabaseService implements DatabaseService {
   private connection?: DatabaseConnection;
+  private useNative = false;
 
   async connect(config: DatabaseConfig): Promise<DatabaseConnection> {
     if (config.provider !== 'sqlite') {
       throw new Error(`Provider not yet implemented: ${config.provider}`);
     }
+    if (config.filePath) {
+      const native = await createNativeConnection(config.filePath);
+      if (native) {
+        this.connection = native;
+        this.useNative = true;
+        await this.initializeSchema();
+        return this.connection;
+      }
+    }
     this.connection = new InMemoryDatabaseConnection();
+    this.useNative = false;
     await this.initializeSchema();
     return this.connection;
   }
@@ -178,7 +49,22 @@ export class DefaultDatabaseService implements DatabaseService {
     return this.connection;
   }
 
+  isNative(): boolean {
+    return this.useNative;
+  }
+
   async migrate(): Promise<void> {
+    const conn = this.getConnection();
+    if (!conn) return;
+    conn.execute(`CREATE TABLE IF NOT EXISTS schema_version (
+      version INTEGER PRIMARY KEY,
+      applied_at INTEGER NOT NULL
+    )`);
+    const rows = conn.query<{ version: number }>('SELECT version FROM schema_version ORDER BY version DESC LIMIT 1');
+    const current = rows[0]?.version ?? 0;
+    if (current < 1) {
+      conn.execute('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)', [1, Date.now()]);
+    }
     await this.initializeSchema();
   }
 

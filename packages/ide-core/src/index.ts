@@ -14,7 +14,9 @@ export type { Event, EventBus, EventHandler, EventMetadata, EventPayload } from 
 
 // Commands
 export { DefaultCommandRegistry, defineCommand } from './commands/registry.js';
+export { DefaultCommandHistoryService } from './commands/history-service.js';
 export type { CommandContext, CommandDefinition, CommandRegistry, CommandResult } from './commands/types.js';
+export type { CommandHistoryService } from './commands/history.js';
 
 // Aliases
 export { DefaultAliasRegistry } from './aliases/registry.js';
@@ -23,6 +25,11 @@ export type { AliasDefinition, AliasRegistry, AliasResolution } from './aliases/
 // Database
 export { DefaultDatabaseService } from './database/service.js';
 export type { DatabaseConfig, DatabaseConnection, DatabaseService } from './database/types.js';
+
+// Filesystem
+export { NodeFilesystemService } from './filesystem/node-filesystem.js';
+export { ApiFilesystemService } from './filesystem/api-filesystem.js';
+export type { FilesystemService, FileEntry } from './filesystem/types.js';
 
 // Logging & diagnostics
 export { DefaultLogger } from './logging/logger.js';
@@ -45,6 +52,7 @@ export type { KeybindingDefinition, KeybindingManager, KeyChord } from './keybin
 
 // Search
 export { DefaultSearchService } from './search/service.js';
+export { registerAllSearchProviders } from './search/providers.js';
 export type { SearchResult, SearchService, SearchProvider } from './search/types.js';
 
 // Scripts
@@ -61,6 +69,7 @@ export type { Permission, PermissionService } from './permissions/types.js';
 
 // Plugins
 export { DefaultPluginManager } from './plugins/manager.js';
+export { loadPluginsFromDirectory } from './plugins/loader.js';
 export type { Plugin, PluginContext, PluginManager, PluginManifest } from './plugins/types.js';
 
 // Editor
@@ -75,6 +84,20 @@ export type { InfoResult, InfoService, InfoTopic } from './info/service.js';
 export { DefaultUserLibrary } from './library/user-library.js';
 export type { UserLibrary, LibraryModule } from './library/user-library.js';
 
+// Theme
+export { DefaultThemeService } from './theme/service.js';
+export type { ThemeService, ThemeDefinition } from './theme/service.js';
+
+// Assets
+export { DefaultAssetDatabase } from './assets/database.js';
+export type { AssetDatabase, AssetEntry } from './assets/database.js';
+
+// Packages
+export { DefaultPackageManagerService } from './packages/manager.js';
+export type { PackageManagerService, PackageInfo } from './packages/manager.js';
+
 // Platform
-export { createIdePlatform, Tokens } from './platform/platform.js';
-export type { IdePlatform, PlatformOptions } from './platform/platform.js';
+export { createIdePlatform } from './platform/platform.js';
+export { createBrowserIdePlatform } from './platform/browser-platform.js';
+export { Tokens } from './platform/tokens.js';
+export type { IdePlatform, PlatformOptions } from './platform/tokens.js';

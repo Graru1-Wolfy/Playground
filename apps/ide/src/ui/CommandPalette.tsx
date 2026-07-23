@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { CommandDefinition } from '@playground/ide-core';
+import type { CommandDefinition } from '@playground/ide-core/browser';
 import { useCommands, useExecuteCommand } from '../hooks/useIdeServices';
 
 interface CommandPaletteProps {

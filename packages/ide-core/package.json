@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/platform/browser-platform.d.ts",
+      "import": "./dist/platform/browser-platform.js"
     }
   },
   "scripts": {
@@ -19,8 +23,10 @@
   },
   "license": "MIT",
   "dependencies": {
+    "better-sqlite3": "^11.8.1"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"

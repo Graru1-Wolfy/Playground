@@ -15,7 +15,11 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "paths": {
+      "@playground/ide-core/browser": ["../../packages/ide-core/src/platform/browser-platform.ts"],
+      "@playground/ide-core": ["../../packages/ide-core/src/index.ts"]
+    }
   },
   "include": ["src"]
 }

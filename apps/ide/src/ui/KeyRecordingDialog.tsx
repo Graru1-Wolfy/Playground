@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { chordToString, parseChordString, type KeyChord } from '@playground/ide-core';
+import { chordToString, parseChordString, type KeyChord } from '@playground/ide-core/browser';
 
 interface KeyRecordingDialogProps {
   open: boolean;

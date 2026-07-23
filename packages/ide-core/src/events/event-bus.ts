@@ -46,6 +46,7 @@ function createEvent<T extends EventPayload>(
 export class DefaultEventBus implements EventBus {
   private readonly events = new Map<string, EventMetadata>();
   private readonly handlers = new Map<string, HandlerEntry[]>();
+  private readonly eventLog: Array<{ name: string; timestamp: number; payload: EventPayload }> = [];
 
   registerEvent(metadata: EventMetadata): void {
     this.events.set(metadata.name, metadata);
@@ -57,18 +58,29 @@ export class DefaultEventBus implements EventBus {
       throw new Error(`Unknown event: ${name}`);
     }
 
+    this.eventLog.push({ name, timestamp: Date.now(), payload });
+    if (this.eventLog.length > 500) this.eventLog.shift();
+
     const event = createEvent(metadata, payload, source);
     const entries = [...(this.handlers.get(name) ?? [])].sort(
       (a, b) => PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority],
     );
 
+    const toRemove: string[] = [];
     for (const entry of entries) {
-      await entry.handler(event);
+      try {
+        await entry.handler(event);
+      } catch (error) {
+        console.error(`Event handler error for ${name}:`, error);
+      }
+      if (entry.once) toRemove.push(entry.id);
       if (event.defaultPrevented) break;
     }
 
-    const remaining = (this.handlers.get(name) ?? []).filter((entry) => !entry.once || entries.indexOf(entry) === -1);
-    this.handlers.set(name, remaining);
+    if (toRemove.length > 0) {
+      const remaining = entries.filter((e) => !toRemove.includes(e.id));
+      this.handlers.set(name, remaining);
+    }
   }
 
   on<T extends EventPayload>(
@@ -104,5 +116,9 @@ export class DefaultEventBus implements EventBus {
 
   listEvents(): readonly EventMetadata[] {
     return [...this.events.values()];
+  }
+
+  getEventLog(): readonly { name: string; timestamp: number; payload: EventPayload }[] {
+    return [...this.eventLog];
   }
 }

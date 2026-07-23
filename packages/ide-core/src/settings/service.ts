@@ -1,4 +1,5 @@
 import type { MetadataScope } from '../metadata/types.js';
+import type { DatabaseConnection } from '../database/types.js';
 import type { SettingDefinition, SettingsService } from './types.js';
 
 function scopeKey(key: string, scope: MetadataScope): string {
@@ -8,6 +9,12 @@ function scopeKey(key: string, scope: MetadataScope): string {
 export class DefaultSettingsService implements SettingsService {
   private readonly definitions = new Map<string, SettingDefinition>();
   private readonly values = new Map<string, unknown>();
+  private db?: DatabaseConnection;
+
+  setDatabase(db: DatabaseConnection): void {
+    this.db = db;
+    this.loadFromDatabase();
+  }
 
   register(definition: SettingDefinition): void {
     this.definitions.set(scopeKey(definition.key, definition.scope), definition);
@@ -32,6 +39,7 @@ export class DefaultSettingsService implements SettingsService {
 
   set(key: string, value: unknown, scope: MetadataScope = 'user'): void {
     this.values.set(scopeKey(key, scope), value);
+    this.persist(key, value, scope);
   }
 
   list(scope?: MetadataScope): readonly SettingDefinition[] {
@@ -43,7 +51,7 @@ export class DefaultSettingsService implements SettingsService {
   reset(key: string, scope: MetadataScope = 'user'): void {
     const def = this.definitions.get(scopeKey(key, scope));
     if (def) {
-      this.values.set(scopeKey(key, scope), def.defaultValue);
+      this.set(key, def.defaultValue, scope);
     } else {
       this.values.delete(scopeKey(key, scope));
     }
@@ -63,5 +71,29 @@ export class DefaultSettingsService implements SettingsService {
     for (const [key, value] of Object.entries(settings)) {
       this.set(key, value, scope);
     }
+  }
+
+  private loadFromDatabase(): void {
+    if (!this.db) return;
+    try {
+      const rows = this.db.query<{ key: string; scope: string; value: string }>(
+        'SELECT key, scope, value FROM settings',
+      );
+      for (const row of rows) {
+        this.values.set(scopeKey(row.key, row.scope as MetadataScope), JSON.parse(row.value));
+      }
+    } catch {
+      // table may be empty
+    }
+  }
+
+  private persist(key: string, value: unknown, scope: MetadataScope): void {
+    if (!this.db) return;
+    const now = Date.now();
+    this.db.execute(
+      `INSERT INTO settings (key, scope, value, updated_at) VALUES (?, ?, ?, ?)
+       ON CONFLICT(key, scope) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+      [key, scope, JSON.stringify(value), now],
+    );
   }
 }

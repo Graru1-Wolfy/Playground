@@ -5,7 +5,10 @@ import type {
   CommandRegistry,
   CommandResult,
   CommandSearchResult,
+  UndoableCommandResult,
 } from './types.js';
+import type { DefaultCommandHistoryService } from './history-service.js';
+import type { PermissionService } from '../permissions/types.js';
 
 function defaultContext(partial?: Partial<CommandContext>): CommandContext {
   return {
@@ -25,8 +28,20 @@ function scoreMatch(query: string, text: string): number {
   return 0;
 }
 
+export interface CommandRegistryOptions {
+  history?: DefaultCommandHistoryService;
+  permissions?: PermissionService;
+}
+
 export class DefaultCommandRegistry implements CommandRegistry {
   private readonly commands = new Map<string, CommandDefinition>();
+  private readonly history?: DefaultCommandHistoryService;
+  private readonly permissions?: PermissionService;
+
+  constructor(options: CommandRegistryOptions = {}) {
+    this.history = options.history;
+    this.permissions = options.permissions;
+  }
 
   register(command: CommandDefinition): void {
     if (this.commands.has(command.metadata.name)) {
@@ -96,6 +111,23 @@ export class DefaultCommandRegistry implements CommandRegistry {
     }
 
     const context = defaultContext(partial);
+
+    if (command.metadata.permissions.length > 0 && this.permissions) {
+      const requester = String(context.metadata.requester ?? 'command');
+      for (const perm of command.metadata.permissions) {
+        if (!this.permissions.hasPermission(requester, perm as import('../permissions/types.js').Permission)) {
+          const req = this.permissions.request(
+            command.metadata.permissions as import('../permissions/types.js').Permission[],
+            requester,
+            `Execute command: ${name}`,
+          );
+          if (req.status !== 'approved') {
+            return { success: false, error: `Permission denied for: ${name}`, undoable: false };
+          }
+        }
+      }
+    }
+
     if (context.source === 'script' && !command.scriptAccessible) {
       return { success: false, error: `Command not script-accessible: ${name}`, undoable: false };
     }
@@ -104,7 +136,23 @@ export class DefaultCommandRegistry implements CommandRegistry {
     }
 
     try {
-      return await command.handler(context);
+      const result = await command.handler(context);
+      this.history?.record({
+        command: name,
+        args: context.args,
+        success: result.success,
+      });
+
+      const undoable = result as UndoableCommandResult;
+      if (result.success && result.undoable && undoable.undo && undoable.redo) {
+        this.history?.pushUndo({
+          command: name,
+          undo: undoable.undo,
+          redo: undoable.redo,
+        });
+      }
+
+      return result;
     } catch (error) {
       return {
         success: false,
@@ -112,6 +160,14 @@ export class DefaultCommandRegistry implements CommandRegistry {
         undoable: false,
       };
     }
+  }
+
+  async undo(): Promise<CommandResult | undefined> {
+    return this.history?.undo();
+  }
+
+  async redo(): Promise<CommandResult | undefined> {
+    return this.history?.redo();
   }
 }
 

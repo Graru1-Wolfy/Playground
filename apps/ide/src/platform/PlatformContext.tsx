@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { createIdePlatform, type IdePlatform } from '@playground/ide-core';
+import { createBrowserIdePlatform, type IdePlatform } from '@playground/ide-core/browser';
+import { API_BASE } from '../api/client';
 
 const PlatformContext = createContext<IdePlatform | null>(null);
 
@@ -8,7 +9,7 @@ export function PlatformProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let active = true;
-    createIdePlatform({ userLibraryPath: 'UserLibrary' }).then(async (p) => {
+    createBrowserIdePlatform(API_BASE).then(async (p) => {
       await p.start();
       if (active) setPlatform(p);
     });

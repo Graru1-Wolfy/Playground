@@ -3,7 +3,7 @@ import {
   Tokens,
   type CommandDefinition,
   type SearchResult,
-} from '@playground/ide-core';
+} from '@playground/ide-core/browser';
 import { usePlatform } from '../platform/PlatformContext';
 
 export function useCommands(): readonly CommandDefinition[] {
@@ -22,7 +22,7 @@ export function useSearch(query: string): SearchResult[] {
 
   useEffect(() => {
     const search = platform.container.resolve(Tokens.SearchService);
-    search.search(query).then((r) => setResults([...r]));
+    search.search(query).then((r: readonly SearchResult[]) => setResults([...r]));
   }, [platform, query]);
 
   return results;

@@ -1,0 +1,54 @@
+name: ide-platform
+
+on:
+  push:
+    paths:
+      - "packages/ide-core/**"
+      - "apps/ide/**"
+      - "apps/ide-api/**"
+      - ".github/workflows/ide-platform.yml"
+  pull_request:
+    paths:
+      - "packages/ide-core/**"
+      - "apps/ide/**"
+      - "apps/ide-api/**"
+      - ".github/workflows/ide-platform.yml"
+
+jobs:
+  ide-core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm install
+      - run: npm run build -w @playground/ide-core
+      - run: npm run test -w @playground/ide-core
+
+  ide-app:
+    runs-on: ubuntu-latest
+    needs: ide-core
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm install
+      - run: npm run build -w @playground/ide-core
+      - run: npm run build -w @playground/ide
+
+  ide-api:
+    runs-on: ubuntu-latest
+    needs: ide-core
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm install
+      - run: npm run build -w @playground/ide-core
+      - run: npm run build -w @playground/ide-api
