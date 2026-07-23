@@ -1,0 +1,9 @@
+[
+  {
+    "name": "gs",
+    "displayName": "Git Status",
+    "target": "git.status",
+    "description": "Quick git status",
+    "priority": 10
+  }
+]

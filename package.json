@@ -3,8 +3,11 @@
   "private": true,
   "workspaces": [
     "apps/api",
+    "apps/ide",
+    "apps/ide-api",
     "apps/web",
     "packages/engine-fast",
+    "packages/ide-core",
     "packages/schema"
   ],
   "scripts": {
@@ -13,6 +16,11 @@
     "build:web": "npm run build -w @playground/web",
     "dev:api": "npm run dev -w @playground/api",
     "dev:web": "npm run dev -w @playground/web",
+    "dev:ide": "npm run dev -w @playground/ide",
+    "dev:ide-api": "npm run dev -w @playground/ide-api",
+    "build:ide": "npm run build -w @playground/ide-core && npm run build -w @playground/ide",
+    "build:ide-api": "npm run build -w @playground/ide-core && npm run build -w @playground/ide-api",
+    "build:ide-core": "npm run build -w @playground/ide-core",
     "dev:web:android": "npm run dev:host -w @playground/web",
     "android:url": "bash scripts/android-dev-url.sh",
     "preview:web": "npm run preview:host -w @playground/web",
@@ -20,7 +28,7 @@
     "package:api": "bash scripts/package-api-release.sh",
     "android:icons": "node scripts/generate-app-icon.mjs",
     "screenshots:web": "node scripts/capture-web-screenshots.mjs",
-    "test": "npm run test -w @playground/engine-fast && npm run test -w @playground/schema && npm run test -w @playground/api"
+    "test": "npm run test -w @playground/engine-fast && npm run test -w @playground/schema && npm run test -w @playground/api && npm run test -w @playground/ide-core"
   },
   "devDependencies": {
     "puppeteer": "^25.3.0"

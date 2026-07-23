@@ -1,0 +1,22 @@
+[
+  {
+    "name": "rb",
+    "displayName": "Rebuild",
+    "target": "project.rebuild",
+    "description": "Rebuild the current project",
+    "priority": 20,
+    "scope": "project",
+    "enabled": true,
+    "autoLoad": true
+  },
+  {
+    "name": "fmt",
+    "displayName": "Format Document",
+    "target": "editor.format",
+    "description": "Format the active document",
+    "priority": 10,
+    "scope": "project",
+    "enabled": true,
+    "autoLoad": true
+  }
+]
