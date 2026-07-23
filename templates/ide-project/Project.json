@@ -1,0 +1,41 @@
+{
+  "name": "sample-project",
+  "displayName": "Sample Project",
+  "version": "1.0.0",
+  "description": "Sample IDE project demonstrating data-driven configuration",
+  "plugins": [
+    "explorer",
+    "git",
+    "terminal"
+  ],
+  "aliases": [
+    "aliases/project.aliases.json"
+  ],
+  "libraries": [
+    "util.uuid",
+    "fs.read"
+  ],
+  "workspace": "programming",
+  "searchPaths": [
+    "src",
+    "lib",
+    "scripts"
+  ],
+  "databaseConnections": [
+    "database/project.db"
+  ],
+  "enabledFeatures": [
+    "editor",
+    "terminal",
+    "search",
+    "scripts",
+    "symbols"
+  ],
+  "editorSettings": {
+    "tabSize": 2,
+    "insertSpaces": true,
+    "wordWrap": "off",
+    "fontSize": 14,
+    "fontFamily": "JetBrains Mono"
+  }
+}
